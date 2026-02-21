@@ -259,7 +259,7 @@ function Hero() {
             loop
             muted
             playsInline
-            className="h-[200px] mx-auto"
+            className="h-[180px] mx-auto"
           />
         </motion.div>
 
