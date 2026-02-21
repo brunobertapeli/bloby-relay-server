@@ -7,6 +7,22 @@ const HANDLES = [
   { tier: 'at',      prefix: '', suffix: '.at.fluxy.bot', paid: false },
 ]
 
+function AnimatedBorder({ active = true, slow = false, radius = 'rounded-xl', innerRadius = 'rounded-[11px]', className = '', children }) {
+  if (!active) {
+    return (
+      <div className={`${radius} p-px bg-border/50 ${className}`}>
+        {children}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${radius} p-px animated-border ${slow ? 'animated-border-slow' : ''} ${className}`}>
+      {children}
+    </div>
+  )
+}
+
 export default function HandleSelector() {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
@@ -77,21 +93,39 @@ export default function HandleSelector() {
         </div>
 
         <div className="relative mb-6 sm:mb-8">
-          <div className={`rounded-2xl p-px transition-all duration-300 ${inputFocused ? 'bg-gradient-brand shadow-[0_0_20px_-5px_rgba(175,39,227,0.25)]' : 'bg-border'}`}>
-            <input
-              type="text"
-              value={name}
-              onChange={handleInput}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              maxLength={30}
-              placeholder="your-bot-name"
-              spellCheck={false}
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
-            />
-          </div>
+          {inputFocused ? (
+            <AnimatedBorder radius="rounded-2xl" innerRadius="rounded-[calc(1rem-1px)]" className="shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]">
+              <input
+                type="text"
+                value={name}
+                onChange={handleInput}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                maxLength={30}
+                placeholder="your-bot-name"
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
+              />
+            </AnimatedBorder>
+          ) : (
+            <div className="rounded-2xl p-px bg-border transition-all duration-300">
+              <input
+                type="text"
+                value={name}
+                onChange={handleInput}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                maxLength={30}
+                placeholder="your-bot-name"
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
+              />
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {status && name.length > 0 && (
@@ -100,7 +134,7 @@ export default function HandleSelector() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
               >
                 {status === 'checking' && (
                   <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-[#04D1FE] rounded-full animate-spin" />
@@ -143,9 +177,9 @@ export default function HandleSelector() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className={`rounded-xl transition-all duration-300 ${taken ? 'opacity-60' : ''}`}
+                  className={`transition-all duration-300 ${taken ? 'opacity-60' : ''}`}
                 >
-                  <div className={`rounded-xl p-px ${taken ? 'bg-border/50' : 'bg-gradient-brand'}`}>
+                  <AnimatedBorder active={!taken} slow>
                     <div className={`flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-[11px] transition-all duration-300 ${taken ? 'bg-card/30' : 'bg-[#212121] hover:bg-[#252525]'}`}>
                       <div className="relative flex items-center min-w-0">
                         {h.prefix && (
@@ -189,7 +223,7 @@ export default function HandleSelector() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </AnimatedBorder>
                 </motion.div>
               )
             }

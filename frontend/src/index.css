@@ -96,6 +96,32 @@
                 0 0 30px -5px rgba(175, 39, 227, 0.25);
   }
 
+  .animated-border {
+    position: relative;
+    overflow: hidden;
+  }
+  .animated-border::before {
+    content: '';
+    position: absolute;
+    inset: -150%;
+    background: conic-gradient(
+      from 0deg,
+      #04D1FE,
+      #AF27E3,
+      #FB4072,
+      #04D1FE
+    );
+    animation: border-spin 3s linear infinite;
+  }
+  .animated-border > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .animated-border-slow::before {
+    animation-duration: 5s;
+  }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
