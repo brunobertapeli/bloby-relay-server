@@ -2,28 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '../api'
 
-function AnimatedBorder({ active = true, slow = false, radius = 'rounded-xl', className = '', children }) {
-  if (!active) {
-    return (
-      <div className={`${radius} p-px bg-border/50 ${className}`}>
-        {children}
-      </div>
-    )
-  }
-
-  return (
-    <div className={`${radius} p-px animated-border ${slow ? 'animated-border-slow' : ''} ${className}`}>
-      {children}
-    </div>
-  )
-}
-
 export default function HandleSelector() {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
   const [available, setAvailable] = useState(null)
   const [inputFocused, setInputFocused] = useState(false)
+  const inputRef = useRef(null)
   const debounce = useRef(null)
 
   useEffect(() => {
@@ -84,40 +69,32 @@ export default function HandleSelector() {
           </p>
         </div>
 
-        <div className="relative mb-8 sm:mb-10">
-          {inputFocused ? (
-            <AnimatedBorder radius="rounded-2xl" className="shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]">
-              <input
-                type="text"
-                value={name}
-                onChange={handleInput}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                maxLength={30}
-                placeholder="your-name"
-                spellCheck={false}
-                autoCapitalize="none"
-                autoCorrect="off"
-                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
-              />
-            </AnimatedBorder>
-          ) : (
-            <div className="rounded-2xl p-px bg-border transition-all duration-300">
-              <input
-                type="text"
-                value={name}
-                onChange={handleInput}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                maxLength={30}
-                placeholder="your-name"
-                spellCheck={false}
-                autoCapitalize="none"
-                autoCorrect="off"
-                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
-              />
-            </div>
-          )}
+        <div
+          className="relative mb-8 sm:mb-10 cursor-text"
+          onClick={() => inputRef.current?.focus()}
+        >
+          <div
+            className={`rounded-2xl p-px transition-shadow duration-300 ${
+              inputFocused
+                ? 'animated-border shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]'
+                : 'bg-border'
+            }`}
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={name}
+              onChange={handleInput}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              maxLength={30}
+              placeholder="your-name"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200 relative z-[1]"
+            />
+          </div>
 
           <AnimatePresence mode="wait">
             {status && name.length > 0 && (

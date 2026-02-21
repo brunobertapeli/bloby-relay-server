@@ -294,6 +294,7 @@ function Hero() {
         </motion.div>
 
         <motion.div
+          id="install"
           initial="hidden" animate="visible" variants={scaleIn} custom={4}
         >
           <Terminal />
@@ -492,6 +493,22 @@ function Features() {
   )
 }
 
+function StepConnectorH() {
+  return (
+    <div className="hidden md:flex items-center self-start mt-8 -mx-2 lg:-mx-3">
+      <div className="w-8 lg:w-12 border-t border-dashed border-border/50" />
+    </div>
+  )
+}
+
+function StepConnectorV() {
+  return (
+    <div className="flex md:hidden justify-center py-2">
+      <div className="h-8 border-l border-dashed border-border/50" />
+    </div>
+  )
+}
+
 function HowItWorks() {
   const steps = [
     {
@@ -516,7 +533,7 @@ function HowItWorks() {
 
   return (
     <section id="how-it-works" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <motion.div
           className="text-center mb-10 sm:mb-16"
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
@@ -530,24 +547,24 @@ function HowItWorks() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 lg:gap-8">
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-center">
           {steps.map((item, i) => (
-            <motion.div
-              key={item.num}
-              className="relative text-center"
-              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-              variants={fadeUp} custom={i}
-            >
-              {i < 2 && (
-                <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px border-t border-dashed border-border/50" />
-              )}
-              <div className="text-5xl sm:text-6xl font-bold font-display text-foreground/10 mb-3 sm:mb-4">{item.num}</div>
-              <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-3">{item.description}</p>
-              <code className="inline-block text-xs text-foreground/60 bg-white/5 px-3 py-1.5 rounded-full font-mono">
-                {item.detail}
-              </code>
-            </motion.div>
+            <div key={item.num} className="contents">
+              {i > 0 && <StepConnectorH />}
+              {i > 0 && <StepConnectorV />}
+              <motion.div
+                className="text-center flex-1 max-w-[280px] md:max-w-none"
+                initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+                variants={fadeUp} custom={i}
+              >
+                <div className="text-5xl sm:text-6xl font-bold font-display text-foreground/10 mb-3 sm:mb-4">{item.num}</div>
+                <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-3">{item.description}</p>
+                <code className="inline-block text-xs text-foreground/60 bg-white/5 px-3 py-1.5 rounded-full font-mono">
+                  {item.detail}
+                </code>
+              </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -607,10 +624,10 @@ function OpenSource() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
-            <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
+            <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
               Install Fluxy
-              <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-            </Button>
+              <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
+            </a>
             <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
               <FaGithub className="w-4 h-4" /> Star on GitHub
             </Button>
