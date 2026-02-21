@@ -10,6 +10,7 @@ import {
   HiCommandLine, HiPuzzlePiece, HiBolt,
   HiArrowPath, HiBars3, HiXMark
 } from 'react-icons/hi2'
+import HandleSelector from './components/HandleSelector'
 
 function detectOS() {
   if (typeof navigator === 'undefined') return 'mac'
@@ -645,6 +646,7 @@ function App() {
         <Hero />
         <Features />
         <HowItWorks />
+        <HandleSelector />
         <OpenSource />
       </main>
       <Footer />

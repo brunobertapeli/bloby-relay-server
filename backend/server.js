@@ -9,6 +9,7 @@ import registerRoutes from './routes/register.js';
 import tunnelRoutes from './routes/tunnel.js';
 import statusRoutes from './routes/status.js';
 import healthRoutes from './routes/health.js';
+import availabilityRoutes from './routes/availability.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use(
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
+const relayDomain = process.env.RELAY_DOMAIN;
 
 app.use(
   cors({
@@ -35,6 +37,8 @@ app.use(
       if (!origin) return cb(null, true); // non-browser requests
       if (origin.includes('.up.railway.app')) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
+      // Allow any subdomain of the relay domain (e.g. www.fluxy.bot)
+      if (relayDomain && origin.endsWith(`.${relayDomain}`)) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -56,6 +60,7 @@ app.use('/api', apiLimiter);
 app.use('/api', registerRoutes);
 app.use('/api', tunnelRoutes);
 app.use('/api', statusRoutes);
+app.use('/api', availabilityRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Path-based fallback (must be last) ──────────────────────────────────────

@@ -108,4 +108,22 @@ router.post('/disconnect', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/handle
+ *
+ * Remove the authenticated user's handle, freeing it for others.
+ *
+ * Headers:  Authorization: Bearer <token>
+ * Returns:  { success, username }
+ */
+router.delete('/handle', authenticate, async (req, res) => {
+  try {
+    await getUsers().deleteOne({ _id: req.user._id });
+    res.json({ success: true, username: req.user.username });
+  } catch (error) {
+    console.error('[handle:delete]', error.message);
+    res.status(500).json({ error: 'Failed to release handle' });
+  }
+});
+
 export default router;

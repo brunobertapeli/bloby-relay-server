@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getUsers } from '../db.js';
 import { redirectLimiter } from '../middleware/rateLimiter.js';
+import { parseTierFromSubdomain } from '../lib/validate.js';
 
 const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '120000', 10);
 
@@ -8,17 +9,25 @@ const router = Router();
 
 // ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
 
-async function resolveBot(username, subPath, res) {
+async function resolveBot(username, tier, subPath, res) {
   if (username.includes('.') || username.length < 3 || username.length > 30) {
     return res.status(404).send(notFoundPage());
   }
 
+  const query = { username };
+  if (tier) query.tier = tier;
+
   const user = await getUsers().findOne(
-    { username },
-    { projection: { username: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
+    query,
+    { projection: { username: 1, tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
   );
 
   if (!user) {
+    return res.status(404).send(notFoundPage(username));
+  }
+
+  // If accessed via the wrong tier subdomain, 404
+  if (tier && user.tier !== tier) {
     return res.status(404).send(notFoundPage(username));
   }
 
@@ -41,25 +50,30 @@ async function resolveBot(username, subPath, res) {
 }
 
 // ─── Subdomain middleware ───────────────────────────────────────────────────
-// Intercepts requests like  bruno.fluxy.bot/anything
-// before normal route matching runs.
+// Intercepts:
+//   bruno.fluxy.bot/*        → premium (username from subdomain)
+//   bruno.at.fluxy.bot/*     → free "at" tier (username from subdomain)
 
 export function subdomainResolver(req, res, next) {
   const domain = process.env.RELAY_DOMAIN;
   if (!domain) return next();
 
-  const host = req.hostname; // e.g. "bruno.fluxy.bot"
+  // Let API routes through — they work on any subdomain
+  if (req.originalUrl.startsWith('/api/')) return next();
+
+  const host = req.hostname;
 
   // Skip bare domain and www
   if (host === domain || host === `www.${domain}`) return next();
 
   if (host.endsWith(`.${domain}`)) {
-    const sub = host.slice(0, -(domain.length + 1));
+    const subdomain = host.slice(0, -(domain.length + 1));
+    const parsed = parseTierFromSubdomain(subdomain);
 
-    // Only single-level, valid-length subdomains
-    if (sub && !sub.includes('.') && sub.length >= 3 && sub.length <= 30) {
-      return resolveBot(sub.toLowerCase(), req.originalUrl, res);
-    }
+    if (!parsed) return next();
+
+    // Both premium and free tiers now carry the username in the subdomain
+    return resolveBot(parsed.username, parsed.tier, req.originalUrl, res);
   }
 
   next();
@@ -67,12 +81,12 @@ export function subdomainResolver(req, res, next) {
 
 // ─── Path-based fallback: GET /:username ─────────────────────────────────────
 // Used when wildcard DNS isn't set up yet, or for direct testing:
-//   relay.fluxy.bot/bruno  →  302 → tunnel URL
+//   relay.fluxy.bot/bruno  →  302 → tunnel URL (any tier)
 
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
     const username = req.params.username.toLowerCase().trim();
-    await resolveBot(username, '/', res);
+    await resolveBot(username, null, '/', res);
   } catch (error) {
     console.error('[resolve]', error.message);
     res.status(500).send(errorPage());

@@ -33,8 +33,11 @@ export async function connect() {
 async function createIndexes() {
   const users = db.collection('users');
 
+  // Drop old username-only unique index if it exists (replaced by compound)
+  try { await users.dropIndex('username_1'); } catch { /* already gone */ }
+
   await Promise.all([
-    users.createIndex({ username: 1 }, { unique: true }),
+    users.createIndex({ username: 1, tier: 1 }, { unique: true }),
     users.createIndex({ tokenHash: 1 }, { unique: true }),
     users.createIndex({ lastHeartbeat: 1 }),
   ]);
