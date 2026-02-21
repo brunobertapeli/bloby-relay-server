@@ -1,0 +1,77 @@
+# CodeDeck
+.codedeck/
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+frontend/.env.*.local
+backend/.env
+backend/.env.*
+backend/.env.local
+backend/.env.*.local
+
+# Build outputs
+dist/
+frontend/dist/
+backend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files — macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# OS files — Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# Windows reserved names (can break git)
+NUL
+nul
+nul.*
+CON
+CON.*
+PRN
+PRN.*
+AUX
+AUX.*
+COM1
+COM2
+COM3
+COM4
+COM5
+COM6
+COM7
+COM8
+COM9
+LPT1
+LPT2
+LPT3
+LPT4
+LPT5
+LPT6
+LPT7
+LPT8
+LPT9
