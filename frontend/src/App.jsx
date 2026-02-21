@@ -252,11 +252,15 @@ function Hero() {
       <FloatingOrbs />
 
       <div className="max-w-4xl mx-auto text-center relative">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-          <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 rounded-full px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium font-display inline-flex items-center gap-2 cursor-default">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Open Source & Free
-          </Badge>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
+          <video
+            src="/assets/videos/fluxy_say_hi_v2.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-16 sm:h-20 md:h-24 mx-auto"
+          />
         </motion.div>
 
         <motion.h1
