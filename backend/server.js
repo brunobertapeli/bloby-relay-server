@@ -1,67 +1,87 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { connect, getDb, testConnection } from './db.js';
+import { connect, close } from './db.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
+import { subdomainResolver } from './routes/resolve.js';
+import registerRoutes from './routes/register.js';
+import tunnelRoutes from './routes/tunnel.js';
+import statusRoutes from './routes/status.js';
+import healthRoutes from './routes/health.js';
+import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-].filter(Boolean);
+// ─── Trust proxy (Railway / Cloudflare) ─────────────────────────────────────
+app.set('trust proxy', 1);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+// ─── Security headers ───────────────────────────────────────────────────────
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // inline styles in status pages
+  }),
+);
 
-    if (origin.includes('.up.railway.app')) {
-      return callback(null, true);
-    }
+// ─── CORS ────────────────────────────────────────────────────────────────────
+const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true); // non-browser requests
+      if (origin.includes('.up.railway.app')) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }),
+);
 
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-app.use(express.json());
+// ─── Body parsing (small payloads only) ──────────────────────────────────────
+app.use(express.json({ limit: '16kb' }));
 
+// ─── Connect to MongoDB ─────────────────────────────────────────────────────
 await connect();
 
-// #PLACEHOLDER - Remove this endpoint when user starts to work on his project
-app.get('/api/health', async (req, res) => {
-  const db = getDb();
-  const mongoEnvMissing = !process.env.MONGODB_URI;
+// ─── Subdomain resolver (before any route matching) ─────────────────────────
+// Intercepts  username.fluxy.bot  →  302 to tunnel URL
+app.use(subdomainResolver);
 
-  res.json({
-    status: 'ok',
-    message: 'Backend API is running',
-    mongodb: db ? 'connected' : 'not connected',
-    mongoEnvMissing
-  });
+// ─── API routes ──────────────────────────────────────────────────────────────
+app.use('/api', apiLimiter);
+app.use('/api', registerRoutes);
+app.use('/api', tunnelRoutes);
+app.use('/api', statusRoutes);
+app.use('/api', healthRoutes);
+
+// ─── Path-based fallback (must be last) ──────────────────────────────────────
+// Handles  relay.fluxy.bot/username  →  302 to tunnel URL
+app.use('/', resolveRoutes);
+
+// ─── Global error handler ────────────────────────────────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error('[server] Unhandled error:', err.message);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// #PLACEHOLDER - Remove this endpoint when user starts to work on his project
-app.get('/api/test-backend', async (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'Backend is live',
-    timestamp: new Date().toISOString()
-  });
+// ─── Start ───────────────────────────────────────────────────────────────────
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[relay] Fluxy relay server listening on :${PORT}`);
 });
 
-// #PLACEHOLDER - Remove this endpoint when user starts to work on his project
-app.get('/api/test-mongodb', async (req, res) => {
-  const result = await testConnection();
-  res.json({
-    connected: result.connected,
-    message: result.message,
-    timestamp: new Date().toISOString()
+// ─── Graceful shutdown ───────────────────────────────────────────────────────
+function shutdown(signal) {
+  console.log(`[relay] ${signal} received — shutting down`);
+  server.close(async () => {
+    await close();
+    process.exit(0);
   });
-});
+  setTimeout(() => process.exit(1), 10_000);
+}
 
-app.listen(PORT, '0.0.0.0');
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
