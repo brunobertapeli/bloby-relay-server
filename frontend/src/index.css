@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 13%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 13%;
-    --primary: 215 100% 62%;
+    --primary: 283 80% 52%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 93%;
     --secondary-foreground: 0 0% 13%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 88%;
     --input: 0 0% 88%;
-    --ring: 215 100% 62%;
+    --ring: 283 80% 52%;
     --radius: 0.75rem;
   }
 
@@ -33,7 +33,7 @@
     --card-foreground: 0 0% 96.1%;
     --popover: 0 0% 16.5%;
     --popover-foreground: 0 0% 96.1%;
-    --primary: 215 100% 62%;
+    --primary: 283 80% 52%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 96.1%;
@@ -45,7 +45,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 22.7%;
     --input: 0 0% 22.7%;
-    --ring: 215 100% 62%;
+    --ring: 283 80% 52%;
   }
 }
 
@@ -59,7 +59,7 @@
 }
 
 ::selection {
-  background-color: rgba(60, 143, 255, 0.25);
+  background-color: rgba(175, 39, 227, 0.25);
 }
 
 ::-webkit-scrollbar {
@@ -79,17 +79,21 @@
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(215 100% 62%), hsl(195 100% 65%), hsl(215 100% 72%));
+    background-image: linear-gradient(135deg, #04D1FE, #AF27E3, #FB4072);
+  }
+
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, #04D1FE, #AF27E3, #FB4072);
   }
 
   .glow-border {
-    box-shadow: 0 0 0 1px rgba(60, 143, 255, 0.1),
-                0 0 20px -5px rgba(60, 143, 255, 0.15);
+    box-shadow: 0 0 0 1px rgba(175, 39, 227, 0.1),
+                0 0 20px -5px rgba(175, 39, 227, 0.15);
   }
 
   .glow-border-hover {
-    box-shadow: 0 0 0 1px rgba(60, 143, 255, 0.2),
-                0 0 30px -5px rgba(60, 143, 255, 0.25);
+    box-shadow: 0 0 0 1px rgba(175, 39, 227, 0.2),
+                0 0 30px -5px rgba(175, 39, 227, 0.25);
   }
 
   .no-scrollbar {

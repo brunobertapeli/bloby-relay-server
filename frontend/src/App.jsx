@@ -45,8 +45,8 @@ function AnimatedGridBg() {
         className="absolute inset-0 animate-grid-fade"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(60, 143, 255, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(60, 143, 255, 0.04) 1px, transparent 1px)
+            linear-gradient(rgba(175, 39, 227, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(175, 39, 227, 0.04) 1px, transparent 1px)
           `,
           backgroundSize: '60px 60px',
         }}
@@ -60,11 +60,11 @@ function AnimatedGridBg() {
 function FloatingOrbs() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute top-20 left-[10%] w-2 h-2 bg-primary/30 rounded-full animate-float" />
-      <div className="absolute top-40 right-[15%] w-1.5 h-1.5 bg-primary/20 rounded-full animate-float-slow" style={{ animationDelay: '1s' }} />
-      <div className="absolute top-60 left-[25%] w-1 h-1 bg-primary/25 rounded-full animate-float-slower" style={{ animationDelay: '3s' }} />
-      <div className="absolute top-32 right-[30%] w-2.5 h-2.5 bg-primary/15 rounded-full animate-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-72 left-[60%] w-1.5 h-1.5 bg-primary/20 rounded-full animate-float-slow" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-20 left-[10%] w-2 h-2 rounded-full animate-float" style={{ backgroundColor: 'rgba(4, 209, 254, 0.3)' }} />
+      <div className="absolute top-40 right-[15%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(175, 39, 227, 0.25)', animationDelay: '1s' }} />
+      <div className="absolute top-60 left-[25%] w-1 h-1 rounded-full animate-float-slower" style={{ backgroundColor: 'rgba(251, 64, 114, 0.25)', animationDelay: '3s' }} />
+      <div className="absolute top-32 right-[30%] w-2.5 h-2.5 rounded-full animate-float" style={{ backgroundColor: 'rgba(175, 39, 227, 0.15)', animationDelay: '2s' }} />
+      <div className="absolute top-72 left-[60%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(4, 209, 254, 0.2)', animationDelay: '4s' }} />
     </div>
   )
 }
@@ -166,12 +166,12 @@ function Navbar() {
             <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
               <FaDiscord className="w-[18px] h-[18px]" />
             </a>
-            <a href="#" className="hidden sm:flex items-center gap-2 px-4 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200">
+            <a href="#" className="hidden sm:flex items-center gap-2 px-4 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-[#AF27E3]/30 transition-all duration-200">
               <FaGithub className="w-4 h-4" />
               <FaStar className="w-3 h-3" />
               <span className="font-medium">Star</span>
             </a>
-            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium font-display px-5 h-9 text-sm hidden sm:flex">
+            <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm hidden sm:flex">
               Demo
             </Button>
             <button
@@ -233,7 +233,7 @@ function Navbar() {
                     <FaDiscord className="w-4 h-4" /> Discord
                   </a>
                 </div>
-                <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium font-display h-11 text-sm w-full">
+                <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full">
                   Demo
                 </Button>
               </div>
@@ -284,11 +284,11 @@ function Hero() {
           className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={3}
         >
-          <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
+          <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
             Demo
             <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
           </Button>
-          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
             <FaGithub className="w-4 h-4" /> Star on GitHub
           </Button>
         </motion.div>
@@ -364,7 +364,7 @@ function Terminal() {
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="terminal-tab"
-                    className="absolute inset-0 bg-primary rounded-md"
+                    className="absolute inset-0 bg-gradient-brand rounded-md"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -607,11 +607,11 @@ function OpenSource() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
-            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
+            <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
               Install Fluxy
               <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Button>
-            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
               <FaGithub className="w-4 h-4" /> Star on GitHub
             </Button>
           </div>
