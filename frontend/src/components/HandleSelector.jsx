@@ -2,12 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '../api'
 
-const HANDLES = [
-  { tier: 'premium', prefix: '', suffix: '.fluxy.bot', paid: true, price: '$5' },
-  { tier: 'at',      prefix: '', suffix: '.at.fluxy.bot', paid: false },
-]
-
-function AnimatedBorder({ active = true, slow = false, radius = 'rounded-xl', innerRadius = 'rounded-[11px]', className = '', children }) {
+function AnimatedBorder({ active = true, slow = false, radius = 'rounded-xl', className = '', children }) {
   if (!active) {
     return (
       <div className={`${radius} p-px bg-border/50 ${className}`}>
@@ -27,7 +22,7 @@ export default function HandleSelector() {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
-  const [tierAvailability, setTierAvailability] = useState({})
+  const [available, setAvailable] = useState(null)
   const [inputFocused, setInputFocused] = useState(false)
   const debounce = useRef(null)
 
@@ -35,7 +30,7 @@ export default function HandleSelector() {
     clearTimeout(debounce.current)
     setStatus(null)
     setError('')
-    setTierAvailability({})
+    setAvailable(null)
 
     const trimmed = name.trim()
     if (trimmed.length === 0) return
@@ -56,11 +51,8 @@ export default function HandleSelector() {
           setStatus('invalid')
           setError(data.error)
         } else {
-          const avail = {}
-          for (const h of data.handles) {
-            avail[h.tier] = h.available
-          }
-          setTierAvailability(avail)
+          const premium = data.handles?.find(h => h.tier === 'premium')
+          setAvailable(premium?.available ?? true)
           setStatus('ready')
         }
       } catch {
@@ -76,14 +68,14 @@ export default function HandleSelector() {
     setName(raw)
   }
 
-  const placeholder = 'your-bot-name'
-  const display = name || placeholder
   const isEmpty = name.length === 0
+  const display = name || 'your-name'
+  const taken = status === 'ready' && available === false
 
   return (
     <section id="handle" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8 sm:mb-12">
+        <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
             Claim your handle
           </h2>
@@ -92,9 +84,9 @@ export default function HandleSelector() {
           </p>
         </div>
 
-        <div className="relative mb-6 sm:mb-8">
+        <div className="relative mb-8 sm:mb-10">
           {inputFocused ? (
-            <AnimatedBorder radius="rounded-2xl" innerRadius="rounded-[calc(1rem-1px)]" className="shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]">
+            <AnimatedBorder radius="rounded-2xl" className="shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]">
               <input
                 type="text"
                 value={name}
@@ -102,11 +94,11 @@ export default function HandleSelector() {
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
                 maxLength={30}
-                placeholder="your-bot-name"
+                placeholder="your-name"
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
-                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
+                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
               />
             </AnimatedBorder>
           ) : (
@@ -118,11 +110,11 @@ export default function HandleSelector() {
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
                 maxLength={30}
-                placeholder="your-bot-name"
+                placeholder="your-name"
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
-                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
+                className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200"
               />
             </div>
           )}
@@ -157,139 +149,71 @@ export default function HandleSelector() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="text-amber-400 text-sm text-center -mt-4 mb-6"
+              className="text-amber-400 text-sm text-center -mt-6 mb-6"
             >
               {error}
             </motion.p>
           )}
         </AnimatePresence>
 
-        <div className="space-y-2.5 sm:space-y-3">
-          {HANDLES.map((h, i) => {
-            const isFirst = i === 0
-            const available = status === 'ready' ? tierAvailability[h.tier] : null
-            const taken = available === false
-
-            if (isFirst) {
-              return (
-                <motion.div
-                  key={h.tier}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className={`transition-all duration-300 ${taken ? 'opacity-60' : ''}`}
-                >
-                  <AnimatedBorder active={!taken} slow>
-                    <div className={`flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-[11px] transition-all duration-300 ${taken ? 'bg-card/30' : 'bg-[#212121] hover:bg-[#252525]'}`}>
-                      <div className="relative flex items-center min-w-0">
-                        {h.prefix && (
-                          <span className="font-mono text-sm sm:text-base text-muted-foreground/60 shrink-0">
-                            {h.prefix}
-                          </span>
-                        )}
-                        <span className={`font-mono text-sm sm:text-base truncate ${isEmpty ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                          {display}
-                        </span>
-                        {h.suffix && (
-                          <span className="font-mono text-sm sm:text-base text-muted-foreground/60 shrink-0">
-                            {h.suffix}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="relative flex items-center gap-2 sm:gap-3 shrink-0 ml-3">
-                        {taken ? (
-                          <span className="text-xs font-medium font-display px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                            Taken
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium font-display px-2.5 py-1 rounded-full bg-gradient-brand text-white">
-                            {h.price}
-                          </span>
-                        )}
-
-                        {available && !isEmpty && (
-                          <motion.svg
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="w-4 h-4 text-emerald-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </motion.svg>
-                        )}
-                      </div>
-                    </div>
-                  </AnimatedBorder>
-                </motion.div>
-              )
-            }
-
-            return (
-              <motion.div
-                key={h.tier}
-                initial={{ opacity: 0, y: 12 }}
+        <div className="text-center">
+          <motion.div
+            className="inline-flex items-baseline justify-center gap-0 font-display"
+            layout
+          >
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={display}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className={`
-                  flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-xl border transition-all duration-300
-                  ${taken
-                    ? 'border-border/50 bg-card/30 opacity-60'
-                    : 'border-border bg-card hover:border-border hover:bg-card/80'
-                  }
-                `}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className={`text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${
+                  isEmpty
+                    ? 'text-muted-foreground/30'
+                    : taken
+                      ? 'text-red-400/80'
+                      : 'text-gradient'
+                }`}
               >
-                <div className="flex items-center min-w-0">
-                  {h.prefix && (
-                    <span className="font-mono text-sm sm:text-base text-muted-foreground/60 shrink-0">
-                      {h.prefix}
-                    </span>
-                  )}
-                  <span className={`font-mono text-sm sm:text-base truncate ${isEmpty ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                    {display}
+                {display}
+              </motion.span>
+            </AnimatePresence>
+            <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/30">
+              .fluxy.bot
+            </span>
+          </motion.div>
+
+          <AnimatePresence>
+            {status === 'ready' && !isEmpty && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mt-4"
+              >
+                {taken ? (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-red-400 font-medium font-display">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Already taken
                   </span>
-                  {h.suffix && (
-                    <span className="font-mono text-sm sm:text-base text-muted-foreground/60 shrink-0">
-                      {h.suffix}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-3">
-                  {taken ? (
-                    <span className="text-xs font-medium font-display px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                      Taken
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium font-display px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Free
-                    </span>
-                  )}
-
-                  {available && !isEmpty && (
-                    <motion.svg
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="w-4 h-4 text-emerald-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400 font-medium font-display">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </motion.svg>
-                  )}
-                </div>
+                    </svg>
+                    Available
+                  </span>
+                )}
               </motion.div>
-            )
-          })}
+            )}
+          </AnimatePresence>
         </div>
 
-        <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-4 sm:mt-5 text-center">
-          Handles are claimed during <code className="text-foreground/50">fluxy init</code>. Premium handles support custom subdomains.
+        <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
+          Handles are claimed during <code className="text-foreground/50">fluxy init</code>
         </p>
       </div>
     </section>
