@@ -4,11 +4,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: parseInt(process.env.PORT || '5173'),
+    port: 5300,
     host: true, // Required for Railway and Docker
   },
   preview: {
-    port: parseInt(process.env.PORT || '4173'),
+    port: 5300,
     host: true,
   },
 })
