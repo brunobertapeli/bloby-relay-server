@@ -254,12 +254,12 @@ function Hero() {
       <div className="max-w-4xl mx-auto text-center relative">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
           <video
-            src="/assets/videos/fluxy_say_hi_v2.mp4"
+            src="/assets/videos/fluxy_say_hi.webm"
             autoPlay
             loop
             muted
             playsInline
-            className="h-16 sm:h-20 md:h-24 mx-auto"
+            className="h-[200px] mx-auto"
           />
         </motion.div>
 
