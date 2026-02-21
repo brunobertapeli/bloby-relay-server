@@ -1,15 +1,23 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion'
+import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
 import {
-  FaGithub, FaArrowRight, FaCopy, FaCheck, FaStar
+  FaGithub, FaArrowRight, FaCopy, FaCheck, FaStar, FaDiscord
 } from 'react-icons/fa'
 import {
   HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
   HiCommandLine, HiPuzzlePiece, HiBolt,
-  HiArrowPath
+  HiArrowPath, HiBars3, HiXMark
 } from 'react-icons/hi2'
+
+function detectOS() {
+  if (typeof navigator === 'undefined') return 'mac'
+  const ua = navigator.userAgent.toLowerCase()
+  if (ua.includes('win')) return 'windows'
+  if (ua.includes('linux')) return 'linux'
+  return 'mac'
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -70,38 +78,10 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 active:scale-90"
+      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 active:scale-90 shrink-0"
     >
       {copied ? <FaCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FaCopy className="w-3.5 h-3.5" />}
     </button>
-  )
-}
-
-function TypewriterLine({ text, delay = 0 }) {
-  const [displayed, setDisplayed] = useState('')
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      let i = 0
-      const interval = setInterval(() => {
-        setDisplayed(text.slice(0, i + 1))
-        i++
-        if (i >= text.length) {
-          clearInterval(interval)
-          setDone(true)
-        }
-      }, 25)
-      return () => clearInterval(interval)
-    }, delay)
-    return () => clearTimeout(timeout)
-  }, [text, delay])
-
-  return (
-    <span>
-      {displayed}
-      {!done && <span className="animate-blink text-primary">|</span>}
-    </span>
   )
 }
 
@@ -128,6 +108,7 @@ function AnimatedCounter({ target, duration = 2 }) {
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -135,64 +116,150 @@ function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
+
+  const navLinks = [
+    { href: '#features', label: 'Features' },
+    { href: '#how-it-works', label: 'How it works' },
+    { href: '#open-source', label: 'Open Source' },
+  ]
+
   return (
-    <motion.nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'backdrop-blur-xl bg-background/80 border-b border-border/50' : 'bg-transparent'
-      }`}
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-3 group">
-          <motion.img
-            src="/assets/images/fluxy.png"
-            alt="Fluxy"
-            className="h-8 w-8"
-            whileHover={{ rotate: 12, scale: 1.1 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-          />
-          <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
-        </a>
-
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">Features</a>
-          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">How it works</a>
-          <a href="#open-source" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">Open Source</a>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a href="#" className="hidden sm:flex items-center gap-2 px-4 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200">
-            <FaGithub className="w-4 h-4" />
-            <FaStar className="w-3 h-3" />
-            <span className="font-medium">Star</span>
+    <>
+      <motion.nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled ? 'backdrop-blur-xl bg-background/80 border-b border-border/50' : 'bg-transparent'
+        }`}
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2.5 group">
+            <motion.img
+              src="/assets/images/fluxy.png"
+              alt="Fluxy"
+              className="h-8 w-8"
+              whileHover={{ rotate: 12, scale: 1.1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            />
+            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
           </a>
-          <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium font-display px-5 h-9 text-sm">
-            Get Started
-          </Button>
+
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map(link => (
+              <a key={link.href} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
+              <FaDiscord className="w-[18px] h-[18px]" />
+            </a>
+            <a href="#" className="hidden sm:flex items-center gap-2 px-4 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200">
+              <FaGithub className="w-4 h-4" />
+              <FaStar className="w-3 h-3" />
+              <span className="font-medium">Star</span>
+            </a>
+            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium font-display px-5 h-9 text-sm hidden sm:flex">
+              Demo
+            </Button>
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground md:hidden transition-colors duration-200"
+            >
+              <HiBars3 className="w-6 h-6" />
+            </button>
+          </div>
         </div>
-      </div>
-    </motion.nav>
+      </motion.nav>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            className="fixed inset-0 z-[60] md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <motion.div
+              className="absolute right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border/50 p-6 flex flex-col"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2.5">
+                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-7" />
+                  <span className="font-bold font-display text-foreground">Fluxy</span>
+                </div>
+                <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                  <HiXMark className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                {navLinks.map(link => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="py-3 px-3 rounded-xl text-base text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+
+              <div className="mt-auto flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                    <FaGithub className="w-4 h-4" /> Star
+                  </a>
+                  <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                    <FaDiscord className="w-4 h-4" /> Discord
+                  </a>
+                </div>
+                <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium font-display h-11 text-sm w-full">
+                  Demo
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 
 function Hero() {
   return (
-    <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 px-6 overflow-hidden">
+    <section className="relative pt-28 pb-12 sm:pt-36 sm:pb-20 px-4 sm:px-6 overflow-hidden">
       <AnimatedGridBg />
       <FloatingOrbs />
 
       <div className="max-w-4xl mx-auto text-center relative">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-          <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 rounded-full px-4 py-1.5 text-sm font-medium font-display inline-flex items-center gap-2 cursor-default">
+          <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 rounded-full px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium font-display inline-flex items-center gap-2 cursor-default">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Open Source & Free
           </Badge>
         </motion.div>
 
         <motion.h1
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight leading-[1.08] mb-6"
+          className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
           Software that
@@ -201,7 +268,7 @@ function Hero() {
         </motion.h1>
 
         <motion.p
-          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
           Fluxy is an open-source AI agent that builds its own interface. Describe the module
@@ -209,14 +276,14 @@ function Hero() {
         </motion.p>
 
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={3}
         >
-          <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-12 text-base gap-2 w-full sm:w-auto group">
-            Get Started Free
-            <FaArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+          <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
+            Demo
+            <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
           </Button>
-          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-12 text-base gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
             <FaGithub className="w-4 h-4" /> Star on GitHub
           </Button>
         </motion.div>
@@ -232,16 +299,30 @@ function Hero() {
 }
 
 function Terminal() {
-  const [activeTab, setActiveTab] = useState('npm')
-  const tabs = [
-    { id: 'oneliner', label: 'One-liner' },
-    { id: 'npm', label: 'npm' },
-    { id: 'hackable', label: 'Hackable' },
-  ]
+  const os = detectOS()
+  const defaultTab = os === 'windows' ? 'windows' : 'oneliner'
+  const [activeTab, setActiveTab] = useState(defaultTab)
+
+  const tabs = os === 'windows'
+    ? [
+        { id: 'windows', label: 'Windows' },
+        { id: 'npm', label: 'npm' },
+        { id: 'oneliner', label: 'macOS / Linux' },
+        { id: 'hackable', label: 'Hackable' },
+      ]
+    : [
+        { id: 'oneliner', label: os === 'mac' ? 'macOS' : 'Linux' },
+        { id: 'npm', label: 'npm' },
+        { id: 'windows', label: 'Windows' },
+        { id: 'hackable', label: 'Hackable' },
+      ]
 
   const commands = {
     oneliner: [
       { comment: 'Install & start Fluxy in one line', command: 'curl -fsSL https://fluxy.bot/install | sh' },
+    ],
+    windows: [
+      { comment: 'Install & start Fluxy on Windows', command: 'iwr -useb https://fluxy.bot/install.ps1 | iex', prompt: '>' },
     ],
     npm: [
       { comment: 'Install Fluxy', command: 'npm i -g fluxy' },
@@ -255,21 +336,21 @@ function Terminal() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-2 sm:px-0">
       <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-[#1e1e1e]">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-white/[0.06] bg-[#1e1e1e] gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
             <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
             <div className="w-3 h-3 rounded-full bg-[#28c840]" />
           </div>
 
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-white/5 rounded-lg p-0.5 flex-1 sm:flex-initial overflow-x-auto no-scrollbar">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative px-3 py-1 rounded-md text-xs font-medium font-display transition-colors duration-200 ${
+                className={`relative px-2 sm:px-3 py-1 rounded-md text-[11px] sm:text-xs font-medium font-display transition-colors duration-200 whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -287,33 +368,43 @@ function Terminal() {
             ))}
           </div>
 
-          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] rounded-full px-2.5 py-0 font-display">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] rounded-full px-2 sm:px-2.5 py-0 font-display shrink-0">
             BETA
           </Badge>
         </div>
 
-        <div className="p-5 font-mono text-sm leading-relaxed min-h-[120px]">
-          {commands[activeTab].map((line, i) => (
+        <div className="p-4 sm:p-5 font-mono text-xs sm:text-sm leading-relaxed min-h-[100px] sm:min-h-[120px]">
+          <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeTab}-${i}`}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.15, duration: 0.3 }}
-              className={i > 0 ? 'mt-4' : ''}
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="text-muted-foreground/40 text-xs mb-1"># {line.comment}</div>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-primary">$</span>{' '}
-                  <span className="text-foreground">{line.command}</span>
-                </div>
-                <CopyButton text={line.command} />
-              </div>
+              {commands[activeTab].map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.12, duration: 0.3 }}
+                  className={i > 0 ? 'mt-3 sm:mt-4' : ''}
+                >
+                  <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0 overflow-x-auto no-scrollbar">
+                      <span className="text-primary">{line.prompt || '$'}</span>{' '}
+                      <span className="text-foreground whitespace-nowrap">{line.command}</span>
+                    </div>
+                    <CopyButton text={line.command} />
+                  </div>
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
+          </AnimatePresence>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground/50 mt-4 text-center">
+      <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
         Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
       </p>
     </div>
@@ -355,26 +446,26 @@ function Features() {
   ]
 
   return (
-    <section id="features" className="py-20 sm:py-28 px-6 relative">
+    <section id="features" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 relative">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-10 sm:mb-16"
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
           variants={fadeUp}
         >
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
             Your dashboard is a conversation
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
             Every prompt creates something real. Not mockups. Not templates. Working software.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
-              className="group relative p-6 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500 cursor-default"
+              className="group relative p-5 sm:p-6 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500 cursor-default"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
               variants={scaleIn} custom={i}
               whileHover={{ y: -4 }}
@@ -382,10 +473,10 @@ function Features() {
             >
               <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors duration-300">
-                  <feature.icon className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-primary/15 transition-colors duration-300">
+                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold font-display text-foreground mb-2">{feature.title}</h3>
+                <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
               </div>
             </motion.div>
@@ -419,22 +510,22 @@ function HowItWorks() {
   ]
 
   return (
-    <section id="how-it-works" className="py-20 sm:py-28 px-6 border-t border-border/30 relative">
+    <section id="how-it-works" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-10 sm:mb-16"
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
           variants={fadeUp}
         >
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
             Three steps. Zero config.
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
             From install to a fully personalized dashboard in under a minute.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 lg:gap-8">
           {steps.map((item, i) => (
             <motion.div
               key={item.num}
@@ -445,8 +536,8 @@ function HowItWorks() {
               {i < 2 && (
                 <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px border-t border-dashed border-border/50" />
               )}
-              <div className="text-6xl font-bold font-display text-primary/10 mb-4">{item.num}</div>
-              <h3 className="text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
+              <div className="text-5xl sm:text-6xl font-bold font-display text-primary/10 mb-3 sm:mb-4">{item.num}</div>
+              <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed mb-3">{item.description}</p>
               <code className="inline-block text-xs text-primary/70 bg-primary/5 px-3 py-1.5 rounded-full font-mono">
                 {item.detail}
@@ -461,9 +552,9 @@ function HowItWorks() {
 
 function OpenSource() {
   return (
-    <section id="open-source" className="py-20 sm:py-28 px-6 border-t border-border/30 relative overflow-hidden">
+    <section id="open-source" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[200px] sm:h-[300px] bg-primary/[0.03] rounded-full blur-[120px]" />
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
@@ -472,50 +563,50 @@ function OpenSource() {
           variants={fadeUp}
         >
           <motion.div
-            className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5 sm:mb-6"
             whileHover={{ rotate: 180 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <HiBolt className="w-8 h-8 text-primary" />
+            <HiBolt className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
           </motion.div>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
             Built in the open.
             <br />
             <span className="text-gradient">Owned by everyone.</span>
           </h2>
-          <p className="text-lg text-muted-foreground mb-4 max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
             Fluxy is fully open source. Fork it, run it, break it, rebuild it.
             The best tools are the ones the community shapes together.
           </p>
 
-          <div className="flex justify-center gap-10 mb-10 pt-2">
+          <div className="flex justify-center gap-6 sm:gap-10 mb-8 sm:mb-10 pt-2">
             <div className="text-center">
-              <div className="text-2xl font-bold font-display text-foreground">
+              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
                 <AnimatedCounter target={100} />%
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Open source</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Open source</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold font-display text-foreground">
+              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
                 <AnimatedCounter target={0} />
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Cloud required</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Cloud required</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold font-display text-foreground">
+              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
                 <AnimatedCounter target={100} />%
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Your data</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Your data</div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-12 text-base gap-2 w-full sm:w-auto group">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
+            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
               Install Fluxy
-              <FaArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+              <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Button>
-            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-12 text-base gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-primary/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
               <FaGithub className="w-4 h-4" /> Star on GitHub
             </Button>
           </div>
@@ -527,15 +618,18 @@ function OpenSource() {
 
 function Footer() {
   return (
-    <footer className="py-10 px-6 border-t border-border/30">
+    <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-border/30">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-6 w-6 opacity-60" />
-          <span className="text-sm text-muted-foreground">Fluxy is open source under MIT.</span>
+          <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-5 w-5 sm:h-6 sm:w-6 opacity-60" />
+          <span className="text-xs sm:text-sm text-muted-foreground">Fluxy is open source under MIT.</span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <FaGithub className="w-4.5 h-4.5" />
+            <FaDiscord className="w-4 h-4" />
+          </a>
+          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <FaGithub className="w-4 h-4" />
           </a>
         </div>
       </div>
