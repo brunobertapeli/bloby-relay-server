@@ -373,7 +373,7 @@ function Terminal() {
             ))}
           </div>
 
-          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] rounded-full px-2 sm:px-2.5 py-0 font-display shrink-0">
+          <Badge className="bg-white/5 text-foreground/60 border-white/10 text-[10px] rounded-full px-2 sm:px-2.5 py-0 font-display shrink-0">
             BETA
           </Badge>
         </div>
@@ -398,7 +398,7 @@ function Terminal() {
                   <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="min-w-0 overflow-x-auto no-scrollbar">
-                      <span className="text-primary">{line.prompt || '$'}</span>{' '}
+                      <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
                       <span className="text-foreground whitespace-nowrap">{line.command}</span>
                     </div>
                     <CopyButton text={line.command} />
@@ -478,8 +478,8 @@ function Features() {
             >
               <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-primary/15 transition-colors duration-300">
-                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/[0.06] flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-white/[0.1] transition-colors duration-300">
+                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#04D1FE]" />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
@@ -541,10 +541,10 @@ function HowItWorks() {
               {i < 2 && (
                 <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px border-t border-dashed border-border/50" />
               )}
-              <div className="text-5xl sm:text-6xl font-bold font-display text-primary/10 mb-3 sm:mb-4">{item.num}</div>
+              <div className="text-5xl sm:text-6xl font-bold font-display text-foreground/10 mb-3 sm:mb-4">{item.num}</div>
               <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed mb-3">{item.description}</p>
-              <code className="inline-block text-xs text-primary/70 bg-primary/5 px-3 py-1.5 rounded-full font-mono">
+              <code className="inline-block text-xs text-foreground/60 bg-white/5 px-3 py-1.5 rounded-full font-mono">
                 {item.detail}
               </code>
             </motion.div>
@@ -568,11 +568,11 @@ function OpenSource() {
           variants={fadeUp}
         >
           <motion.div
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5 sm:mb-6"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.06] flex items-center justify-center mx-auto mb-5 sm:mb-6"
             whileHover={{ rotate: 180 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <HiBolt className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+            <HiBolt className="w-7 h-7 sm:w-8 sm:h-8 text-[#04D1FE]" />
           </motion.div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
