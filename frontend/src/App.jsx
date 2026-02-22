@@ -325,10 +325,10 @@ function Terminal() {
 
   const commands = {
     oneliner: [
-      { comment: 'Install & start Fluxy in one line', command: 'curl -fsSL https://fluxy.bot/install | sh' },
+      { comment: 'Install & start Fluxy in one line', command: 'curl -fsSL https://www.fluxy.bot/install | sh' },
     ],
     windows: [
-      { comment: 'Install & start Fluxy on Windows', command: 'iwr -useb https://fluxy.bot/install.ps1 | iex', prompt: '>' },
+      { comment: 'Install & start Fluxy on Windows', command: 'iwr -useb https://www.fluxy.bot/install.ps1 | iex', prompt: '>' },
     ],
     npm: [
       { comment: 'Install Fluxy', command: 'npm i -g fluxy-bot' },
