@@ -331,7 +331,7 @@ function Terminal() {
       { comment: 'Install & start Fluxy on Windows', command: 'iwr -useb https://fluxy.bot/install.ps1 | iex', prompt: '>' },
     ],
     npm: [
-      { comment: 'Install Fluxy', command: 'npm i -g fluxy' },
+      { comment: 'Install Fluxy', command: 'npm i -g fluxy-bot' },
       { comment: 'Launch your self-evolving dashboard', command: 'fluxy init' },
     ],
     hackable: [
@@ -515,7 +515,7 @@ function HowItWorks() {
       num: '01',
       title: 'Install',
       description: 'One command. 30 seconds. Works everywhere.',
-      detail: 'npm i -g fluxy'
+      detail: 'npm i -g fluxy-bot'
     },
     {
       num: '02',
