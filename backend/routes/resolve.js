@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getUsers } from '../db.js';
 import { redirectLimiter } from '../middleware/rateLimiter.js';
 import { parseTierFromSubdomain } from '../lib/validate.js';
+import proxy from '../lib/proxy.js';
 
 const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '120000', 10);
 
@@ -9,7 +10,7 @@ const router = Router();
 
 // ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
 
-async function resolveBot(username, tier, subPath, res) {
+async function resolveBot(username, tier, req, res) {
   if (username.includes('.') || username.length < 3 || username.length > 30) {
     return res.status(404).send(notFoundPage());
   }
@@ -44,9 +45,38 @@ async function resolveBot(username, tier, subPath, res) {
     return res.status(503).send(offlinePage(username));
   }
 
-  // Build target: tunnel origin + whatever sub-path was requested
-  const target = user.tunnelUrl + (subPath === '/' ? '' : subPath);
-  res.redirect(302, target);
+  // Reverse-proxy to the bot's tunnel (URL stays in the address bar)
+  proxy.web(req, res, { target: user.tunnelUrl });
+}
+
+// ─── Lookup-only helper (for WS upgrade in server.js) ───────────────────────
+
+export async function lookupBot(username, tier) {
+  const query = { username };
+  if (tier) query.tier = tier;
+
+  const user = await getUsers().findOne(
+    query,
+    { projection: { tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
+  );
+
+  if (!user) return null;
+  if (tier && user.tier !== tier) return null;
+
+  const stale =
+    user.lastHeartbeat &&
+    Date.now() - user.lastHeartbeat.getTime() > HEARTBEAT_TIMEOUT;
+
+  if (!user.tunnelUrl || !user.isOnline || stale) {
+    if (user.isOnline && stale) {
+      getUsers()
+        .updateOne({ _id: user._id }, { $set: { isOnline: false } })
+        .catch(() => {});
+    }
+    return null;
+  }
+
+  return { tunnelUrl: user.tunnelUrl };
 }
 
 // ─── Subdomain middleware ───────────────────────────────────────────────────
@@ -58,13 +88,10 @@ export function subdomainResolver(req, res, next) {
   const domain = process.env.RELAY_DOMAIN;
   if (!domain) return next();
 
-  // Let API routes through — they work on any subdomain
-  if (req.originalUrl.startsWith('/api/')) return next();
-
   const host = req.hostname;
 
-  // Skip bare domain and www
-  if (host === domain || host === `www.${domain}`) return next();
+  // Skip bare domain, www, and api — relay's own routes apply there
+  if (host === domain || host === `www.${domain}` || host === `api.${domain}`) return next();
 
   if (host.endsWith(`.${domain}`)) {
     const subdomain = host.slice(0, -(domain.length + 1));
@@ -72,8 +99,8 @@ export function subdomainResolver(req, res, next) {
 
     if (!parsed) return next();
 
-    // Both premium and free tiers now carry the username in the subdomain
-    return resolveBot(parsed.username, parsed.tier, req.originalUrl, res);
+    // Proxy everything (including /api/* paths) — the bot handles its own API
+    return resolveBot(parsed.username, parsed.tier, req, res);
   }
 
   next();
@@ -86,7 +113,7 @@ export function subdomainResolver(req, res, next) {
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
     const username = req.params.username.toLowerCase().trim();
-    await resolveBot(username, null, '/', res);
+    await resolveBot(username, null, req, res);
   } catch (error) {
     console.error('[resolve]', error.message);
     res.status(500).send(errorPage());

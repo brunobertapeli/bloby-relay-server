@@ -1,10 +1,13 @@
+import http from 'node:http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { connect, close } from './db.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
-import { subdomainResolver } from './routes/resolve.js';
+import { subdomainResolver, lookupBot } from './routes/resolve.js';
+import { parseTierFromSubdomain } from './lib/validate.js';
+import proxy from './lib/proxy.js';
 import registerRoutes from './routes/register.js';
 import tunnelRoutes from './routes/tunnel.js';
 import statusRoutes from './routes/status.js';
@@ -52,7 +55,7 @@ app.use(express.json({ limit: '16kb' }));
 await connect();
 
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
-// Intercepts  username.fluxy.bot  →  302 to tunnel URL
+// Intercepts  username.fluxy.bot  →  reverse-proxies to tunnel
 app.use(subdomainResolver);
 
 // ─── API routes ──────────────────────────────────────────────────────────────
@@ -63,8 +66,22 @@ app.use('/api', statusRoutes);
 app.use('/api', availabilityRoutes);
 app.use('/api', healthRoutes);
 
+// ─── Install scripts ────────────────────────────────────────────────────────
+// curl -fsSL https://fluxy.bot/install | sh
+// irm https://fluxy.bot/install.ps1 | iex
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+app.get('/install', (_req, res) => {
+  res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.sh'));
+});
+app.get('/install.ps1', (_req, res) => {
+  res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.ps1'));
+});
+
 // ─── Path-based fallback (must be last) ──────────────────────────────────────
-// Handles  relay.fluxy.bot/username  →  302 to tunnel URL
+// Handles  relay.fluxy.bot/username  →  reverse-proxies to tunnel
 app.use('/', resolveRoutes);
 
 // ─── Global error handler ────────────────────────────────────────────────────
@@ -74,7 +91,49 @@ app.use((err, _req, res, _next) => {
 });
 
 // ─── Start ───────────────────────────────────────────────────────────────────
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = http.createServer(app);
+
+// ─── WebSocket upgrade handler (proxy WS to bot tunnels) ─────────────────────
+const relayDomainForWs = process.env.RELAY_DOMAIN;
+
+server.on('upgrade', async (req, socket, head) => {
+  const host = req.headers.host?.split(':')[0];
+  const url = req.url;
+  console.log(`[ws-upgrade] host=${host} url=${url} relayDomain=${relayDomainForWs}`);
+
+  if (!host || !relayDomainForWs || !host.endsWith(`.${relayDomainForWs}`)) {
+    console.log('[ws-upgrade] rejected: host mismatch');
+    return socket.destroy();
+  }
+
+  // Skip relay's own subdomains
+  if (host === `api.${relayDomainForWs}` || host === `www.${relayDomainForWs}`) {
+    console.log('[ws-upgrade] rejected: relay subdomain');
+    return socket.destroy();
+  }
+
+  const subdomain = host.slice(0, -(relayDomainForWs.length + 1));
+  const parsed = parseTierFromSubdomain(subdomain);
+  console.log(`[ws-upgrade] subdomain=${subdomain} parsed=${JSON.stringify(parsed)}`);
+  if (!parsed) return socket.destroy();
+
+  try {
+    const bot = await lookupBot(parsed.username, parsed.tier);
+    console.log(`[ws-upgrade] lookupBot result=${JSON.stringify(bot)}`);
+    if (bot) {
+      console.log(`[ws-upgrade] proxying WS to ${bot.tunnelUrl}`);
+      proxy.ws(req, socket, head, { target: bot.tunnelUrl });
+    } else {
+      console.log('[ws-upgrade] bot not found or offline');
+      socket.destroy();
+    }
+  } catch (err) {
+    console.error('[ws-upgrade] error:', err);
+    socket.destroy();
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`[relay] Fluxy relay server listening on :${PORT}`);
 });
 
