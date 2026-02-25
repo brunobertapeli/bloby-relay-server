@@ -592,7 +592,7 @@ function OpenSource() {
               loop
               muted
               playsInline
-              className="h-16 sm:h-20 mx-auto"
+              className="h-28 sm:h-36 mx-auto"
             />
           </div>
 
