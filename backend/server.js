@@ -48,15 +48,17 @@ app.use(
   }),
 );
 
-// ─── Body parsing (small payloads only) ──────────────────────────────────────
-app.use(express.json({ limit: '16kb' }));
-
 // ─── Connect to MongoDB ─────────────────────────────────────────────────────
 await connect();
 
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
 // Intercepts  username.fluxy.bot  →  reverse-proxies to tunnel
+// MUST run before body parsing — express.json() consumes the request stream,
+// which prevents http-proxy from forwarding POST bodies to bot tunnels.
 app.use(subdomainResolver);
+
+// ─── Body parsing (relay API only — after subdomain proxy) ───────────────────
+app.use('/api', express.json({ limit: '16kb' }));
 
 // ─── API routes ──────────────────────────────────────────────────────────────
 app.use('/api', apiLimiter);

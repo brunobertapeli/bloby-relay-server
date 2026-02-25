@@ -138,6 +138,9 @@ export default function HandleSelector() {
             className="inline-flex items-baseline justify-center gap-0 font-display"
             layout
           >
+            <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/30">
+              fluxy.bot/
+            </span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={display}
@@ -156,9 +159,6 @@ export default function HandleSelector() {
                 {display}
               </motion.span>
             </AnimatePresence>
-            <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/30">
-              .fluxy.bot
-            </span>
           </motion.div>
 
           <AnimatePresence>

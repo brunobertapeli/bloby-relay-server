@@ -1,7 +1,7 @@
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 const RESERVED = new Set([
-  'api', 'admin', 'www', 'mail', 'ftp', 'localhost', 'relay',
+  'api', 'admin', 'www', 'mail', 'ftp', 'localhost', 'relay', 'my',
   'register', 'login', 'signup', 'status', 'health', 'tunnel',
   'heartbeat', 'app', 'dashboard', 'docs', 'help', 'support',
   'blog', 'about', 'contact', 'terms', 'privacy', 'static',
@@ -11,11 +11,11 @@ const RESERVED = new Set([
 
 // ─── Tiers ───────────────────────────────────────────────────────────────────
 
-const FREE_PREFIXES = new Set(['at']);
+const FREE_PREFIXES = new Set(['my']);
 
 export const TIERS = {
   premium: { prefix: null, paid: true, price: 5 },
-  at:      { prefix: 'at', paid: false, price: 0 },
+  at:      { prefix: 'my', paid: false, price: 0 },
 };
 
 export const VALID_TIERS = new Set(Object.keys(TIERS));
@@ -33,10 +33,25 @@ export function validateTier(tier) {
 /**
  * Build the full relay URL for a username + tier.
  *
- *   premium → https://bruno.fluxy.bot
- *   at      → https://bruno.at.fluxy.bot
+ *   premium → https://fluxy.bot/bruno
+ *   at      → https://my.fluxy.bot/bruno
  */
 export function buildRelayUrl(username, tier) {
+  const domain = process.env.RELAY_DOMAIN || 'fluxy.bot';
+  const config = TIERS[tier];
+  if (config.prefix) {
+    return `https://${config.prefix}.${domain}/${username}`;
+  }
+  return `https://${domain}/${username}`;
+}
+
+/**
+ * Build the internal subdomain URL for proxying.
+ *
+ *   premium → https://bruno.fluxy.bot
+ *   at      → https://bruno.my.fluxy.bot
+ */
+export function buildSubdomainUrl(username, tier) {
   const domain = process.env.RELAY_DOMAIN || 'fluxy.bot';
   const config = TIERS[tier];
   if (config.prefix) {
@@ -45,20 +60,25 @@ export function buildRelayUrl(username, tier) {
   return `https://${username}.${domain}`;
 }
 
+// Map subdomain prefix back to tier name in DB
+const PREFIX_TO_TIER = Object.fromEntries(
+  Object.entries(TIERS).filter(([, c]) => c.prefix).map(([tier, c]) => [c.prefix, tier]),
+);
+
 /**
  * Parse tier + username from a subdomain.
  *
  * Premium:  subdomain "bruno"      → { tier: "premium", username: "bruno" }
- * Free:     subdomain "bruno.at"   → { tier: "at", username: "bruno" }
+ * Free:     subdomain "bruno.my"   → { tier: "at", username: "bruno" }
  */
 export function parseTierFromSubdomain(subdomain) {
-  // Two-level subdomain: "bruno.at" → free tier
+  // Two-level subdomain: "bruno.my" → free tier
   if (subdomain.includes('.')) {
     const parts = subdomain.split('.');
     const prefix = parts[parts.length - 1];
     const username = parts.slice(0, -1).join('.');
     if (FREE_PREFIXES.has(prefix) && username.length >= 3 && username.length <= 30) {
-      return { tier: prefix, username: username.toLowerCase() };
+      return { tier: PREFIX_TO_TIER[prefix], username: username.toLowerCase() };
     }
     return null;
   }

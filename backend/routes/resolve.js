@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getUsers } from '../db.js';
 import { redirectLimiter } from '../middleware/rateLimiter.js';
-import { parseTierFromSubdomain } from '../lib/validate.js';
+import { parseTierFromSubdomain, buildSubdomainUrl } from '../lib/validate.js';
 import proxy from '../lib/proxy.js';
 
 const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '120000', 10);
@@ -90,8 +90,8 @@ export function subdomainResolver(req, res, next) {
 
   const host = req.hostname;
 
-  // Skip bare domain, www, and api — relay's own routes apply there
-  if (host === domain || host === `www.${domain}` || host === `api.${domain}`) return next();
+  // Skip bare domain, www, api, and my — relay's own routes apply there
+  if (host === domain || host === `www.${domain}` || host === `api.${domain}` || host === `my.${domain}`) return next();
 
   if (host.endsWith(`.${domain}`)) {
     const subdomain = host.slice(0, -(domain.length + 1));
@@ -106,14 +106,35 @@ export function subdomainResolver(req, res, next) {
   next();
 }
 
-// ─── Path-based fallback: GET /:username ─────────────────────────────────────
-// Used when wildcard DNS isn't set up yet, or for direct testing:
-//   relay.fluxy.bot/bruno  →  302 → tunnel URL (any tier)
+// ─── Path-based shortcut: GET /:username ─────────────────────────────────────
+// Redirects:
+//   fluxy.bot/bruno      →  bruno.fluxy.bot       (premium)
+//   my.fluxy.bot/bruno   →  bruno.my.fluxy.bot    (free)
 
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
     const username = req.params.username.toLowerCase().trim();
-    await resolveBot(username, null, req, res);
+
+    if (username.includes('.') || username.length < 3 || username.length > 30) {
+      return res.status(404).send(notFoundPage());
+    }
+
+    // Determine tier from host: my.fluxy.bot → free ("at"), fluxy.bot → premium
+    const domain = process.env.RELAY_DOMAIN;
+    const host = req.hostname;
+    const tier = (domain && host === `my.${domain}`) ? 'at' : 'premium';
+
+    const user = await getUsers().findOne(
+      { username, tier },
+      { projection: { tier: 1 } },
+    );
+
+    if (!user) {
+      return res.status(404).send(notFoundPage(username));
+    }
+
+    const subdomainUrl = buildSubdomainUrl(username, user.tier);
+    return res.redirect(302, subdomainUrl);
   } catch (error) {
     console.error('[resolve]', error.message);
     res.status(500).send(errorPage());
