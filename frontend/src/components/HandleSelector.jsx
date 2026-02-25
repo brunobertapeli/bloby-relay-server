@@ -58,7 +58,7 @@ export default function HandleSelector() {
   const taken = status === 'ready' && available === false
 
   return (
-    <section id="handle" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 relative">
+    <section id="handle" className="py-10 sm:py-14 md:py-20 px-4 sm:px-6 relative">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">

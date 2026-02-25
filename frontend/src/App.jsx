@@ -247,7 +247,7 @@ function Navbar() {
 
 function Hero() {
   return (
-    <section className="relative pt-28 pb-12 sm:pt-36 sm:pb-20 px-4 sm:px-6 overflow-hidden">
+    <section className="relative pt-28 pb-8 sm:pt-36 sm:pb-14 px-4 sm:px-6 overflow-hidden">
       <AnimatedGridBg />
       <FloatingOrbs />
 
@@ -453,7 +453,7 @@ function Features() {
   ]
 
   return (
-    <section id="features" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 relative">
+    <section id="features" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 relative">
       <div className="max-w-6xl mx-auto">
         <motion.div
           className="text-center mb-10 sm:mb-16"
@@ -533,7 +533,7 @@ function HowItWorks() {
   ]
 
   return (
-    <section id="how-it-works" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative">
+    <section id="how-it-works" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
       <div className="max-w-5xl mx-auto">
         <motion.div
           className="text-center mb-10 sm:mb-16"
@@ -575,7 +575,7 @@ function HowItWorks() {
 
 function OpenSource() {
   return (
-    <section id="open-source" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
+    <section id="open-source" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[200px] sm:h-[300px] bg-primary/[0.03] rounded-full blur-[120px]" />
       </div>
