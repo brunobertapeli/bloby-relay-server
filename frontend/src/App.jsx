@@ -585,13 +585,16 @@ function OpenSource() {
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
           variants={fadeUp}
         >
-          <motion.div
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.06] flex items-center justify-center mx-auto mb-5 sm:mb-6"
-            whileHover={{ rotate: 180 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <HiBolt className="w-7 h-7 sm:w-8 sm:h-8 text-[#04D1FE]" />
-          </motion.div>
+          <div className="mx-auto mb-5 sm:mb-6">
+            <video
+              src="/assets/videos/fluxy_happy.webm"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-16 sm:h-20 mx-auto"
+            />
+          </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
             Built in the open.
