@@ -276,9 +276,9 @@ function Hero() {
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
-          Fluxy pairs a powerful coding agent with a full-stack app you both share.
-          Talk to it, and watch it build — a CRM, a dashboard, a game, anything.
-          It runs on your machine and evolves every time you use it.
+          Fluxy is a coding agent with its own playground: a full-stack app you both
+          share and evolve together. A CRM, a dashboard, a game, anything. It runs on
+          your machine and you and your agent shape it the way you want.
         </motion.p>
 
         <motion.div
