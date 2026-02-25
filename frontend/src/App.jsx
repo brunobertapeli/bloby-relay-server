@@ -464,7 +464,7 @@ function Features() {
             An agent that builds. A workspace that grows.
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Every conversation changes real software. Not mockups. Not templates. Production code.
+            You talk, Fluxy builds. Everything it creates is real, working software you can use right away.
           </p>
         </motion.div>
 
