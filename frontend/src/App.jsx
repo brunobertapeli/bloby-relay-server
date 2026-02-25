@@ -267,17 +267,18 @@ function Hero() {
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
-          Software that
+          An AI agent with
           <br />
-          <span className="text-gradient">evolves itself.</span>
+          <span className="text-gradient">its own workspace.</span>
         </motion.h1>
 
         <motion.p
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
-          Fluxy is an open-source AI agent that builds its own interface. Describe the module
-          you need and watch it appear. Your dashboard grows as you talk to it.
+          Fluxy pairs a powerful coding agent with a full-stack app you both share.
+          Talk to it, and watch it build — a CRM, a dashboard, a game, anything.
+          It runs on your machine and evolves every time you use it.
         </motion.p>
 
         <motion.div
@@ -332,7 +333,7 @@ function Terminal() {
     ],
     npm: [
       { comment: 'Install Fluxy', command: 'npm i -g fluxy-bot' },
-      { comment: 'Launch your self-evolving dashboard', command: 'fluxy init' },
+      { comment: 'Launch your workspace', command: 'fluxy init' },
     ],
     hackable: [
       { comment: 'Clone the repo', command: 'git clone https://github.com/fluxy-ai/fluxy.git' },
@@ -421,33 +422,33 @@ function Features() {
   const features = [
     {
       icon: HiArrowPath,
-      title: 'Self-evolving UI',
-      description: 'Describe a feature in plain English and Fluxy builds the interface for it. Your dashboard grows with every conversation.'
+      title: 'Full-stack workspace',
+      description: 'Frontend, backend, and database — all yours. Both you and the agent can change anything in the workspace, anytime.'
     },
     {
       icon: HiChatBubbleLeftRight,
-      title: 'Prompt-driven modules',
-      description: 'Need a CRM? A kanban board? An analytics view? Just ask. Fluxy creates fully functional modules on the fly.'
-    },
-    {
-      icon: HiSparkles,
-      title: 'Persistent memory',
-      description: 'Fluxy remembers your data, preferences, and context. Every module it creates is saved and refined over time.'
-    },
-    {
-      icon: HiCpuChip,
-      title: 'Runs locally',
-      description: 'Your data stays on your machine. No cloud dependencies, no vendor lock-in. Full control, always.'
+      title: 'Built-in chat',
+      description: 'A floating chat bubble lives inside your workspace. Talk to Fluxy right where you work — sandboxed, always accessible.'
     },
     {
       icon: HiCommandLine,
-      title: 'Full autonomy',
-      description: 'Fluxy reads files, runs commands, manages processes, and interacts with APIs. It does the work, not just the chat.'
+      title: 'Real coding skills',
+      description: 'Powered by Claude Code or ChatGPT Codex. Fluxy writes, debugs, and ships production code — not HTML snippets.'
+    },
+    {
+      icon: HiCpuChip,
+      title: 'Runs on your hardware',
+      description: 'Install it on a Mac Mini, a VPS, a Raspberry Pi — anything. Your data never leaves your machine.'
+    },
+    {
+      icon: HiSparkles,
+      title: 'Works as a PWA',
+      description: 'Access your workspace from your phone or any device. Install it like a native app, use it anywhere.'
     },
     {
       icon: HiPuzzlePiece,
       title: 'Open & extensible',
-      description: 'Fork it, extend it, build on it. Community plugins and custom skills make Fluxy fit any workflow.'
+      description: 'Fork it, extend it, make it yours. Fluxy is fully open source and built to be shaped by its community.'
     },
   ]
 
@@ -460,10 +461,10 @@ function Features() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Your dashboard is a conversation
+            An agent that builds. A workspace that grows.
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Every prompt creates something real. Not mockups. Not templates. Working software.
+            Every conversation changes real software. Not mockups. Not templates. Production code.
           </p>
         </motion.div>
 
@@ -514,20 +515,20 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Install',
-      description: 'One command. 30 seconds. Works everywhere.',
+      description: 'One command. Works on macOS, Windows, and Linux.',
       detail: 'npm i -g fluxy-bot'
     },
     {
       num: '02',
       title: 'Talk',
-      description: 'Describe the module you want in plain English.',
-      detail: '"Add a contacts CRM with tags"'
+      description: 'Tell Fluxy what you need. A CRM, a dashboard, a game.',
+      detail: '"Build me a contacts CRM"'
     },
     {
       num: '03',
-      title: 'Ship',
-      description: 'Fluxy builds it, saves it, and evolves it as you go.',
-      detail: 'Module is live instantly'
+      title: 'Evolve',
+      description: 'Your workspace grows with every conversation. Fluxy remembers and refines.',
+      detail: 'Always improving'
     },
   ]
 
@@ -540,10 +541,10 @@ function HowItWorks() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Three steps. Zero config.
+            Install it. Talk to it. Watch it evolve.
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            From install to a fully personalized dashboard in under a minute.
+            From zero to a personalized workspace in under a minute.
           </p>
         </motion.div>
 
@@ -665,9 +666,9 @@ function App() {
       <Navbar />
       <main>
         <Hero />
+        <HandleSelector />
         <Features />
         <HowItWorks />
-        <HandleSelector />
         <OpenSource />
       </main>
       <Footer />
