@@ -10,9 +10,15 @@ const router = Router();
 
 // ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
 
+// Error/status pages must never be cached — stale 502/503 pages cause "Host Error" on restart
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+  'Pragma': 'no-cache',
+};
+
 async function resolveBot(username, tier, req, res) {
   if (username.includes('.') || username.length < 3 || username.length > 30) {
-    return res.status(404).send(notFoundPage());
+    return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage());
   }
 
   const query = { username };
@@ -24,12 +30,12 @@ async function resolveBot(username, tier, req, res) {
   );
 
   if (!user) {
-    return res.status(404).send(notFoundPage(username));
+    return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage(username));
   }
 
   // If accessed via the wrong tier subdomain, 404
   if (tier && user.tier !== tier) {
-    return res.status(404).send(notFoundPage(username));
+    return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage(username));
   }
 
   const stale =
@@ -42,7 +48,7 @@ async function resolveBot(username, tier, req, res) {
         .updateOne({ _id: user._id }, { $set: { isOnline: false } })
         .catch(() => {});
     }
-    return res.status(503).send(offlinePage(username));
+    return res.set(NO_CACHE_HEADERS).status(503).send(offlinePage(username));
   }
 
   // Reverse-proxy to the bot's tunnel (URL stays in the address bar)
@@ -116,7 +122,7 @@ router.get('/:username', redirectLimiter, async (req, res) => {
     const username = req.params.username.toLowerCase().trim();
 
     if (username.includes('.') || username.length < 3 || username.length > 30) {
-      return res.status(404).send(notFoundPage());
+      return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage());
     }
 
     // Determine tier from host: my.fluxy.bot → free ("at"), fluxy.bot → premium
@@ -130,14 +136,14 @@ router.get('/:username', redirectLimiter, async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).send(notFoundPage(username));
+      return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage(username));
     }
 
     const subdomainUrl = buildSubdomainUrl(username, user.tier);
     return res.redirect(302, subdomainUrl);
   } catch (error) {
     console.error('[resolve]', error.message);
-    res.status(500).send(errorPage());
+    res.set(NO_CACHE_HEADERS).status(500).send(errorPage());
   }
 });
 
@@ -184,12 +190,27 @@ function shell(title, body) {
 function offlinePage(username) {
   return shell(
     `${esc(username)} — Offline`,
-    `<meta http-equiv="refresh" content="15">
-     <h1><span class="dot red"></span> Bot Offline</h1>
+    `<h1><span class="dot red"></span> Bot Offline</h1>
      <p><strong>${esc(username)}</strong>'s bot is currently unreachable.
         It may be restarting or the host machine is powered off.</p>
-     <p>This page auto-refreshes every 15 seconds.</p>
-     <span class="badge">Powered by Fluxy</span>`,
+     <p class="sub" id="status">Retrying...</p>
+     <span class="badge">Powered by Fluxy</span>
+     <script>
+     (function(){
+       var a=0;
+       function retry(){a++;
+         fetch(location.href,{cache:'no-store',redirect:'follow'})
+           .then(function(r){if(r.ok||(r.status!==502&&r.status!==503))location.reload();else sched()})
+           .catch(function(){sched()});
+       }
+       function sched(){
+         var d=Math.min(3000,1000+a*300);
+         document.getElementById('status').textContent='Retrying in '+Math.ceil(d/1000)+'s...';
+         setTimeout(retry,d);
+       }
+       setTimeout(retry,2000);
+     })();
+     </script>`,
   );
 }
 

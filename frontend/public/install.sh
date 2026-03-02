@@ -132,6 +132,8 @@ install_fluxy() {
     NPM="npm"
     NODE="node"
   else
+    # Add bundled node to PATH so npm's "#!/usr/bin/env node" shebang works
+    export PATH="$NODE_DIR/bin:$PATH"
     NPM="$NODE_DIR/bin/npm"
     NODE="$NODE_DIR/bin/node"
   fi

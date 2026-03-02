@@ -1,10 +1,33 @@
 import { Router } from 'express';
+import dns from 'node:dns/promises';
 import { getUsers } from '../db.js';
 import { validateTunnelUrl } from '../lib/validate.js';
 import { authenticate } from '../middleware/auth.js';
 import { tunnelLimiter, heartbeatLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
+
+/**
+ * Resolve a tunnel hostname from Railway's DNS until it succeeds.
+ * Prevents negative DNS caching (NXDOMAIN) from poisoning the resolver
+ * before any proxy request tries to use the hostname.
+ */
+async function warmDns(tunnelUrl) {
+  let hostname;
+  try { hostname = new URL(tunnelUrl).hostname; } catch { return false; }
+
+  for (let i = 0; i < 30; i++) {
+    try {
+      await dns.resolve4(hostname);
+      console.log(`[dns] ${hostname} resolved after ${i + 1} attempt(s)`);
+      return true;
+    } catch {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+  console.warn(`[dns] ${hostname} failed to resolve after 30 attempts`);
+  return false;
+}
 
 /**
  * PUT /api/tunnel
@@ -35,10 +58,16 @@ router.put('/tunnel', authenticate, tunnelLimiter, async (req, res) => {
       },
     );
 
+    // Warm Railway's DNS cache before responding — prevents ENOTFOUND 502s
+    // The supervisor awaits this response, so the URL won't be shown until
+    // Railway can actually resolve the tunnel hostname.
+    const dnsReady = await warmDns(validation.url);
+
     res.json({
       success: true,
       username: req.user.username,
       tunnelUrl: validation.url,
+      dnsReady,
     });
   } catch (error) {
     console.error('[tunnel]', error.message);
