@@ -150,7 +150,7 @@ function Navbar() {
             <motion.img
               src="/assets/images/fluxy.png"
               alt="Fluxy"
-              className="h-8 w-8"
+              className="h-8 w-auto"
               whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
@@ -206,7 +206,7 @@ function Navbar() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-7" />
+                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-auto" />
                   <span className="font-bold font-display text-foreground">Fluxy</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
@@ -650,7 +650,7 @@ function Footer() {
     <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-border/30">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-5 w-5 sm:h-6 sm:w-6 opacity-60" />
+          <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-5 sm:h-6 w-auto opacity-60" />
           <span className="text-xs sm:text-sm text-muted-foreground">Fluxy is open source under MIT.</span>
         </div>
         <div className="flex items-center gap-4">
