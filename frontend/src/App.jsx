@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
@@ -11,6 +12,7 @@ import {
   HiArrowPath, HiBars3, HiXMark
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
+import Docs from './pages/Docs'
 
 function detectOS() {
   if (typeof navigator === 'undefined') return 'mac'
@@ -130,6 +132,7 @@ function Navbar() {
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How it works' },
     { href: '#open-source', label: 'Open Source' },
+    { href: '/docs', label: 'Docs' },
   ]
 
   return (
@@ -663,7 +666,7 @@ function Footer() {
   )
 }
 
-function App() {
+function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -676,6 +679,17 @@ function App() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/docs" element={<Docs />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

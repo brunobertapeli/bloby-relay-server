@@ -130,3 +130,64 @@
     display: none;
   }
 }
+
+.prose-docs {
+  @apply text-foreground leading-relaxed;
+}
+.prose-docs h1 {
+  @apply text-2xl sm:text-3xl md:text-4xl font-bold font-display tracking-tight mb-4 mt-0;
+}
+.prose-docs h2 {
+  @apply text-lg sm:text-xl font-semibold font-display tracking-tight mt-10 mb-4 text-foreground;
+}
+.prose-docs h3 {
+  @apply text-base sm:text-lg font-semibold font-display mt-8 mb-3 text-foreground;
+}
+.prose-docs h4 {
+  @apply text-sm font-semibold font-display mt-6 mb-2 text-foreground;
+}
+.prose-docs p {
+  @apply text-sm sm:text-base text-muted-foreground leading-relaxed mb-4;
+}
+.prose-docs ul {
+  @apply list-disc pl-5 mb-4 space-y-1.5;
+}
+.prose-docs ol {
+  @apply list-decimal pl-5 mb-4 space-y-1.5;
+}
+.prose-docs li {
+  @apply text-sm sm:text-base text-muted-foreground leading-relaxed;
+}
+.prose-docs strong {
+  @apply text-foreground font-semibold;
+}
+.prose-docs em {
+  @apply text-muted-foreground italic;
+}
+.prose-docs a {
+  @apply text-[#04D1FE] hover:underline transition-colors duration-200;
+}
+.prose-docs code {
+  @apply text-[13px] text-foreground/80 bg-white/[0.06] px-1.5 py-0.5 rounded font-mono;
+}
+.prose-docs pre {
+  @apply bg-[#1a1a1a] border border-border rounded-xl p-4 mb-4 overflow-x-auto;
+}
+.prose-docs pre code {
+  @apply bg-transparent px-0 py-0 text-xs sm:text-sm leading-relaxed;
+}
+.prose-docs table {
+  @apply w-full text-sm mb-4 border-collapse;
+}
+.prose-docs thead th {
+  @apply text-left text-xs font-semibold font-display uppercase tracking-wider text-muted-foreground/60 pb-3 border-b border-border;
+}
+.prose-docs tbody td {
+  @apply py-2.5 pr-4 text-muted-foreground border-b border-border/50;
+}
+.prose-docs hr {
+  @apply border-border/30 my-8;
+}
+.prose-docs blockquote {
+  @apply border-l-2 border-primary/40 pl-4 my-4 italic text-muted-foreground;
+}
