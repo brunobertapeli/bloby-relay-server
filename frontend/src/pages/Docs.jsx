@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { HiBars3, HiXMark, HiChevronRight } from 'react-icons/hi2'
-import { FaGithub, FaDiscord } from 'react-icons/fa'
+import { HiBars3, HiXMark, HiChevronRight, HiEllipsisVertical } from 'react-icons/hi2'
+import { FaGithub, FaDiscord, FaCopy, FaCheck, FaLink } from 'react-icons/fa'
 
 const sections = [
   {
@@ -413,6 +413,69 @@ Yes. That's the point. You describe what you want in plain English, and Fluxy bu
 
 const defaultSlug = 'introduction'
 
+function CopyDropdown({ markdown }) {
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(null)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const copyMarkdown = () => {
+    navigator.clipboard.writeText(markdown.trim())
+    setCopied('md')
+    setTimeout(() => { setCopied(null); setOpen(false) }, 1500)
+  }
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied('url')
+    setTimeout(() => { setCopied(null); setOpen(false) }, 1500)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200"
+      >
+        <HiEllipsisVertical className="w-5 h-5" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border bg-card shadow-xl shadow-black/30 overflow-hidden z-20"
+          >
+            <button
+              onClick={copyMarkdown}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors duration-200"
+            >
+              {copied === 'md' ? <FaCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FaCopy className="w-3.5 h-3.5" />}
+              Copy as markdown
+            </button>
+            <button
+              onClick={copyUrl}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors duration-200"
+            >
+              {copied === 'url' ? <FaCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FaLink className="w-3.5 h-3.5" />}
+              Copy URL to your agent
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function DocsNav({ currentSlug, onSelect, className = '' }) {
   return (
     <nav className={className}>
@@ -509,8 +572,11 @@ export default function Docs() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 min-w-0 max-w-3xl prose-docs"
+            className="flex-1 min-w-0 max-w-3xl prose-docs relative"
           >
+            <div className="absolute top-0 right-0">
+              <CopyDropdown markdown={content} />
+            </div>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content.trim()}
             </ReactMarkdown>
