@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_URL } from '../api'
 
-export default function HandleSelector() {
+export default function HandleSelector({ user, onLogin }) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
   const [available, setAvailable] = useState(null)
   const [inputFocused, setInputFocused] = useState(false)
+  const [reserving, setReserving] = useState(false)
   const inputRef = useRef(null)
   const debounce = useRef(null)
 
@@ -53,16 +54,26 @@ export default function HandleSelector() {
     setName(raw)
   }
 
+  const handleReserve = async () => {
+    if (!user) {
+      setReserving(true)
+      const success = await onLogin()
+      setReserving(false)
+      if (!success) return
+    }
+  }
+
   const isEmpty = name.length === 0
   const display = name || 'your-name'
   const taken = status === 'ready' && available === false
+  const isAvailable = status === 'ready' && available === true && !isEmpty
 
   return (
     <section id="handle" className="py-10 sm:py-14 md:py-20 px-4 sm:px-6 relative">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Claim your handle
+            Reserve your handle
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
             Pick a name for your bot. Access it from anywhere, forever.
@@ -177,12 +188,35 @@ export default function HandleSelector() {
                     Already taken
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400 font-medium font-display">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Available
-                  </span>
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400 font-medium font-display">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Available
+                    </span>
+                    <button
+                      onClick={handleReserve}
+                      disabled={reserving}
+                      className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-all duration-200 disabled:opacity-60"
+                    >
+                      {reserving ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          Reserve <span className="text-white/70 font-normal">$5 one-time</span>
+                          <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                    {!user && (
+                      <p className="text-[11px] text-muted-foreground/50 font-display">
+                        You'll need to sign in with Google to reserve
+                      </p>
+                    )}
+                  </div>
                 )}
               </motion.div>
             )}
@@ -190,7 +224,7 @@ export default function HandleSelector() {
         </div>
 
         <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
-          Handles are claimed during <code className="text-foreground/50">fluxy init</code>
+          Handles are activated during <code className="text-foreground/50">fluxy init</code>
         </p>
       </div>
     </section>

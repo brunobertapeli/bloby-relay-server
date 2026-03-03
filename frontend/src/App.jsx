@@ -359,7 +359,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
       name: 'Pro',
       instance: 't4g.medium',
       price: 49,
-      specs: ['2 vCPU', '4 GB RAM', '30 GB gp3', 'ARM64 (Graviton2)'],
+      specs: ['2 vCPU', '4 GB RAM', '40 GB gp3', 'ARM64 (Graviton2)'],
       description: 'For teams & heavy workloads',
       popular: true,
     },
@@ -381,6 +381,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
   if (step === 'plan') {
     return (
       <div className="font-sans">
+        <h4 className="text-sm font-display font-semibold text-foreground mb-0.5">Launch a hosted Fluxy</h4>
         <p className="text-xs text-muted-foreground mb-3 font-display">Choose your instance</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {plans.map(plan => (
@@ -713,7 +714,7 @@ function Terminal({ user, onLogin, onLogout }) {
         </div>
 
         <div className={`p-4 sm:p-5 text-xs sm:text-sm leading-relaxed ${
-          activeTab === 'hosted' ? 'min-h-[180px] sm:min-h-[220px]' : 'min-h-[100px] sm:min-h-[120px] font-mono'
+          activeTab === 'hosted' ? '' : 'min-h-[100px] sm:min-h-[120px] font-mono'
         }`}>
           <AnimatePresence mode="wait">
             {activeTab === 'hosted' ? (
@@ -1180,7 +1181,7 @@ function Home() {
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <main>
         <Hero user={user} onLogin={handleLogin} onLogout={handleLogout} />
-        <HandleSelector />
+        <HandleSelector user={user} onLogin={handleLogin} />
         <Features />
         <UseCases />
         <HowItWorks />
