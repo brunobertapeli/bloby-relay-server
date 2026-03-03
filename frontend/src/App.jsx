@@ -349,15 +349,17 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
     {
       id: 'starter',
       name: 'Starter',
-      price: 9,
-      specs: ['2 vCPU', '4 GB RAM', '50 GB SSD'],
+      instance: 't4g.small',
+      price: 29,
+      specs: ['2 vCPU', '2 GB RAM', '20 GB gp3', 'ARM64 (Graviton2)'],
       description: 'Perfect for personal use',
     },
     {
-      id: 'performance',
-      name: 'Performance',
-      price: 29,
-      specs: ['4 vCPU', '16 GB RAM', '100 GB SSD'],
+      id: 'pro',
+      name: 'Pro',
+      instance: 't4g.medium',
+      price: 49,
+      specs: ['2 vCPU', '4 GB RAM', '30 GB gp3', 'ARM64 (Graviton2)'],
       description: 'For teams & heavy workloads',
       popular: true,
     },
@@ -392,7 +394,8 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
                   Popular
                 </span>
               )}
-              <h4 className="font-display font-semibold text-foreground text-sm mb-1">{plan.name}</h4>
+              <h4 className="font-display font-semibold text-foreground text-sm mb-0.5">{plan.name}</h4>
+              <p className="text-[10px] text-muted-foreground/50 font-mono mb-1.5">{plan.instance}</p>
               <div className="text-2xl font-bold font-display text-foreground mb-0.5">
                 ${plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span>
               </div>
