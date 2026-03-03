@@ -14,6 +14,7 @@ import statusRoutes from './routes/status.js';
 import healthRoutes from './routes/health.js';
 import availabilityRoutes from './routes/availability.js';
 import authRoutes from './routes/auth.js';
+import instanceRoutes from './routes/instances.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -68,6 +69,7 @@ app.use('/api', tunnelRoutes);
 app.use('/api', statusRoutes);
 app.use('/api', availabilityRoutes);
 app.use('/api', authRoutes);
+app.use('/api', instanceRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────

@@ -356,7 +356,7 @@ function Hero({ user, onLogin, onLogout }) {
   )
 }
 
-function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, onSelectPlan, onSelectRegion, onLogin, onPay, onBack }) {
+function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, instances, onSelectPlan, onSelectRegion, onLogin, onPay, onBack, onCloseReady, onAddNew, onRestart, onTerminate }) {
   const plans = [
     {
       id: 'starter',
@@ -393,7 +393,14 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
   if (step === 'plan') {
     return (
       <div className="font-sans">
-        <p className="text-xs text-muted-foreground mb-3 font-display">Choose your instance</p>
+        <div className="flex items-center gap-2 mb-3">
+          {instances.length > 0 && (
+            <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+              <HiArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <p className="text-xs text-muted-foreground font-display">Choose your instance</p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {plans.map(plan => (
             <button
@@ -565,11 +572,87 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
           <FaCheck className="w-5 h-5 text-emerald-400" />
         </motion.div>
         <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Fluxy is ready!</h4>
-        <p className="text-xs text-muted-foreground mb-4 font-display">Access your workspace at:</p>
-        <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border">
+        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Fluxy at:</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border mb-4">
           <span className="text-sm font-mono text-[#04D1FE]">{tunnelUrl}</span>
           <CopyButton text={tunnelUrl} />
         </div>
+        <div>
+          <button
+            onClick={onCloseReady}
+            className="text-xs text-muted-foreground hover:text-foreground font-display underline underline-offset-2 transition-colors duration-200"
+          >
+            Go to my instances
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'dashboard') {
+    const regionMap = { na: 'North America', eu: 'Europe', br: 'Brazil' }
+    const planMap = { starter: { name: 'Starter', instance: 't4g.small' }, pro: { name: 'Pro', instance: 't4g.medium' } }
+
+    return (
+      <div className="font-sans">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-muted-foreground font-display">Your instances</p>
+          <button
+            onClick={onAddNew}
+            className="text-[11px] font-display font-medium text-foreground/70 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
+          >
+            + Add new
+          </button>
+        </div>
+        {instances.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-muted-foreground/50 font-display mb-3">No instances yet</p>
+            <button
+              onClick={onAddNew}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-opacity duration-200"
+            >
+              Launch your first instance
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {instances.map(inst => {
+              const plan = planMap[inst.plan] || { name: inst.plan, instance: '' }
+              return (
+                <div
+                  key={inst.id}
+                  className="p-3 rounded-xl border border-border bg-white/[0.02] relative"
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${inst.status === 'running' ? 'bg-emerald-400' : 'bg-muted-foreground/40'}`} />
+                    <span className="text-xs font-display font-semibold text-foreground truncate">{plan.name}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50 font-mono mb-1">{plan.instance}</p>
+                  <p className="text-[10px] text-muted-foreground mb-2">{regionMap[inst.region] || inst.region}</p>
+                  {inst.tunnelUrl && (
+                    <div className="flex items-center gap-1 mb-2.5">
+                      <span className="text-[9px] font-mono text-[#04D1FE] truncate">{inst.tunnelUrl}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => onRestart(inst.id)}
+                      className="flex-1 text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200"
+                    >
+                      Restart
+                    </button>
+                    <button
+                      onClick={() => onTerminate(inst.id)}
+                      className="flex-1 text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 text-red-400/70 hover:text-red-400 hover:border-red-400/30 transition-all duration-200"
+                    >
+                      Terminate
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -586,6 +669,25 @@ function Terminal({ user, onLogin, onLogout }) {
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [provisionStep, setProvisionStep] = useState(-1)
   const [tunnelUrl, setTunnelUrl] = useState('')
+  const [instances, setInstances] = useState([])
+
+  const fetchInstances = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/instances`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setInstances(data.instances || [])
+        return data.instances || []
+      }
+    } catch (err) {
+      console.error('[instances] fetch failed:', err)
+    }
+    return []
+  }
 
   const tabs = os === 'windows'
     ? [
@@ -622,14 +724,19 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   useEffect(() => {
-    if (activeTab !== 'hosted') {
+    if (activeTab === 'hosted' && user) {
+      fetchInstances().then(list => {
+        if (list && list.length > 0) setHostedStep('dashboard')
+        else setHostedStep('plan')
+      })
+    } else if (activeTab !== 'hosted') {
       setHostedStep('plan')
       setSelectedPlan(null)
       setSelectedRegion(null)
       setProvisionStep(-1)
       setTunnelUrl('')
     }
-  }, [activeTab])
+  }, [activeTab, user])
 
   useEffect(() => {
     if (hostedStep === 'provisioning') {
@@ -665,8 +772,71 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   const handleBack = () => {
-    if (hostedStep === 'region') setHostedStep('plan')
-    else if (hostedStep === 'login' || hostedStep === 'payment') setHostedStep('region')
+    if (hostedStep === 'region') {
+      if (instances.length > 0) setHostedStep('dashboard')
+      else setHostedStep('plan')
+    } else if (hostedStep === 'login' || hostedStep === 'payment') {
+      setHostedStep('region')
+    } else if (hostedStep === 'plan' && instances.length > 0) {
+      setHostedStep('dashboard')
+    }
+  }
+
+  const handleCloseReady = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (token && selectedPlan && selectedRegion) {
+      try {
+        await fetch(`${API_URL}/api/instances`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ plan: selectedPlan, region: selectedRegion, tunnelUrl }),
+        })
+      } catch (err) {
+        console.error('[instances] save failed:', err)
+      }
+    }
+    await fetchInstances()
+    setSelectedPlan(null)
+    setSelectedRegion(null)
+    setTunnelUrl('')
+    setProvisionStep(-1)
+    setHostedStep('dashboard')
+  }
+
+  const handleAddNew = () => {
+    setSelectedPlan(null)
+    setSelectedRegion(null)
+    setTunnelUrl('')
+    setProvisionStep(-1)
+    setHostedStep('plan')
+  }
+
+  const handleRestart = async (instanceId) => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      await fetch(`${API_URL}/api/instances/${instanceId}/restart`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      await fetchInstances()
+    } catch (err) {
+      console.error('[instances] restart failed:', err)
+    }
+  }
+
+  const handleTerminate = async (instanceId) => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      await fetch(`${API_URL}/api/instances/${instanceId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      await fetchInstances()
+    } catch (err) {
+      console.error('[instances] terminate failed:', err)
+    }
   }
 
   return (
@@ -742,11 +912,16 @@ function Terminal({ user, onLogin, onLogout }) {
                   selectedRegion={selectedRegion}
                   provisionStep={provisionStep}
                   tunnelUrl={tunnelUrl}
+                  instances={instances}
                   onSelectPlan={handlePlanSelect}
                   onSelectRegion={handleRegionSelect}
                   onLogin={handleLoginAndContinue}
                   onPay={handlePay}
                   onBack={handleBack}
+                  onCloseReady={handleCloseReady}
+                  onAddNew={handleAddNew}
+                  onRestart={handleRestart}
+                  onTerminate={handleTerminate}
                 />
               </motion.div>
             ) : (
