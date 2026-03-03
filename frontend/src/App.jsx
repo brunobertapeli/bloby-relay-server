@@ -13,6 +13,7 @@ import {
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
 import Docs from './pages/Docs'
+import { API_URL } from './api'
 
 function detectOS() {
   if (typeof navigator === 'undefined') return 'mac'
@@ -639,8 +640,8 @@ function Terminal({ user, onLogin, onLogout }) {
     setHostedStep(user ? 'payment' : 'login')
   }
 
-  const handleLoginAndContinue = () => {
-    onLogin()
+  const handleLoginAndContinue = async () => {
+    await onLogin()
     setHostedStep('payment')
   }
 
@@ -1080,13 +1081,81 @@ function Footer() {
 
 function Home() {
   const [user, setUser] = useState(null)
+  const tokenClientRef = useRef(null)
+  const loginResolveRef = useRef(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('fluxy_token')
+    if (token) {
+      fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => { if (data.user) setUser(data.user) })
+        .catch(() => localStorage.removeItem('fluxy_token'))
+    }
+  }, [])
+
+  useEffect(() => {
+    const init = () => {
+      if (!window.google?.accounts?.oauth2) return
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'email profile',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) return
+          try {
+            const res = await fetch(`${API_URL}/api/auth/google`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+            })
+            const data = await res.json()
+            if (data.token && data.user) {
+              localStorage.setItem('fluxy_token', data.token)
+              setUser(data.user)
+              if (loginResolveRef.current) {
+                loginResolveRef.current()
+                loginResolveRef.current = null
+              }
+            }
+          } catch (err) {
+            console.error('[auth] Failed:', err)
+          }
+        },
+      })
+    }
+
+    if (window.google?.accounts?.oauth2) {
+      init()
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.oauth2) {
+          clearInterval(interval)
+          init()
+        }
+      }, 200)
+      return () => clearInterval(interval)
+    }
+  }, [])
 
   const handleLogin = () => {
-    setUser({ name: 'Bruno' })
+    return new Promise((resolve) => {
+      if (tokenClientRef.current) {
+        loginResolveRef.current = resolve
+        tokenClientRef.current.requestAccessToken()
+      } else {
+        resolve()
+      }
+    })
   }
 
   const handleLogout = () => {
+    localStorage.removeItem('fluxy_token')
     setUser(null)
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect()
+    }
   }
 
   return (
