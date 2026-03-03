@@ -335,7 +335,19 @@ function Hero({ user, onLogin, onLogout }) {
 
         <motion.div
           id="install"
-          initial="hidden" animate="visible" variants={scaleIn} custom={4}
+          initial="hidden" animate="visible" variants={fadeUp} custom={4}
+          className="text-center mb-4 sm:mb-5"
+        >
+          <h2 className="text-lg sm:text-xl font-semibold font-display text-foreground tracking-tight">
+            Get started
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Install locally or launch a hosted instance in seconds.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial="hidden" animate="visible" variants={scaleIn} custom={5}
         >
           <Terminal user={user} onLogin={onLogin} onLogout={onLogout} />
         </motion.div>
@@ -381,7 +393,6 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
   if (step === 'plan') {
     return (
       <div className="font-sans">
-        <h4 className="text-sm font-display font-semibold text-foreground mb-0.5">Launch a hosted Fluxy</h4>
         <p className="text-xs text-muted-foreground mb-3 font-display">Choose your instance</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {plans.map(plan => (
