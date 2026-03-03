@@ -641,8 +641,8 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   const handleLoginAndContinue = async () => {
-    await onLogin()
-    setHostedStep('payment')
+    const success = await onLogin()
+    if (success) setHostedStep('payment')
   }
 
   const handlePay = () => {
@@ -1140,13 +1140,27 @@ function Home() {
   }, [])
 
   const handleLogin = () => {
+    if (!tokenClientRef.current) {
+      console.warn('[auth] Google not ready yet, retrying...')
+      return new Promise((resolve) => {
+        let attempts = 0
+        const retry = setInterval(() => {
+          attempts++
+          if (tokenClientRef.current) {
+            clearInterval(retry)
+            loginResolveRef.current = () => resolve(true)
+            tokenClientRef.current.requestAccessToken()
+          } else if (attempts > 15) {
+            clearInterval(retry)
+            console.error('[auth] Google failed to load')
+            resolve(false)
+          }
+        }, 200)
+      })
+    }
     return new Promise((resolve) => {
-      if (tokenClientRef.current) {
-        loginResolveRef.current = resolve
-        tokenClientRef.current.requestAccessToken()
-      } else {
-        resolve()
-      }
+      loginResolveRef.current = () => resolve(true)
+      tokenClientRef.current.requestAccessToken()
     })
   }
 
