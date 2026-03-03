@@ -4,12 +4,12 @@ import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresen
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
 import {
-  FaGithub, FaArrowRight, FaCopy, FaCheck, FaStar, FaDiscord
+  FaGithub, FaArrowRight, FaCopy, FaCheck, FaStar, FaDiscord, FaGoogle
 } from 'react-icons/fa'
 import {
   HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
   HiCommandLine, HiPuzzlePiece, HiBolt,
-  HiArrowPath, HiBars3, HiXMark
+  HiArrowPath, HiBars3, HiXMark, HiArrowLeft
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
 import Docs from './pages/Docs'
@@ -109,7 +109,7 @@ function AnimatedCounter({ target, duration = 2 }) {
   return <span ref={ref}>{display}</span>
 }
 
-function Navbar() {
+function Navbar({ user, onLogin, onLogout }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -174,9 +174,26 @@ function Navbar() {
               <FaStar className="w-3 h-3" />
               <span className="font-medium">Star</span>
             </a>
-            <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm hidden sm:flex">
-              Demo
-            </Button>
+            {user ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="text-sm text-foreground/80 font-display">
+                  Hey, <span className="font-semibold text-foreground">{user.name}</span>
+                </span>
+                <button
+                  onClick={onLogout}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                >
+                  Sair
+                </button>
+              </div>
+            ) : (
+              <Button
+                onClick={onLogin}
+                className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm hidden sm:flex"
+              >
+                Login
+              </Button>
+            )}
             <button
               onClick={() => setMobileOpen(true)}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground md:hidden transition-colors duration-200"
@@ -236,9 +253,26 @@ function Navbar() {
                     <FaDiscord className="w-4 h-4" /> Discord
                   </a>
                 </div>
-                <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full">
-                  Demo
-                </Button>
+                {user ? (
+                  <div className="flex items-center justify-center gap-2 h-11">
+                    <span className="text-sm text-foreground/80 font-display">
+                      Hey, <span className="font-semibold text-foreground">{user.name}</span>
+                    </span>
+                    <button
+                      onClick={() => { onLogout(); setMobileOpen(false) }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => { onLogin(); setMobileOpen(false) }}
+                    className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full"
+                  >
+                    Login
+                  </Button>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -248,7 +282,7 @@ function Navbar() {
   )
 }
 
-function Hero() {
+function Hero({ user, onLogin, onLogout }) {
   return (
     <section className="relative pt-28 pb-8 sm:pt-36 sm:pb-14 px-4 sm:px-6 overflow-hidden">
       <AnimatedGridBg />
@@ -302,17 +336,240 @@ function Hero() {
           id="install"
           initial="hidden" animate="visible" variants={scaleIn} custom={4}
         >
-          <Terminal />
+          <Terminal user={user} onLogin={onLogin} onLogout={onLogout} />
         </motion.div>
       </div>
     </section>
   )
 }
 
-function Terminal() {
+function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, onSelectPlan, onSelectRegion, onLogin, onPay, onBack }) {
+  const plans = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: 9,
+      specs: ['2 vCPU', '4 GB RAM', '50 GB SSD'],
+      description: 'Perfect for personal use',
+    },
+    {
+      id: 'performance',
+      name: 'Performance',
+      price: 29,
+      specs: ['4 vCPU', '16 GB RAM', '100 GB SSD'],
+      description: 'For teams & heavy workloads',
+      popular: true,
+    },
+  ]
+
+  const regions = [
+    { id: 'na', label: 'North America', sublabel: 'Virginia' },
+    { id: 'eu', label: 'Europe', sublabel: 'Frankfurt' },
+    { id: 'br', label: 'Brazil', sublabel: 'Sao Paulo' },
+  ]
+
+  const provisioningSteps = [
+    'Spinning up your instance...',
+    'Installing Fluxy...',
+    'Initializing Fluxy...',
+    'Your Fluxy is ready!',
+  ]
+
+  if (step === 'plan') {
+    return (
+      <div className="font-sans">
+        <p className="text-xs text-muted-foreground mb-3 font-display">Choose your instance</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {plans.map(plan => (
+            <button
+              key={plan.id}
+              onClick={() => onSelectPlan(plan.id)}
+              className="text-left p-4 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300 group relative"
+            >
+              {plan.popular && (
+                <span className="absolute -top-2 right-3 text-[9px] font-display font-semibold bg-gradient-brand text-white px-2 py-0.5 rounded-full">
+                  Popular
+                </span>
+              )}
+              <h4 className="font-display font-semibold text-foreground text-sm mb-1">{plan.name}</h4>
+              <div className="text-2xl font-bold font-display text-foreground mb-0.5">
+                ${plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-2.5">{plan.description}</p>
+              <ul className="space-y-1">
+                {plan.specs.map(spec => (
+                  <li key={spec} className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-[#04D1FE] shrink-0" />
+                    {spec}
+                  </li>
+                ))}
+              </ul>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'region') {
+    const plan = plans.find(p => p.id === selectedPlan)
+    return (
+      <div className="font-sans">
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <HiArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-xs text-muted-foreground font-display">
+            {plan.name} &middot; ${plan.price}/mo &mdash; Select region
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {regions.map(region => (
+            <button
+              key={region.id}
+              onClick={() => onSelectRegion(region.id)}
+              className="text-center p-3 sm:p-4 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300"
+            >
+              <div className="text-sm font-display font-medium text-foreground mb-0.5">{region.label}</div>
+              <div className="text-[10px] text-muted-foreground">{region.sublabel}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'login') {
+    return (
+      <div className="font-sans py-2 sm:py-4">
+        <div className="flex items-center gap-2 mb-5">
+          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <HiArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-xs text-muted-foreground font-display">Sign in to continue</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Fluxy instance</p>
+          <button
+            onClick={onLogin}
+            className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-white text-[#1a1a1a] font-medium text-sm hover:bg-white/90 transition-colors duration-200"
+          >
+            <FaGoogle className="w-4 h-4 text-[#4285F4]" />
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'payment') {
+    const plan = plans.find(p => p.id === selectedPlan)
+    const region = regions.find(r => r.id === selectedRegion)
+    return (
+      <div className="font-sans">
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <HiArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-xs text-muted-foreground font-display">Confirm & pay</p>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-white/[0.02] mb-4">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <div className="text-sm font-display font-semibold text-foreground">{plan.name} Instance</div>
+              <div className="text-[11px] text-muted-foreground">{region.label} ({region.sublabel})</div>
+            </div>
+            <div className="text-lg font-bold font-display text-foreground">
+              ${plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {plan.specs.map(spec => (
+              <span key={spec} className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{spec}</span>
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={onPay}
+          className="w-full py-2.5 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-opacity duration-200"
+        >
+          Pay ${plan.price}/mo
+        </button>
+      </div>
+    )
+  }
+
+  if (step === 'provisioning') {
+    return (
+      <div className="font-sans py-2 sm:py-4">
+        <div className="space-y-3.5">
+          {provisioningSteps.map((label, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: provisionStep >= i ? 1 : 0.3, x: 0 }}
+              transition={{ delay: i * 0.15, duration: 0.3 }}
+              className="flex items-center gap-3"
+            >
+              {provisionStep > i ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0"
+                >
+                  <FaCheck className="w-2.5 h-2.5 text-emerald-400" />
+                </motion.div>
+              ) : provisionStep === i ? (
+                <div className="w-5 h-5 rounded-full border-2 border-primary/40 border-t-primary animate-spin shrink-0" />
+              ) : (
+                <div className="w-5 h-5 rounded-full border border-white/10 shrink-0" />
+              )}
+              <span className={`text-sm font-display transition-colors duration-300 ${
+                provisionStep > i ? 'text-emerald-400' : provisionStep === i ? 'text-foreground' : 'text-muted-foreground/30'
+              }`}>
+                {label}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'ready') {
+    return (
+      <div className="font-sans text-center py-4 sm:py-6">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-3"
+        >
+          <FaCheck className="w-5 h-5 text-emerald-400" />
+        </motion.div>
+        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Fluxy is ready!</h4>
+        <p className="text-xs text-muted-foreground mb-4 font-display">Access your workspace at:</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border">
+          <span className="text-sm font-mono text-[#04D1FE]">{tunnelUrl}</span>
+          <CopyButton text={tunnelUrl} />
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
+function Terminal({ user, onLogin, onLogout }) {
   const os = detectOS()
   const defaultTab = os === 'windows' ? 'windows' : 'oneliner'
   const [activeTab, setActiveTab] = useState(defaultTab)
+  const [hostedStep, setHostedStep] = useState('plan')
+  const [selectedPlan, setSelectedPlan] = useState(null)
+  const [selectedRegion, setSelectedRegion] = useState(null)
+  const [provisionStep, setProvisionStep] = useState(-1)
+  const [tunnelUrl, setTunnelUrl] = useState('')
 
   const tabs = os === 'windows'
     ? [
@@ -320,12 +577,14 @@ function Terminal() {
         { id: 'npm', label: 'npm' },
         { id: 'oneliner', label: 'macOS / Linux' },
         { id: 'hackable', label: 'Hackable' },
+        { id: 'hosted', label: 'Hosted' },
       ]
     : [
         { id: 'oneliner', label: os === 'mac' ? 'macOS' : 'Linux' },
         { id: 'npm', label: 'npm' },
         { id: 'windows', label: 'Windows' },
         { id: 'hackable', label: 'Hackable' },
+        { id: 'hosted', label: 'Hosted' },
       ]
 
   const commands = {
@@ -344,6 +603,54 @@ function Terminal() {
       { comment: 'Install dependencies', command: 'cd fluxy && npm install' },
       { comment: 'Start Fluxy', command: 'npm run dev' },
     ],
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'hosted') {
+      setHostedStep('plan')
+      setSelectedPlan(null)
+      setSelectedRegion(null)
+      setProvisionStep(-1)
+      setTunnelUrl('')
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (hostedStep === 'provisioning') {
+      setProvisionStep(0)
+      const t1 = setTimeout(() => setProvisionStep(1), 2000)
+      const t2 = setTimeout(() => setProvisionStep(2), 4000)
+      const t3 = setTimeout(() => setProvisionStep(3), 6000)
+      const t4 = setTimeout(() => {
+        setTunnelUrl('https://fluxy.bot/your-workspace')
+        setHostedStep('ready')
+      }, 7500)
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
+    }
+  }, [hostedStep])
+
+  const handlePlanSelect = (planId) => {
+    setSelectedPlan(planId)
+    setHostedStep('region')
+  }
+
+  const handleRegionSelect = (regionId) => {
+    setSelectedRegion(regionId)
+    setHostedStep(user ? 'payment' : 'login')
+  }
+
+  const handleLoginAndContinue = () => {
+    onLogin()
+    setHostedStep('payment')
+  }
+
+  const handlePay = () => {
+    setHostedStep('provisioning')
+  }
+
+  const handleBack = () => {
+    if (hostedStep === 'region') setHostedStep('plan')
+    else if (hostedStep === 'login' || hostedStep === 'payment') setHostedStep('region')
   }
 
   return (
@@ -379,44 +686,89 @@ function Terminal() {
             ))}
           </div>
 
-          <Badge className="bg-white/5 text-foreground/60 border-white/10 text-[10px] rounded-full px-2 sm:px-2.5 py-0 font-display shrink-0">
-            BETA
-          </Badge>
+          {user ? (
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <span className="text-[10px] sm:text-xs text-foreground/70 font-display whitespace-nowrap">
+                Hey, <span className="font-semibold text-foreground">{user.name}</span>
+              </span>
+              <button
+                onClick={onLogout}
+                className="text-[10px] sm:text-[11px] text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+              >
+                Sair
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="text-[11px] sm:text-xs font-medium font-display text-foreground/70 hover:text-foreground px-2.5 sm:px-3 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200 shrink-0"
+            >
+              Login
+            </button>
+          )}
         </div>
 
-        <div className="p-4 sm:p-5 font-mono text-xs sm:text-sm leading-relaxed min-h-[100px] sm:min-h-[120px]">
+        <div className={`p-4 sm:p-5 text-xs sm:text-sm leading-relaxed ${
+          activeTab === 'hosted' ? 'min-h-[180px] sm:min-h-[220px]' : 'min-h-[100px] sm:min-h-[120px] font-mono'
+        }`}>
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-            >
-              {commands[activeTab].map((line, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.12, duration: 0.3 }}
-                  className={i > 0 ? 'mt-3 sm:mt-4' : ''}
-                >
-                  <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
-                  <div className="flex items-center justify-between gap-2 sm:gap-3">
-                    <div className="min-w-0 overflow-x-auto no-scrollbar">
-                      <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
-                      <span className="text-foreground whitespace-nowrap">{line.command}</span>
+            {activeTab === 'hosted' ? (
+              <motion.div
+                key={`hosted-${hostedStep}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+              >
+                <HostedContent
+                  step={hostedStep}
+                  selectedPlan={selectedPlan}
+                  selectedRegion={selectedRegion}
+                  provisionStep={provisionStep}
+                  tunnelUrl={tunnelUrl}
+                  onSelectPlan={handlePlanSelect}
+                  onSelectRegion={handleRegionSelect}
+                  onLogin={handleLoginAndContinue}
+                  onPay={handlePay}
+                  onBack={handleBack}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+              >
+                {commands[activeTab].map((line, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.12, duration: 0.3 }}
+                    className={i > 0 ? 'mt-3 sm:mt-4' : ''}
+                  >
+                    <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
+                      <div className="min-w-0 overflow-x-auto no-scrollbar">
+                        <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
+                        <span className="text-foreground whitespace-nowrap">{line.command}</span>
+                      </div>
+                      <CopyButton text={line.command} />
                     </div>
-                    <CopyButton text={line.command} />
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>
       <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
-        Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
+        {activeTab === 'hosted'
+          ? 'Fully managed Fluxy instance on AWS. No setup, no maintenance.'
+          : 'Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.'
+        }
       </p>
     </div>
   )
@@ -727,11 +1079,21 @@ function Footer() {
 }
 
 function Home() {
+  const [user, setUser] = useState(null)
+
+  const handleLogin = () => {
+    setUser({ name: 'Bruno' })
+  }
+
+  const handleLogout = () => {
+    setUser(null)
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <main>
-        <Hero />
+        <Hero user={user} onLogin={handleLogin} onLogout={handleLogout} />
         <HandleSelector />
         <Features />
         <UseCases />
