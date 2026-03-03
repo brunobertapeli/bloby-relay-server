@@ -270,18 +270,19 @@ function Hero() {
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
-          An AI agent with
+          Vibe coding
           <br />
-          <span className="text-gradient">its own workspace.</span>
+          <span className="text-gradient">in your pocket.</span>
         </motion.h1>
 
         <motion.p
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
-          Fluxy is a coding agent with its own playground: a full-stack app you both
-          share and evolve together. A CRM, a dashboard, a game, anything. It runs on
-          your machine and you and your agent shape it the way you want.
+          A self-hosted coding agent with its own full-stack app. Talk to it from
+          your phone and it builds real software — a CRM, a research hub, mini tools
+          on demand. It runs on your hardware, you access it from anywhere, and your
+          workspace grows with every conversation.
         </motion.p>
 
         <motion.div
@@ -425,33 +426,33 @@ function Features() {
   const features = [
     {
       icon: HiArrowPath,
-      title: 'Full-stack workspace',
-      description: 'Frontend, backend, and database — all yours. Both you and the agent can change anything in the workspace, anytime.'
+      title: 'Full-stack sandbox',
+      description: 'Frontend, backend, and database — all yours. Ask for a CRM today, a finance tracker tomorrow. Fluxy adds them as modules to your workspace.'
     },
     {
       icon: HiChatBubbleLeftRight,
-      title: 'Built-in chat',
-      description: 'A floating chat bubble lives inside your workspace. Talk to Fluxy right where you work — sandboxed, always accessible.'
+      title: 'Indestructible chat',
+      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Fluxy and ask for fixes.'
     },
     {
-      icon: HiCommandLine,
-      title: 'Real coding skills',
-      description: 'Powered by Claude Code or ChatGPT Codex. Fluxy writes, debugs, and ships production code — not HTML snippets.'
+      icon: HiSparkles,
+      title: 'Mini apps on demand',
+      description: '"I need a calorie counter." Fluxy builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
     },
     {
       icon: HiCpuChip,
       title: 'Runs on your hardware',
-      description: 'Install it on a Mac Mini, a VPS, a Raspberry Pi — anything. Your data never leaves your machine.'
+      description: 'Mac Mini, VPS, Raspberry Pi — anything that stays on. Install once, access from anywhere. Your data never leaves your machine.'
     },
     {
-      icon: HiSparkles,
-      title: 'Works as a PWA',
-      description: 'Access your workspace from your phone or any device. Install it like a native app, use it anywhere.'
+      icon: HiBolt,
+      title: 'Voice & mobile-first',
+      description: 'A PWA you install like a native app. Send voice messages, and Fluxy transcribes them with Whisper. It\'s like talking to your codebase.'
     },
     {
       icon: HiPuzzlePiece,
-      title: 'Open & extensible',
-      description: 'Fork it, extend it, make it yours. Fluxy is fully open source and built to be shaped by its community.'
+      title: 'Secure by default',
+      description: 'Encrypted tunnels via Cloudflare, portal password, and optional 2FA. Accessible from anywhere, but only by you.'
     },
   ]
 
@@ -464,10 +465,10 @@ function Features() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            An agent that builds. A workspace that grows.
+            Not just a chat. <span className="text-gradient">A whole app.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            You talk, Fluxy builds. Everything it creates is real, working software you can use right away.
+            Other agents live in your terminal. Fluxy lives in a full-stack app you access from anywhere — and builds whatever you need inside it.
           </p>
         </motion.div>
 
@@ -488,6 +489,65 @@ function Features() {
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function UseCases() {
+  const cases = [
+    {
+      label: 'Personal dashboard',
+      description: 'A private, password-protected hub for your gym stats, finances, contacts — all built by your agent, all in one place.',
+    },
+    {
+      label: 'Team research hub',
+      description: 'Your agent runs daily lead research. Your team checks the findings at fluxy.bot/companybot every morning.',
+    },
+    {
+      label: 'Public showcase',
+      description: 'Leave your workspace open and share live reports, tools, or experiments with anyone who visits your URL.',
+    },
+    {
+      label: 'Tools on demand',
+      description: '"I need a meal planner." The agent builds it, adds it to the sidebar, and you\'re using it five minutes later.',
+    },
+  ]
+
+  return (
+    <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          className="text-center mb-10 sm:mb-16"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+            The ideas are <span className="text-gradient">endless.</span>
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+            One agent, one workspace, infinite possibilities. Here's what people are building.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {cases.map((item, i) => (
+            <motion.div
+              key={item.label}
+              className="group relative p-5 sm:p-6 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500 cursor-default"
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+              variants={scaleIn} custom={i}
+              whileHover={{ y: -4 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            >
+              <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative">
+                <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{item.label}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
               </div>
             </motion.div>
           ))}
@@ -518,20 +578,20 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Install',
-      description: 'One command. Works on macOS, Windows, and Linux.',
-      detail: 'npm i -g fluxy-bot'
+      description: 'One command. Mac, Windows, Linux. The installer handles everything — Node.js included.',
+      detail: 'fluxy init'
     },
     {
       num: '02',
       title: 'Talk',
-      description: 'Tell Fluxy what you need. A CRM, a dashboard, a game.',
+      description: 'Describe what you need in plain English. Or send a voice message from your phone.',
       detail: '"Build me a contacts CRM"'
     },
     {
       num: '03',
-      title: 'Evolve',
-      description: 'Your workspace grows with every conversation. Fluxy remembers and refines.',
-      detail: 'Always improving'
+      title: 'Use it everywhere',
+      description: 'Open it from your phone, laptop, anywhere. A PWA that\'s always on, always yours.',
+      detail: 'fluxy.bot/yourname'
     },
   ]
 
@@ -544,10 +604,10 @@ function HowItWorks() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Install it. Talk to it. Watch it evolve.
+            Install. Talk. Build anything.
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            From zero to a personalized workspace in under a minute.
+            From zero to your own AI-powered workspace in under a minute.
           </p>
         </motion.div>
 
@@ -651,7 +711,7 @@ function Footer() {
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-5 sm:h-6 w-auto opacity-60" />
-          <span className="text-xs sm:text-sm text-muted-foreground">Fluxy is open source under MIT.</span>
+          <span className="text-xs sm:text-sm text-muted-foreground">Open source under MIT. Your agent, your rules.</span>
         </div>
         <div className="flex items-center gap-4">
           <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
@@ -674,6 +734,7 @@ function Home() {
         <Hero />
         <HandleSelector />
         <Features />
+        <UseCases />
         <HowItWorks />
         <OpenSource />
       </main>

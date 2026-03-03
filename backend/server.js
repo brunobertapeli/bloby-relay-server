@@ -82,6 +82,16 @@ app.get('/install.ps1', (_req, res) => {
   res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.ps1'));
 });
 
+// ─── Bare domain → www redirect ──────────────────────────────────────────────
+// fluxy.bot  →  www.fluxy.bot  (so visitors see the website, not "Cannot GET /")
+app.get('/', (req, res, next) => {
+  const domain = process.env.RELAY_DOMAIN;
+  if (domain && req.hostname === domain) {
+    return res.redirect(301, `https://www.${domain}`);
+  }
+  next();
+});
+
 // ─── Path-based fallback (must be last) ──────────────────────────────────────
 // Handles  relay.fluxy.bot/username  →  reverse-proxies to tunnel
 app.use('/', resolveRoutes);
