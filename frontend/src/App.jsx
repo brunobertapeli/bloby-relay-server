@@ -237,7 +237,7 @@ function Navbar({ user, onLogin, onLogout }) {
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
             >
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
                   <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-auto" />
                   <span className="font-bold font-display text-foreground">Fluxy</span>
@@ -246,6 +246,29 @@ function Navbar({ user, onLogin, onLogout }) {
                   <HiXMark className="w-5 h-5" />
                 </button>
               </div>
+
+              {user ? (
+                <div className="flex items-center justify-between px-3 py-3 mb-4 rounded-xl bg-white/[0.03] border border-border/50">
+                  <span className="text-sm text-foreground/80 font-display">
+                    Hey, <span className="font-semibold text-foreground">{user.name}</span>
+                  </span>
+                  <button
+                    onClick={() => { onLogout(); setMobileOpen(false) }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                  >
+                    Sair
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-4 mt-2">
+                  <Button
+                    onClick={() => { onLogin(); setMobileOpen(false) }}
+                    className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full"
+                  >
+                    Login
+                  </Button>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 {navLinks.map(link => (
@@ -260,35 +283,13 @@ function Navbar({ user, onLogin, onLogout }) {
                 ))}
               </div>
 
-              <div className="mt-auto flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
-                    <FaGithub className="w-4 h-4" /> Star
-                  </a>
-                  <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
-                    <FaDiscord className="w-4 h-4" /> Discord
-                  </a>
-                </div>
-                {user ? (
-                  <div className="flex items-center justify-center gap-2 h-11">
-                    <span className="text-sm text-foreground/80 font-display">
-                      Hey, <span className="font-semibold text-foreground">{user.name}</span>
-                    </span>
-                    <button
-                      onClick={() => { onLogout(); setMobileOpen(false) }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={() => { onLogin(); setMobileOpen(false) }}
-                    className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full"
-                  >
-                    Login
-                  </Button>
-                )}
+              <div className="mt-auto flex items-center gap-3">
+                <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                  <FaGithub className="w-4 h-4" /> Star
+                </a>
+                <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                  <FaDiscord className="w-4 h-4" /> Discord
+                </a>
               </div>
             </motion.div>
           </motion.div>
