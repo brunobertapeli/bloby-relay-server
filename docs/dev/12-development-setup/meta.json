@@ -1,0 +1,14 @@
+{
+    "title": "Development Setup",
+    "pages": [
+        "prerequisites",
+        "getting-started",
+        "running-dev",
+        "building",
+        "environment-variables",
+        "debugging",
+        "dev-workflow",
+        "cross-platform",
+        "quick-reference"
+    ]
+}

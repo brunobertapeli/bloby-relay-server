@@ -1,0 +1,18 @@
+{
+    "title": "Supervisor",
+    "pages": [
+        "role",
+        "http-server",
+        "reverse-proxy",
+        "authentication",
+        "websocket",
+        "process-management",
+        "file-watcher",
+        "file-saving",
+        "chat-widget",
+        "startup",
+        "shutdown",
+        "self-update",
+        "design-decisions"
+    ]
+}

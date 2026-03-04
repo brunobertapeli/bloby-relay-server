@@ -1,0 +1,15 @@
+{
+    "title": "Worker API",
+    "pages": [
+        "architecture",
+        "middleware",
+        "database-schema",
+        "api-endpoints",
+        "oauth-flows",
+        "password-hashing",
+        "totp",
+        "error-handling",
+        "request-lifecycle",
+        "endpoint-summary"
+    ]
+}

@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:docs": "cd ../docs && npx fumapress"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.5.2",
     "autoprefixer": "^10.4.21",
+    "fumapress": "^0.1.1",
     "postcss": "^8.5.4",
     "tailwindcss": "^3.4.17",
     "vite": "^6.3.5"

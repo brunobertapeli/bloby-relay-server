@@ -1,4 +1,4 @@
-# Railway configuration for monorepo (backend + frontend)
+# Railway configuration for monorepo (backend + frontend + docs)
 
 [[services]]
 name = "backend"
@@ -22,5 +22,18 @@ buildCommand = "npm install && npm run build"
 
 [services.deploy]
 startCommand = "npx serve dist -s -l $PORT"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+
+[[services]]
+name = "docs"
+rootDirectory = "/docs"
+
+[services.build]
+builder = "nixpacks"
+buildCommand = "npm install"
+
+[services.deploy]
+startCommand = "npx fumapress start --port $PORT --host 0.0.0.0"
 healthcheckPath = "/"
 healthcheckTimeout = 300

@@ -1,0 +1,8 @@
+{
+  "name": "fluxy-docs",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "fumapress": "^0.1.1"
+  }
+}

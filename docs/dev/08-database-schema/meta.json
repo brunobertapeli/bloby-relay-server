@@ -1,0 +1,13 @@
+{
+    "title": "Database",
+    "pages": [
+        "overview",
+        "connection-management",
+        "schema",
+        "crud-operations",
+        "migration-strategy",
+        "workspace-database",
+        "query-patterns",
+        "performance"
+    ]
+}

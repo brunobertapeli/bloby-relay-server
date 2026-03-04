@@ -38,7 +38,7 @@ Frontend polls GET /api/instances/:id/status
 
 ---
 
-## Golden AMI (v3)
+## Golden AMI (v4)
 
 Base: **Amazon Linux 2023** on **ARM64 (Graviton)**
 
@@ -62,9 +62,9 @@ NOT included (created at runtime by `fluxy init`):
 
 | Region | AMI ID | AWS Region |
 |--------|--------|------------|
-| North America | `ami-0df38917f2d42847d` | us-east-1 |
-| Europe | `ami-03a1edc96928beffa` | eu-central-1 |
-| Brazil | `ami-0530e4d5310c4220d` | sa-east-1 |
+| North America | `ami-00e674ff92b7423f4` | us-east-1 |
+| Europe | `ami-025fb44094cc763c5` | eu-central-1 |
+| Brazil | `ami-0860d3b58ac5ef1ff` | sa-east-1 |
 
 ### How to re-bake the AMI
 
@@ -190,7 +190,7 @@ Located at `/home/ec2-user/provision.sh` on the AMI.
 **What it does:**
 1. Fetches user-data from IMDS (v2)
 2. POSTs `{status: "initializing"}` to callback
-3. Runs `curl -fsSL https://fluxy.bot/install | sh` (updates fluxy to latest)
+3. Updates fluxy to latest via `npm pack fluxy-bot` + extract over `~/.fluxy/`
 4. Runs `fluxy init --hosted`
 4. Parses `__HOSTED_READY__` JSON output
 5. POSTs `{status: "ready", tunnelUrl: "..."}` to callback
@@ -243,9 +243,9 @@ AWS_ACCESS_KEY_ID=xxx
 AWS_SECRET_ACCESS_KEY=xxx
 
 # AMI IDs per region
-AMI_US_EAST_1=ami-0df38917f2d42847d
-AMI_EU_CENTRAL_1=ami-03a1edc96928beffa
-AMI_SA_EAST_1=ami-0530e4d5310c4220d
+AMI_US_EAST_1=ami-00e674ff92b7423f4
+AMI_EU_CENTRAL_1=ami-025fb44094cc763c5
+AMI_SA_EAST_1=ami-0860d3b58ac5ef1ff
 
 # Security groups per region
 SG_US_EAST_1=sg-023fa7964b46feb25
@@ -286,6 +286,9 @@ Dashboard actions:
 | v1 | us-east-1 | `ami-0a8b4c566efde948b` | Had cached Claude credentials |
 | v1 | eu-central-1 | `ami-0e06958e8c301cc1a` | Had cached Claude credentials |
 | v1 | sa-east-1 | `ami-0252392573b0961b1` | Had cached Claude credentials |
-| v2 | us-east-1 | `ami-0679c75fea158d7ba` | Replaced by v3 |
-| v2 | eu-central-1 | `ami-03f9f91d9d4261649` | Replaced by v3 |
-| v2 | sa-east-1 | `ami-0f48ddb974fb8b780` | Replaced by v3 |
+| v2 | us-east-1 | `ami-0679c75fea158d7ba` | Replaced by v4 |
+| v2 | eu-central-1 | `ami-03f9f91d9d4261649` | Replaced by v4 |
+| v2 | sa-east-1 | `ami-0f48ddb974fb8b780` | Replaced by v4 |
+| v3 | us-east-1 | `ami-0df38917f2d42847d` | Broken provision.sh (curl install) |
+| v3 | eu-central-1 | `ami-03a1edc96928beffa` | Broken provision.sh (curl install) |
+| v3 | sa-east-1 | `ami-0530e4d5310c4220d` | Broken provision.sh (curl install) |

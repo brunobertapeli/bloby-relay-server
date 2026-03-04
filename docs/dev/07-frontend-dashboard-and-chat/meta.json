@@ -1,0 +1,4 @@
+{
+    "title": "Frontend",
+    "pages": ["index", "dashboard", "chat-ui", "connections", "file-reference"]
+}

@@ -1,0 +1,15 @@
+{
+    "title": "Project Structure",
+    "pages": [
+        "index",
+        "root-directory",
+        "directory-tree",
+        "configuration-files",
+        "path-aliases",
+        "build-outputs",
+        "runtime-data",
+        "port-allocation",
+        "npm-scripts",
+        "key-dependencies"
+    ]
+}
