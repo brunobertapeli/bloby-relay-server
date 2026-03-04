@@ -1173,7 +1173,8 @@ function Features() {
     {
       image: '/assets/images/icons/chat.png',
       title: 'Indestructible chat',
-      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Fluxy and ask for fixes.'
+      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Fluxy and ask for fixes.',
+      scale: 'scale-105',
     },
     {
       image: '/assets/images/icons/miniapps.png',
@@ -1226,7 +1227,7 @@ function Features() {
               <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white/[0.06] flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-white/[0.1] transition-colors duration-300 p-2.5 sm:p-3">
-                  <img src={feature.image} alt={feature.title} className="w-full h-full object-contain" />
+                  <img src={feature.image} alt={feature.title} className={`w-full h-full object-contain ${feature.scale || ''}`} />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
