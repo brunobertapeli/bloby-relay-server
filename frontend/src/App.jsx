@@ -1166,32 +1166,32 @@ function Terminal({ user, onLogin, onLogout }) {
 function Features() {
   const features = [
     {
-      icon: HiArrowPath,
+      image: '/assets/images/icons/sandbox.png',
       title: 'Full-stack sandbox',
       description: 'Frontend, backend, and database — all yours. Ask for a CRM today, a finance tracker tomorrow. Fluxy adds them as modules to your workspace.'
     },
     {
-      icon: HiChatBubbleLeftRight,
+      image: '/assets/images/icons/chat.png',
       title: 'Indestructible chat',
       description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Fluxy and ask for fixes.'
     },
     {
-      icon: HiSparkles,
+      image: '/assets/images/icons/miniapps.png',
       title: 'Mini apps on demand',
       description: '"I need a calorie counter." Fluxy builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
     },
     {
-      icon: HiCpuChip,
+      image: '/assets/images/icons/hardware.png',
       title: 'Runs on your hardware',
       description: 'Mac Mini, VPS, Raspberry Pi — anything that stays on. Install once, access from anywhere. Your data never leaves your machine.'
     },
     {
-      icon: HiBolt,
+      image: '/assets/images/icons/voice.png',
       title: 'Voice & mobile-first',
       description: 'A PWA you install like a native app. Send voice messages, and Fluxy transcribes them with Whisper. It\'s like talking to your codebase.'
     },
     {
-      icon: HiPuzzlePiece,
+      image: '/assets/images/icons/secure.png',
       title: 'Secure by default',
       description: 'Encrypted tunnels via Cloudflare, portal password, and optional 2FA. Accessible from anywhere, but only by you.'
     },
@@ -1226,7 +1226,7 @@ function Features() {
               <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/[0.06] flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-white/[0.1] transition-colors duration-300">
-                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#04D1FE]" />
+                  <img src={feature.image} alt={feature.title} className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
