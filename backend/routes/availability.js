@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers } from '../db.js';
+import { getUsers, getDb } from '../db.js';
 import { validateUsername, TIERS, buildRelayUrl } from '../lib/validate.js';
 
 const router = Router();
@@ -33,12 +33,19 @@ router.get('/availability/:username', async (req, res) => {
 
     const takenTiers = new Set(existing.map((u) => u.tier));
 
+    // Check if handle is reserved in any account's reservedHandles
+    const reservedAccount = await getDb().collection('accounts').findOne(
+      { 'reservedHandles.handle': uv.username },
+      { projection: { _id: 1 } },
+    );
+
     const handles = Object.entries(TIERS).map(([tier, config]) => ({
       tier,
       url: buildRelayUrl(uv.username, tier),
       paid: config.paid,
       price: config.price,
-      available: !takenTiers.has(tier),
+      available: !takenTiers.has(tier) && !(tier === 'premium' && reservedAccount),
+      ...(tier === 'premium' && reservedAccount && !takenTiers.has(tier) ? { reserved: true } : {}),
     }));
 
     res.json({

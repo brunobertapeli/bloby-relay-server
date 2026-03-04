@@ -72,12 +72,27 @@ function FloatingOrbs() {
   )
 }
 
-function CopyButton({ text }) {
+function CopyButton({ text, children }) {
   const [copied, setCopied] = useState(false)
   const handleCopy = () => {
     navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+  if (children) {
+    return (
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1.5 mb-2.5 min-w-0 group cursor-pointer"
+        title="Click to copy"
+      >
+        <span className="min-w-0 truncate">{children}</span>
+        {copied
+          ? <FaCheck className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+          : <FaCopy className="w-2.5 h-2.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        }
+      </button>
+    )
   }
   return (
     <button
@@ -336,12 +351,12 @@ function Hero({ user, onLogin, onLogout }) {
         <motion.div
           id="install"
           initial="hidden" animate="visible" variants={fadeUp} custom={4}
-          className="text-center mb-4 sm:mb-5"
+          className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-lg sm:text-xl font-semibold font-display text-foreground tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
             Get started
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
             Install locally or launch a hosted instance in seconds.
           </p>
         </motion.div>
@@ -356,7 +371,7 @@ function Hero({ user, onLogin, onLogout }) {
   )
 }
 
-function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, instances, onSelectPlan, onSelectRegion, onLogin, onPay, onBack, onCloseReady, onAddNew, onRestart, onTerminate }) {
+function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, instances, onSelectPlan, onSelectRegion, onLogin, onPay, onBack, onCloseReady, onAddNew, onRestart, onManageSubscription }) {
   const plans = [
     {
       id: 'starter',
@@ -365,6 +380,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
       price: 29,
       specs: ['2 vCPU', '2 GB RAM', '20 GB gp3', 'ARM64 (Graviton2)'],
       description: 'Perfect for personal use',
+      popular: true,
     },
     {
       id: 'pro',
@@ -373,7 +389,6 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
       price: 49,
       specs: ['2 vCPU', '4 GB RAM', '40 GB gp3', 'ARM64 (Graviton2)'],
       description: 'For teams & heavy workloads',
-      popular: true,
     },
   ]
 
@@ -597,12 +612,20 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
       <div className="font-sans">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-muted-foreground font-display">Your instances</p>
-          <button
-            onClick={onAddNew}
-            className="text-[11px] font-display font-medium text-foreground/70 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
-          >
-            + Add new
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onManageSubscription}
+              className="text-[11px] font-display font-medium text-muted-foreground/60 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
+            >
+              Manage Subscription
+            </button>
+            <button
+              onClick={onAddNew}
+              className="text-[11px] font-display font-medium text-foreground/70 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
+            >
+              + Add new
+            </button>
+          </div>
         </div>
         {instances.length === 0 ? (
           <div className="text-center py-6">
@@ -618,36 +641,47 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {instances.map(inst => {
               const plan = planMap[inst.plan] || { name: inst.plan, instance: '' }
+              const isRestarting = inst.status === 'restarting'
+              const isCanceling = inst.status === 'canceling'
+              const isReady = inst.status === 'ready'
+              const isTerminated = inst.status === 'terminated'
               return (
                 <div
                   key={inst.id}
-                  className="p-3 rounded-xl border border-border bg-white/[0.02] relative"
+                  className={`p-3 rounded-xl border bg-white/[0.02] relative overflow-hidden min-w-0 ${isCanceling ? 'border-amber-500/30' : 'border-border'}`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${inst.status === 'running' ? 'bg-emerald-400' : 'bg-muted-foreground/40'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      isRestarting || isCanceling ? 'bg-amber-400 animate-pulse'
+                      : isReady ? 'bg-emerald-400'
+                      : isTerminated ? 'bg-red-400'
+                      : 'bg-muted-foreground/40'
+                    }`} />
                     <span className="text-xs font-display font-semibold text-foreground truncate">{plan.name}</span>
+                    {isRestarting && <span className="text-[9px] text-amber-400/80 font-display">Restarting...</span>}
+                    {isTerminated && <span className="text-[9px] text-red-400/80 font-display">Terminated</span>}
                   </div>
                   <p className="text-[10px] text-muted-foreground/50 font-mono mb-1">{plan.instance}</p>
                   <p className="text-[10px] text-muted-foreground mb-2">{regionMap[inst.region] || inst.region}</p>
-                  {inst.tunnelUrl && (
-                    <div className="flex items-center gap-1 mb-2.5">
-                      <span className="text-[9px] font-mono text-[#04D1FE] truncate">{inst.tunnelUrl}</span>
-                    </div>
+                  {isCanceling && inst.cancelAt && (
+                    <p className="text-[10px] text-amber-400/80 font-display mb-2">
+                      Cancels on {new Date(inst.cancelAt).toLocaleDateString()}
+                    </p>
                   )}
-                  <div className="flex gap-1.5">
+                  {(inst.relayUrl || inst.tunnelUrl) && !isTerminated && (
+                    <CopyButton text={inst.relayUrl || inst.tunnelUrl}>
+                      <span className="text-[9px] font-mono text-[#04D1FE] truncate">{inst.relayUrl || inst.tunnelUrl}</span>
+                    </CopyButton>
+                  )}
+                  {!isTerminated && (
                     <button
                       onClick={() => onRestart(inst.id)}
-                      className="flex-1 text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200"
+                      disabled={isRestarting}
+                      className={`w-full text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed text-muted-foreground' : 'text-muted-foreground hover:text-foreground hover:border-primary/30'}`}
                     >
-                      Restart
+                      {isRestarting ? 'Restarting...' : 'Restart'}
                     </button>
-                    <button
-                      onClick={() => onTerminate(inst.id)}
-                      className="flex-1 text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 text-red-400/70 hover:text-red-400 hover:border-red-400/30 transition-all duration-200"
-                    >
-                      Terminate
-                    </button>
-                  </div>
+                  )}
                 </div>
               )
             })}
@@ -663,6 +697,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
 function Terminal({ user, onLogin, onLogout }) {
   const os = detectOS()
   const defaultTab = os === 'windows' ? 'windows' : 'oneliner'
+  const [mode, setMode] = useState('hosted')
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [hostedStep, setHostedStep] = useState('plan')
   const [selectedPlan, setSelectedPlan] = useState(null)
@@ -670,6 +705,8 @@ function Terminal({ user, onLogin, onLogout }) {
   const [provisionStep, setProvisionStep] = useState(-1)
   const [tunnelUrl, setTunnelUrl] = useState('')
   const [instances, setInstances] = useState([])
+  const [provisioningId, setProvisioningId] = useState(null)
+  const stripeSessionActive = useRef(false)
 
   const fetchInstances = async () => {
     const token = localStorage.getItem('fluxy_token')
@@ -695,14 +732,12 @@ function Terminal({ user, onLogin, onLogout }) {
         { id: 'npm', label: 'npm' },
         { id: 'oneliner', label: 'macOS / Linux' },
         { id: 'hackable', label: 'Hackable' },
-        { id: 'hosted', label: 'Hosted' },
       ]
     : [
         { id: 'oneliner', label: os === 'mac' ? 'macOS' : 'Linux' },
         { id: 'npm', label: 'npm' },
         { id: 'windows', label: 'Windows' },
         { id: 'hackable', label: 'Hackable' },
-        { id: 'hosted', label: 'Hosted' },
       ]
 
   const commands = {
@@ -723,34 +758,131 @@ function Terminal({ user, onLogin, onLogout }) {
     ],
   }
 
+  // Handle Stripe redirect back (session_id in URL)
   useEffect(() => {
-    if (activeTab === 'hosted' && user) {
+    const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('session_id')
+    if (!sessionId || !user) return
+
+    // Clean the URL
+    window.history.replaceState({}, '', window.location.pathname)
+
+    // Prevent the [activeTab, user] effect from overwriting our provisioning view
+    stripeSessionActive.current = true
+
+    // Switch to hosted mode and show provisioning
+    setMode('hosted')
+    setHostedStep('provisioning')
+    setProvisionStep(0)
+
+    // Scroll to the terminal section so user sees the progress
+    setTimeout(() => {
+      document.getElementById('install')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 100)
+
+    let cancelled = false
+    const statusMap = { launching: 0, booting: 1, initializing: 2, ready: 3 }
+
+    const poll = async () => {
+      const token = localStorage.getItem('fluxy_token')
+      if (!token || cancelled) return
+
+      try {
+        // First try to get instance via session ID
+        const sessionRes = await fetch(`${API_URL}/api/stripe/session/${sessionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (sessionRes.ok && !cancelled) {
+          const { instance } = await sessionRes.json()
+          setProvisioningId(instance.id)
+
+          const step = statusMap[instance.status] ?? 0
+          setProvisionStep(step)
+
+          if (instance.status === 'ready' && instance.tunnelUrl) {
+            setTunnelUrl(instance.relayUrl || instance.tunnelUrl)
+            setHostedStep('ready')
+            stripeSessionActive.current = false
+            return
+          }
+          if (instance.status === 'failed') {
+            setHostedStep('plan')
+            stripeSessionActive.current = false
+            return
+          }
+        }
+      } catch (err) {
+        console.error('[stripe] session poll error:', err)
+      }
+
+      if (!cancelled) setTimeout(poll, 3000)
+    }
+
+    const t = setTimeout(poll, 2000)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [user])
+
+  useEffect(() => {
+    // Don't overwrite provisioning view during Stripe session redirect
+    if (stripeSessionActive.current) return
+
+    if (mode === 'hosted' && user) {
       fetchInstances().then(list => {
         if (list && list.length > 0) setHostedStep('dashboard')
         else setHostedStep('plan')
       })
-    } else if (activeTab !== 'hosted') {
+    } else if (mode !== 'hosted') {
       setHostedStep('plan')
       setSelectedPlan(null)
       setSelectedRegion(null)
       setProvisionStep(-1)
       setTunnelUrl('')
     }
-  }, [activeTab, user])
+  }, [mode, user])
 
   useEffect(() => {
-    if (hostedStep === 'provisioning') {
-      setProvisionStep(0)
-      const t1 = setTimeout(() => setProvisionStep(1), 2000)
-      const t2 = setTimeout(() => setProvisionStep(2), 4000)
-      const t3 = setTimeout(() => setProvisionStep(3), 6000)
-      const t4 = setTimeout(() => {
-        setTunnelUrl('https://fluxy.bot/your-workspace')
-        setHostedStep('ready')
-      }, 7500)
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
+    if (hostedStep !== 'provisioning' || !provisioningId) return
+
+    setProvisionStep(0)
+    const statusMap = { launching: 0, booting: 1, initializing: 2, ready: 3 }
+    let cancelled = false
+
+    const poll = async () => {
+      const token = localStorage.getItem('fluxy_token')
+      if (!token || cancelled) return
+
+      try {
+        const res = await fetch(`${API_URL}/api/instances/${provisioningId}/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok || cancelled) return
+        const { instance } = await res.json()
+        if (cancelled) return
+
+        const step = statusMap[instance.status] ?? 0
+        setProvisionStep(step)
+
+        if (instance.status === 'ready' && instance.tunnelUrl) {
+          setTunnelUrl(instance.tunnelUrl)
+          setHostedStep('ready')
+          return
+        }
+
+        if (instance.status === 'failed') {
+          setHostedStep('plan')
+          return
+        }
+      } catch (err) {
+        console.error('[provision] poll error:', err)
+      }
+
+      if (!cancelled) setTimeout(poll, 3000)
     }
-  }, [hostedStep])
+
+    // Start polling after a short delay
+    const t = setTimeout(poll, 1000)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [hostedStep, provisioningId])
 
   const handlePlanSelect = (planId) => {
     setSelectedPlan(planId)
@@ -767,8 +899,26 @@ function Terminal({ user, onLogin, onLogout }) {
     if (success) setHostedStep('payment')
   }
 
-  const handlePay = () => {
-    setHostedStep('provisioning')
+  const handlePay = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: selectedPlan, region: selectedRegion }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('[stripe] checkout failed:', data.error)
+        return
+      }
+      const { url } = await res.json()
+      window.location.href = url
+    } catch (err) {
+      console.error('[stripe] checkout failed:', err)
+    }
   }
 
   const handleBack = () => {
@@ -783,23 +933,12 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   const handleCloseReady = async () => {
-    const token = localStorage.getItem('fluxy_token')
-    if (token && selectedPlan && selectedRegion) {
-      try {
-        await fetch(`${API_URL}/api/instances`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ plan: selectedPlan, region: selectedRegion, tunnelUrl }),
-        })
-      } catch (err) {
-        console.error('[instances] save failed:', err)
-      }
-    }
     await fetchInstances()
     setSelectedPlan(null)
     setSelectedRegion(null)
     setTunnelUrl('')
     setProvisionStep(-1)
+    setProvisioningId(null)
     setHostedStep('dashboard')
   }
 
@@ -808,104 +947,125 @@ function Terminal({ user, onLogin, onLogout }) {
     setSelectedRegion(null)
     setTunnelUrl('')
     setProvisionStep(-1)
+    setProvisioningId(null)
     setHostedStep('plan')
+  }
+
+  // Poll instances while any are restarting
+  useEffect(() => {
+    if (hostedStep !== 'dashboard') return
+    const hasRestarting = instances.some(i => i.status === 'restarting')
+    if (!hasRestarting) return
+
+    let cancelled = false
+    const poll = async () => {
+      if (cancelled) return
+      await fetchInstances()
+      if (!cancelled) setTimeout(poll, 5000)
+    }
+    const t = setTimeout(poll, 5000)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [hostedStep, instances.some(i => i.status === 'restarting')])
+
+  const handleManageSubscription = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const { url } = await res.json()
+      window.location.href = url
+    } catch (err) {
+      console.error('[stripe] portal failed:', err)
+    }
   }
 
   const handleRestart = async (instanceId) => {
     const token = localStorage.getItem('fluxy_token')
     if (!token) return
     try {
+      // Optimistically set status to restarting
+      setInstances(prev => prev.map(i => i.id === instanceId ? { ...i, status: 'restarting' } : i))
       await fetch(`${API_URL}/api/instances/${instanceId}/restart`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
-      await fetchInstances()
     } catch (err) {
       console.error('[instances] restart failed:', err)
+      await fetchInstances()
     }
   }
 
-  const handleTerminate = async (instanceId) => {
-    const token = localStorage.getItem('fluxy_token')
-    if (!token) return
-    try {
-      await fetch(`${API_URL}/api/instances/${instanceId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      await fetchInstances()
-    } catch (err) {
-      console.error('[instances] terminate failed:', err)
-    }
-  }
+  const modes = [
+    {
+      id: 'hosted',
+      title: 'Set it up for me',
+      desc: 'One click, hosted on Amazon AWS. We handle everything.',
+    },
+    {
+      id: 'selfhost',
+      title: "I'll set it up myself",
+      desc: 'I have a Raspberry Pi, Mac Mini, or VPS. Free forever.',
+    },
+  ]
 
   return (
     <div className="max-w-2xl mx-auto px-2 sm:px-0">
-      <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
-        <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-white/[0.06] bg-[#1e1e1e] gap-2">
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-            <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-            <div className="w-3 h-3 rounded-full bg-[#28c840]" />
-          </div>
-
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-white/5 rounded-lg p-0.5 flex-1 sm:flex-initial overflow-x-auto no-scrollbar">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative px-2 sm:px-3 py-1 rounded-md text-[11px] sm:text-xs font-medium font-display transition-colors duration-200 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="terminal-tab"
-                    className="absolute inset-0 bg-gradient-brand rounded-md"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {user ? (
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <span className="text-[10px] sm:text-xs text-foreground/70 font-display whitespace-nowrap">
-                Hey, <span className="font-semibold text-foreground">{user.name}</span>
-              </span>
-              <button
-                onClick={onLogout}
-                className="text-[10px] sm:text-[11px] text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
-              >
-                Sair
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onLogin}
-              className="text-[11px] sm:text-xs font-medium font-display text-foreground/70 hover:text-foreground px-2.5 sm:px-3 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200 shrink-0"
-            >
-              Login
-            </button>
-          )}
-        </div>
-
-        <div className={`p-4 sm:p-5 text-xs sm:text-sm leading-relaxed ${
-          activeTab === 'hosted' ? '' : 'min-h-[100px] sm:min-h-[120px] font-mono'
-        }`}>
-          <AnimatePresence mode="wait">
-            {activeTab === 'hosted' ? (
+      {/* Mode toggle */}
+      <div className="flex gap-3 mb-6">
+        {modes.map(m => (
+          <button
+            key={m.id}
+            onClick={() => setMode(m.id)}
+            className={`relative flex-1 text-left px-4 sm:px-5 py-3.5 sm:py-4 rounded-xl border transition-all duration-300 ${
+              mode === m.id
+                ? 'border-primary/40 bg-primary/[0.06] shadow-[0_0_20px_-6px_rgba(175,39,227,0.25)]'
+                : 'border-border bg-card/50 hover:border-border/80'
+            }`}
+          >
+            {mode === m.id && (
               <motion.div
-                key={`hosted-${hostedStep}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
+                layoutId="mode-glow"
+                className="absolute inset-0 rounded-xl border border-primary/30"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className={`relative z-10 block text-sm sm:text-base font-semibold font-display ${
+              mode === m.id ? 'text-foreground' : 'text-muted-foreground'
+            }`}>
+              {m.title}
+            </span>
+            <span className={`relative z-10 block text-[11px] sm:text-xs mt-1 ${
+              mode === m.id ? 'text-muted-foreground' : 'text-muted-foreground/50'
+            }`}>
+              {m.desc}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {mode === 'hosted' ? (
+          <motion.div
+            key="hosted"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
+              {!user && (
+                <div className="px-4 sm:px-5 pt-4 sm:pt-5 text-center">
+                  <p className="text-xs text-muted-foreground/60 font-display">
+                    <button onClick={onLogin} className="text-foreground font-medium hover:text-primary transition-colors duration-200 underline underline-offset-2">Login</button> to see your instances
+                  </p>
+                </div>
+              )}
+              <div className="p-4 sm:p-5 text-xs sm:text-sm leading-relaxed">
                 <HostedContent
                   step={hostedStep}
                   selectedPlan={selectedPlan}
@@ -921,46 +1081,84 @@ function Terminal({ user, onLogin, onLogout }) {
                   onCloseReady={handleCloseReady}
                   onAddNew={handleAddNew}
                   onRestart={handleRestart}
-                  onTerminate={handleTerminate}
+                  onManageSubscription={handleManageSubscription}
                 />
-              </motion.div>
-            ) : (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
-                {commands[activeTab].map((line, i) => (
+              </div>
+            </div>
+            <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
+              Fully managed Fluxy instance on AWS. No setup, no maintenance.
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="selfhost"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
+              <div className="flex items-center justify-center px-3 sm:px-4 py-3 border-b border-white/[0.06] bg-[#1e1e1e] gap-2">
+                <div className="flex items-center gap-0.5 sm:gap-1 bg-white/5 rounded-lg p-0.5 overflow-x-auto no-scrollbar">
+                  {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`relative px-2 sm:px-3 py-1 rounded-md text-[11px] sm:text-xs font-medium font-display transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? 'text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {activeTab === tab.id && (
+                        <motion.div
+                          layoutId="terminal-tab"
+                          className="absolute inset-0 bg-gradient-brand rounded-md"
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 sm:p-5 text-xs sm:text-sm leading-relaxed min-h-[100px] sm:min-h-[120px] font-mono">
+                <AnimatePresence mode="wait">
                   <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.12, duration: 0.3 }}
-                    className={i > 0 ? 'mt-3 sm:mt-4' : ''}
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
-                    <div className="flex items-center justify-between gap-2 sm:gap-3">
-                      <div className="min-w-0 overflow-x-auto no-scrollbar">
-                        <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
-                        <span className="text-foreground whitespace-nowrap">{line.command}</span>
-                      </div>
-                      <CopyButton text={line.command} />
-                    </div>
+                    {commands[activeTab]?.map((line, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.12, duration: 0.3 }}
+                        className={i > 0 ? 'mt-3 sm:mt-4' : ''}
+                      >
+                        <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
+                        <div className="flex items-center justify-between gap-2 sm:gap-3">
+                          <div className="min-w-0 overflow-x-auto no-scrollbar">
+                            <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
+                            <span className="text-foreground whitespace-nowrap">{line.command}</span>
+                          </div>
+                          <CopyButton text={line.command} />
+                        </div>
+                      </motion.div>
+                    ))}
                   </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-      <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
-        {activeTab === 'hosted'
-          ? 'Fully managed Fluxy instance on AWS. No setup, no maintenance.'
-          : 'Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.'
-        }
-      </p>
+                </AnimatePresence>
+              </div>
+            </div>
+            <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
+              Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -1271,8 +1469,25 @@ function Footer() {
 
 function Home() {
   const [user, setUser] = useState(null)
+  const [reservedHandles, setReservedHandles] = useState([])
   const tokenClientRef = useRef(null)
   const loginResolveRef = useRef(null)
+
+  const fetchReservedHandles = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/handles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReservedHandles(data.reservedHandles || [])
+      }
+    } catch (err) {
+      console.error('[handles] fetch failed:', err)
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('fluxy_token')
@@ -1281,9 +1496,35 @@ function Home() {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => { if (data.user) setUser(data.user) })
+        .then(data => {
+          if (data.user) {
+            setUser(data.user)
+            fetchReservedHandles()
+          }
+        })
         .catch(() => localStorage.removeItem('fluxy_token'))
     }
+  }, [])
+
+  // Handle Stripe handle purchase redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const handleSessionId = params.get('handle_session_id')
+    if (!handleSessionId) return
+
+    window.history.replaceState({}, '', window.location.pathname)
+
+    // Wait for auth to resolve, then fetch handles and scroll
+    const check = setInterval(() => {
+      const token = localStorage.getItem('fluxy_token')
+      if (!token) return
+      clearInterval(check)
+      fetchReservedHandles().then(() => {
+        document.getElementById('handle')?.scrollIntoView({ behavior: 'smooth' })
+      })
+    }, 200)
+
+    return () => clearInterval(check)
   }, [])
 
   useEffect(() => {
@@ -1304,6 +1545,7 @@ function Home() {
             if (data.token && data.user) {
               localStorage.setItem('fluxy_token', data.token)
               setUser(data.user)
+              fetchReservedHandles()
               if (loginResolveRef.current) {
                 loginResolveRef.current()
                 loginResolveRef.current = null
@@ -1354,9 +1596,31 @@ function Home() {
     })
   }
 
+  const handleReserveHandle = async (handle) => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/handle-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ handle }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('[stripe] handle checkout failed:', data.error)
+        return
+      }
+      const { url } = await res.json()
+      window.location.href = url
+    } catch (err) {
+      console.error('[stripe] handle checkout failed:', err)
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('fluxy_token')
     setUser(null)
+    setReservedHandles([])
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect()
     }
@@ -1367,7 +1631,7 @@ function Home() {
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <main>
         <Hero user={user} onLogin={handleLogin} onLogout={handleLogout} />
-        <HandleSelector user={user} onLogin={handleLogin} />
+        <HandleSelector user={user} onLogin={handleLogin} reservedHandles={reservedHandles} onReserve={handleReserveHandle} />
         <Features />
         <UseCases />
         <HowItWorks />

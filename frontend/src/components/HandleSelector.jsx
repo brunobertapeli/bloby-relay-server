@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { HiEye, HiEyeSlash } from 'react-icons/hi2'
 import { API_URL } from '../api'
 
-export default function HandleSelector({ user, onLogin }) {
+export default function HandleSelector({ user, onLogin, reservedHandles = [], onReserve }) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
   const [available, setAvailable] = useState(null)
   const [inputFocused, setInputFocused] = useState(false)
   const [reserving, setReserving] = useState(false)
+  const [visibleHashes, setVisibleHashes] = useState({})
   const inputRef = useRef(null)
   const debounce = useRef(null)
 
@@ -61,6 +63,15 @@ export default function HandleSelector({ user, onLogin }) {
       setReserving(false)
       if (!success) return
     }
+    if (onReserve) {
+      setReserving(true)
+      await onReserve(name.trim())
+      setReserving(false)
+    }
+  }
+
+  const toggleHash = (handle) => {
+    setVisibleHashes(prev => ({ ...prev, [handle]: !prev[handle] }))
   }
 
   const isEmpty = name.length === 0
@@ -79,6 +90,43 @@ export default function HandleSelector({ user, onLogin }) {
             Pick a name for your bot. Access it from anywhere, forever.
           </p>
         </div>
+
+        {reservedHandles.length > 0 && (
+          <div className="mb-10 sm:mb-12">
+            <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground tracking-tight text-center mb-2">
+              Your handles:
+            </h3>
+            <p className="text-xs text-muted-foreground/60 text-center mb-3 font-display">
+              Handles are activated during <code className="text-foreground/50">fluxy init</code>
+            </p>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              {reservedHandles.map((rh) => (
+                <div
+                  key={rh.handle}
+                  className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border last:border-b-0"
+                >
+                  <span className="font-mono text-sm text-foreground">
+                    fluxy.bot/<span className="text-gradient font-semibold">{rh.handle}</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-muted-foreground select-all">
+                      {visibleHashes[rh.handle] ? rh.hash : '\u2022\u2022\u2022\u2022\u2022'}
+                    </span>
+                    <button
+                      onClick={() => toggleHash(rh.handle)}
+                      className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
+                    >
+                      {visibleHashes[rh.handle]
+                        ? <HiEyeSlash className="w-4 h-4" />
+                        : <HiEye className="w-4 h-4" />
+                      }
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div
           className="relative mb-8 sm:mb-10 cursor-text"
@@ -223,9 +271,11 @@ export default function HandleSelector({ user, onLogin }) {
           </AnimatePresence>
         </div>
 
-        <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
-          Handles are activated during <code className="text-foreground/50">fluxy init</code>
-        </p>
+        {reservedHandles.length === 0 && (
+          <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
+            Handles are activated during <code className="text-foreground/50">fluxy init</code>
+          </p>
+        )}
       </div>
     </section>
   )

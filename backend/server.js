@@ -15,6 +15,7 @@ import healthRoutes from './routes/health.js';
 import availabilityRoutes from './routes/availability.js';
 import authRoutes from './routes/auth.js';
 import instanceRoutes from './routes/instances.js';
+import stripeRoutes, { stripeWebhookHandler } from './routes/stripe.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -59,6 +60,9 @@ await connect();
 // which prevents http-proxy from forwarding POST bodies to bot tunnels.
 app.use(subdomainResolver);
 
+// ─── Stripe webhook (raw body — must be BEFORE express.json()) ──────────────
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
+
 // ─── Body parsing (relay API only — after subdomain proxy) ───────────────────
 app.use('/api', express.json({ limit: '16kb' }));
 
@@ -70,6 +74,7 @@ app.use('/api', statusRoutes);
 app.use('/api', availabilityRoutes);
 app.use('/api', authRoutes);
 app.use('/api', instanceRoutes);
+app.use('/api', stripeRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
