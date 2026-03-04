@@ -1056,7 +1056,21 @@ export default function Docs() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+      <div className="lg:hidden fixed top-16 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <div className="flex items-center gap-2 px-4 h-11">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+          >
+            <HiBars3 className="w-4 h-4" />
+            <span>Menu</span>
+          </button>
+          <HiChevronRight className="w-3 h-3 text-muted-foreground/40" />
+          <span className="text-sm text-foreground font-medium truncate">{currentTitle}</span>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-[7.5rem] lg:pt-24 pb-16">
         <div className="flex gap-10">
           <aside className="hidden lg:block w-56 shrink-0 sticky top-24 self-start max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar">
             <DocsNav currentSlug={currentSlug} onSelect={handleSelect} />
@@ -1079,25 +1093,35 @@ export default function Docs() {
         </div>
       </div>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-[60] lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <motion.div
-            className="absolute left-0 top-0 bottom-0 w-[280px] bg-background border-r border-border/50 p-6 overflow-y-auto"
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-          >
-            <div className="flex items-center justify-between mb-8">
-              <span className="font-bold font-display text-foreground">Docs</span>
-              <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-                <HiXMark className="w-5 h-5" />
-              </button>
-            </div>
-            <DocsNav currentSlug={currentSlug} onSelect={handleSelect} />
-          </motion.div>
-        </div>
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-[60] lg:hidden">
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.div
+              className="absolute left-0 top-0 bottom-0 w-[280px] bg-background border-r border-border/50 p-6 overflow-y-auto"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <span className="font-bold font-display text-foreground">Docs</span>
+                <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                  <HiXMark className="w-5 h-5" />
+                </button>
+              </div>
+              <DocsNav currentSlug={currentSlug} onSelect={handleSelect} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

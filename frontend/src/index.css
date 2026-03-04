@@ -178,6 +178,15 @@
 }
 .prose-docs table {
   @apply w-full text-sm mb-4 border-collapse;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 640px) {
+  .prose-docs table {
+    display: table;
+    overflow-x: visible;
+  }
 }
 .prose-docs thead th {
   @apply text-left text-xs font-semibold font-display uppercase tracking-wider text-muted-foreground/60 pb-3 border-b border-border;
