@@ -1,0 +1,14 @@
+{
+    "title": "Networking & Tunnels",
+    "pages": [
+        "index",
+        "architecture",
+        "port-allocation",
+        "cloudflare-tunnel",
+        "fluxy-relay",
+        "reverse-proxy",
+        "websocket",
+        "https-tls",
+        "key-files"
+    ]
+}

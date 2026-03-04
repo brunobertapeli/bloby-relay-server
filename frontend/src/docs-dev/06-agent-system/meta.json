@@ -1,0 +1,15 @@
+{
+    "title": "Agent System",
+    "pages": [
+        "index",
+        "architecture",
+        "system-prompt",
+        "multi-provider",
+        "agent-tools",
+        "memory-system",
+        "conversation-flow",
+        "agent-autonomy",
+        "authentication-flow",
+        "key-files"
+    ]
+}

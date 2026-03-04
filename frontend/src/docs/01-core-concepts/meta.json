@@ -1,0 +1,10 @@
+{
+    "title": "Core Concepts",
+    "pages": [
+        "workspace",
+        "chat",
+        "memory",
+        "pulse-crons",
+        "pwa"
+    ]
+}

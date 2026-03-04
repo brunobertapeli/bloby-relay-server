@@ -1,0 +1,17 @@
+{
+    "title": "Architecture Overview",
+    "pages": [
+        "index",
+        "system-overview",
+        "high-level-architecture",
+        "process-lifecycle",
+        "request-flow",
+        "data-flow",
+        "file-watcher",
+        "scheduler",
+        "design-decisions",
+        "external-services",
+        "key-files",
+        "glossary"
+    ]
+}

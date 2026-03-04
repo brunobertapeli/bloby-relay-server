@@ -1,0 +1,13 @@
+{
+    "title": "Contributing",
+    "pages": [
+        "getting-started",
+        "code-organization",
+        "coding-standards",
+        "making-changes",
+        "testing",
+        "common-tasks",
+        "architecture-rules",
+        "pr-guidelines"
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "title": "Tech Stack",
+    "pages": [
+        "runtime-environment",
+        "core-framework",
+        "frontend-stack",
+        "backend-stack",
+        "ai-integration",
+        "build-tools",
+        "system-integration",
+        "typescript-config",
+        "rationale",
+        "dependency-table"
+    ]
+}

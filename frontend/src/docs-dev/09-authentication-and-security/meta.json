@@ -1,0 +1,14 @@
+{
+    "title": "Auth & Security",
+    "pages": [
+        "architecture",
+        "password-auth",
+        "session-management",
+        "two-factor-auth",
+        "websocket-auth",
+        "oauth-pkce",
+        "web-push",
+        "request-middleware",
+        "security-considerations"
+    ]
+}

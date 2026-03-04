@@ -1,0 +1,24 @@
+{
+    "root": true,
+    "title": "Fluxy Developer Docs",
+    "pages": [
+        "00-getting-started",
+        "---Foundations---",
+        "01-architecture-overview",
+        "02-project-structure",
+        "03-tech-stack",
+        "---Core Systems---",
+        "04-supervisor-deep-dive",
+        "05-worker-api",
+        "06-agent-system",
+        "08-database-schema",
+        "---Features---",
+        "07-frontend-dashboard-and-chat",
+        "09-authentication-and-security",
+        "10-scheduler-and-skills",
+        "11-networking-and-tunnels",
+        "---Contributing---",
+        "12-development-setup",
+        "13-contributing"
+    ]
+}

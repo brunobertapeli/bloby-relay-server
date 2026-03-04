@@ -1,0 +1,11 @@
+{
+    "root": true,
+    "title": "User Guide",
+    "pages": [
+        "00-getting-started",
+        "01-core-concepts",
+        "02-connectivity",
+        "03-guides",
+        "04-community"
+    ]
+}
