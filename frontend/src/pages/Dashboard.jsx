@@ -82,25 +82,14 @@ function DashNavbar({ user, onLogout }) {
 
 function ClaimFluxyCard() {
   const [claimCode, setClaimCode] = useState(null)
-  const [copied, setCopied] = useState(false)
 
   const handleGenerate = () => {
     setClaimCode(generateClaimCode())
   }
 
-  const premadeMessage = claimCode
-    ? `fluxy claim ${claimCode}`
-    : ''
-
-  const copyMessage = () => {
-    navigator.clipboard.writeText(premadeMessage)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
-      <p className="text-xs text-muted-foreground font-display">Generate a code and run it on your Fluxy to link it to your account.</p>
+      <p className="text-xs text-muted-foreground font-display">Generate a claim code, then tell your Fluxy to link using it. Once verified, it will appear here.</p>
       {!claimCode ? (
         <Button
           onClick={handleGenerate}
@@ -117,15 +106,7 @@ function ClaimFluxyCard() {
               <CopyButton text={claimCode} />
             </div>
           </div>
-          <div className="rounded-xl bg-background border border-border/50 p-4">
-            <p className="text-xs text-muted-foreground mb-2 font-display">Run this on your Fluxy</p>
-            <div className="flex items-center justify-between gap-2">
-              <code className="text-sm text-foreground/80 font-mono">{premadeMessage}</code>
-              <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0">
-                {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
+          <p className="text-[11px] text-muted-foreground/60 font-display">Send this code to your Fluxy. It will use it to link to your account automatically.</p>
           <button
             onClick={() => setClaimCode(null)}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
