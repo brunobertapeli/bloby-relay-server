@@ -308,13 +308,15 @@ function Hero({ user, onLogin, onLogout }) {
       <div className="max-w-4xl mx-auto text-center relative">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
           <video
-            src="/assets/videos/fluxy_say_hi.webm"
             autoPlay
             loop
             muted
             playsInline
             className="h-[180px] mx-auto"
-          />
+          >
+            <source src="/assets/videos/fluxy_say_hi.mov" type='video/mp4; codecs="hvc1"' />
+            <source src="/assets/videos/fluxy_say_hi.webm" type="video/webm" />
+          </video>
         </motion.div>
 
         <motion.h1
@@ -331,7 +333,7 @@ function Hero({ user, onLogin, onLogout }) {
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
           A self-hosted coding agent with its own full-stack app. Talk to it from
-          your phone and it builds real software — a CRM, a research hub, mini tools
+          your phone and it builds real software like CRMs, research hubs, and mini tools
           on demand. It runs on your hardware, you access it from anywhere, and your
           workspace grows with every conversation.
         </motion.p>
@@ -1169,7 +1171,7 @@ function Features() {
     {
       image: '/assets/images/icons/sandbox.png',
       title: 'Full-stack sandbox',
-      description: 'Frontend, backend, and database — all yours. Ask for a CRM today, a finance tracker tomorrow. Fluxy adds them as modules to your workspace.'
+      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Fluxy adds them as modules to your workspace.'
     },
     {
       image: '/assets/images/icons/chat.png',
@@ -1185,7 +1187,7 @@ function Features() {
     {
       image: '/assets/images/icons/hardware.png',
       title: 'Runs on your hardware',
-      description: 'Mac Mini, VPS, Raspberry Pi — anything that stays on. Install once, access from anywhere. Your data never leaves your machine.'
+      description: 'Mac Mini, VPS, Raspberry Pi, or anything that stays on. Install once, access from anywhere. Your data never leaves your machine.'
     },
     {
       image: '/assets/images/icons/voice.png',
@@ -1211,7 +1213,7 @@ function Features() {
             Not just a chat. <span className="text-gradient">A whole app.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Other agents live in your terminal. Fluxy lives in a full-stack app you access from anywhere — and builds whatever you need inside it.
+            Other agents live in your terminal. Fluxy lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
           </p>
         </motion.div>
 
@@ -1245,7 +1247,7 @@ function UseCases() {
   const cases = [
     {
       label: 'Personal dashboard',
-      description: 'A private, password-protected hub for your gym stats, finances, contacts — all built by your agent, all in one place.',
+      description: 'A private, password-protected hub for your gym stats, finances, and contacts. All built by your agent, all in one place.',
     },
     {
       label: 'Team research hub',
@@ -1321,7 +1323,7 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Install',
-      description: 'One command. Mac, Windows, Linux. The installer handles everything — Node.js included.',
+      description: 'One command. Mac, Windows, Linux. The installer handles everything, Node.js included.',
       detail: 'fluxy init'
     },
     {
@@ -1393,13 +1395,15 @@ function OpenSource() {
         >
           <div className="mx-auto mb-5 sm:mb-6">
             <video
-              src="/assets/videos/fluxy_happy.webm"
               autoPlay
               loop
               muted
               playsInline
               className="h-28 sm:h-36 mx-auto"
-            />
+            >
+              <source src="/assets/videos/fluxy_happy.mov" type='video/mp4; codecs="hvc1"' />
+              <source src="/assets/videos/fluxy_happy.webm" type="video/webm" />
+            </video>
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
