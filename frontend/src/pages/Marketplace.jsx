@@ -481,14 +481,18 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
             </div>
 
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-              className="flex justify-center mt-6 mb-6"
+              className="flex justify-center mt-4 mb-4"
             >
-              <div className="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                <HiCheckCircle className="w-10 h-10 text-emerald-400" />
-              </div>
+              <video
+                src="/assets/videos/fluxy_happy_reappearing.webm"
+                autoPlay
+                muted
+                playsInline
+                className="w-28 h-28 object-contain"
+              />
             </motion.div>
 
             <motion.div
