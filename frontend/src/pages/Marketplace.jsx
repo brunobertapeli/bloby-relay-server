@@ -5,8 +5,8 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
-  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet,
-  HiChevronLeft, HiChevronRight, HiCpuChip
+  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus,
+  HiChevronLeft, HiChevronRight
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Newest', 'Price: Low to High']
@@ -274,7 +274,7 @@ function WalletTopup({ onAdd }) {
     >
       <div className="flex items-center gap-3 shrink-0">
         <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-          <HiWallet className="w-5 h-5 text-primary" />
+          <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-5 h-5" />
         </div>
         <div>
           <div className="flex items-center gap-1.5">
@@ -384,7 +384,7 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
                 >
                   {item.type === 'wallet' ? (
                     <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                      <HiWallet className="w-4 h-4 text-primary" />
+                      <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-4 h-4" />
                     </div>
                   ) : (
                     <ItemIcon name={item.name || item.title} />
@@ -548,8 +548,7 @@ export default function Marketplace() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
-                  <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium font-display">
-                    <HiCpuChip className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display hover:text-foreground hover:border-[#AF27E3]/30 transition-all duration-200">
                     For Agents
                   </span>
                 </div>
