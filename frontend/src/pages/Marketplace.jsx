@@ -491,7 +491,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                 autoPlay
                 muted
                 playsInline
-                className="w-28 h-28 object-contain"
+                className="w-[200px] object-contain"
               />
             </motion.div>
 
