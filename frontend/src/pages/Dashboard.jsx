@@ -168,31 +168,42 @@ function FluxyCard({ fluxy, onAddBalance }) {
     setShowTopup(false)
   }
 
+  const initial = fluxy.name.charAt(0).toUpperCase()
+
   return (
-    <div className="rounded-2xl border border-border/50 bg-card p-5 transition-all duration-300 hover:border-border">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{fluxy.avatar}</span>
-          <div>
+    <div className="rounded-2xl border border-border/50 bg-card transition-all duration-300 hover:border-border overflow-hidden">
+      <div className="p-5">
+        <div className="flex items-start gap-3.5 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold font-display text-primary">{initial}</span>
+          </div>
+          <div className="min-w-0 flex-1">
             <h3 className="font-semibold font-display text-foreground text-sm">{fluxy.name}</h3>
-            <p className="text-[11px] text-muted-foreground font-mono">{fluxy.url}</p>
+            <p className="text-[11px] text-muted-foreground font-mono truncate">{fluxy.url}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-xl bg-primary/10 border border-primary/20 border-r-0">
-            <img src="/assets/images/icons/wallet.png" alt="" className="h-4 w-auto" />
-            <span className="text-sm font-semibold font-display text-primary">${fluxy.balance.toFixed(2)}</span>
+
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-display mb-0.5">Balance</p>
+            <span className="text-lg font-semibold font-display text-foreground">${fluxy.balance.toFixed(2)}</span>
           </div>
           <button
             onClick={() => setShowTopup(!showTopup)}
-            className={`h-[34px] px-2.5 rounded-r-xl border text-xs font-medium font-display transition-all duration-200 ${
+            className={`h-8 px-3.5 rounded-lg text-xs font-medium font-display border transition-all duration-200 ${
               showTopup
-                ? 'border-primary/40 bg-primary/15 text-primary border-l-primary/20'
-                : 'border-primary/20 bg-primary/5 text-primary/70 hover:bg-primary/10 hover:text-primary border-l-primary/10'
+                ? 'border-primary bg-primary/15 text-primary'
+                : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30'
             }`}
           >
-            {showTopup ? 'Close' : '+ Funds'}
+            {showTopup ? 'Cancel' : 'Add Funds'}
           </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-display shrink-0">USDC Wallet</p>
+          <code className="text-[11px] text-muted-foreground font-mono truncate">{fluxy.wallet}</code>
+          <CopyButton text={fluxy.wallet} />
         </div>
       </div>
 
@@ -205,7 +216,7 @@ function FluxyCard({ fluxy, onAddBalance }) {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/30 flex-wrap">
+            <div className="flex items-center gap-2 px-5 pb-5 pt-3 border-t border-border/30 flex-wrap">
               {walletPresets.map((amount) => (
                 <button
                   key={amount}
@@ -247,7 +258,7 @@ function FluxyCard({ fluxy, onAddBalance }) {
                 size="sm"
                 className="rounded-lg bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-8 px-4 text-xs disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
               >
-                Add Balance
+                Add
               </Button>
             </div>
           </motion.div>
@@ -306,9 +317,9 @@ function PurchaseRow({ purchase }) {
 }
 
 const mockFluxies = [
-  { id: 'fluxy-1', name: 'Jarvis', avatar: '\u{1F916}', url: 'fluxy.bot/jarvis', balance: 12.50 },
-  { id: 'fluxy-2', name: 'Nova', avatar: '\u2728', url: 'my.fluxy.bot/nova', balance: 0 },
-  { id: 'fluxy-3', name: 'Atlas', avatar: '\u{1F5FA}\uFE0F', url: 'fluxy.bot/atlas', balance: 25.00 },
+  { id: 'fluxy-1', name: 'Jarvis', url: 'fluxy.bot/jarvis', balance: 12.50, wallet: '0x7a3B...4f2E' },
+  { id: 'fluxy-2', name: 'Nova', url: 'my.fluxy.bot/nova', balance: 0, wallet: '0x9c1D...8b3A' },
+  { id: 'fluxy-3', name: 'Atlas', url: 'fluxy.bot/atlas', balance: 25.00, wallet: '0x2e5F...1d7C' },
 ]
 
 const mockPurchases = [
