@@ -1,0 +1,523 @@
+import { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '../components/ui/button'
+import {
+  HiArrowLeft, HiPlus, HiXMark, HiClipboardDocument,
+  HiChevronDown, HiEye, HiEyeSlash, HiShoppingCart,
+  HiClock, HiCheckCircle, HiWallet
+} from 'react-icons/hi2'
+import { API_URL } from '../api'
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (d = 0) => ({ opacity: 1, y: 0, transition: { delay: d * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] } }),
+}
+
+const walletPresets = [5, 10, 25]
+
+function generateClaimCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 4 }, () =>
+    Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  ).join('-')
+}
+
+function CopyButton({ text, className = '' }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button onClick={copy} className={`text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 ${className}`}>
+      {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
+    </button>
+  )
+}
+
+function DashNavbar({ user, onLogout }) {
+  return (
+    <motion.nav
+      className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50"
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <motion.img
+              src="/assets/images/fluxy.png"
+              alt="Fluxy"
+              className="h-8 w-auto"
+              whileHover={{ rotate: 12, scale: 1.1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            />
+            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
+          </Link>
+          <span className="text-border select-none">/</span>
+          <span className="text-sm font-medium font-display text-foreground">Dashboard</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {user && (
+            <>
+              <span className="text-sm text-foreground/80 font-display hidden sm:inline">
+                {user.name?.split(' ')[0]}
+              </span>
+              <button
+                onClick={onLogout}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+              >
+                Sair
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.nav>
+  )
+}
+
+function ClaimFluxyCard({ onClaim }) {
+  const [expanded, setExpanded] = useState(false)
+  const [name, setName] = useState('')
+  const [claimCode, setClaimCode] = useState(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleGenerate = () => {
+    if (!name.trim()) return
+    const code = generateClaimCode()
+    setClaimCode(code)
+  }
+
+  const premadeMessage = claimCode
+    ? `Hey ${name.trim()}, use this code to link with me: ${claimCode}\nRun: fluxy claim ${claimCode}`
+    : ''
+
+  const copyMessage = () => {
+    navigator.clipboard.writeText(premadeMessage)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="rounded-2xl border border-dashed border-border/60 bg-card/50 overflow-hidden transition-all duration-300">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors duration-200"
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <HiPlus className="w-5 h-5" />
+          </span>
+          <div className="text-left">
+            <p className="text-sm font-semibold font-display text-foreground">Claim a Fluxy</p>
+            <p className="text-xs text-muted-foreground">Link your self-hosted Fluxy to your account</p>
+          </div>
+        </div>
+        <HiChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 space-y-4 border-t border-border/30 pt-4">
+              {!claimCode ? (
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Give your Fluxy a name (e.g. Jarvis)"
+                    className="flex-1 h-10 px-4 rounded-xl bg-background border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors duration-200 font-display"
+                    onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                  />
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={!name.trim()}
+                    className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm disabled:opacity-40"
+                  >
+                    Generate Code
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-background border border-border/50 p-4">
+                    <p className="text-xs text-muted-foreground mb-2 font-display">Claim code for <span className="text-primary font-semibold">{name.trim()}</span></p>
+                    <div className="flex items-center justify-between">
+                      <code className="text-lg font-mono font-semibold text-foreground tracking-wider">{claimCode}</code>
+                      <CopyButton text={claimCode} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-background border border-border/50 p-4">
+                    <p className="text-xs text-muted-foreground mb-2 font-display">Send this to your Fluxy</p>
+                    <div className="flex items-start gap-2">
+                      <p className="text-xs text-foreground/80 font-mono flex-1 whitespace-pre-line">{premadeMessage}</p>
+                      <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0 mt-0.5">
+                        {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => { setClaimCode(null); setName(''); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
+                  >
+                    Generate another code
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function FluxyCard({ fluxy, onAddBalance }) {
+  const [showTopup, setShowTopup] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [custom, setCustom] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+
+  const activeAmount = showCustom ? parseFloat(custom) : selected
+
+  const handleAdd = () => {
+    if (!activeAmount || activeAmount <= 0) return
+    onAddBalance(fluxy.id, activeAmount)
+    setSelected(null)
+    setCustom('')
+    setShowCustom(false)
+    setShowTopup(false)
+  }
+
+  return (
+    <div className="rounded-2xl border border-border/50 bg-card p-5 transition-all duration-300 hover:border-border">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{fluxy.avatar}</span>
+          <div>
+            <h3 className="font-semibold font-display text-foreground text-sm">{fluxy.name}</h3>
+            <p className="text-xs text-muted-foreground">{fluxy.role}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
+            <img src="/assets/images/icons/wallet.png" alt="" className="h-4 w-auto" />
+            <span className="text-sm font-semibold font-display text-primary">${fluxy.balance.toFixed(2)}</span>
+          </div>
+          <button
+            onClick={() => setShowTopup(!showTopup)}
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all duration-200 ${
+              showTopup
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            {showTopup ? <HiXMark className="w-4 h-4" /> : <HiPlus className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showTopup && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/30 flex-wrap">
+              {walletPresets.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => { setSelected(amount); setShowCustom(false) }}
+                  className={`h-8 px-3.5 rounded-lg text-xs font-medium font-display border transition-all duration-200 ${
+                    !showCustom && selected === amount
+                      ? 'border-primary bg-primary/15 text-primary'
+                      : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
+                  }`}
+                >
+                  ${amount}
+                </button>
+              ))}
+              {showCustom ? (
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={custom}
+                    onChange={(e) => setCustom(e.target.value)}
+                    placeholder="0"
+                    autoFocus
+                    className="h-8 w-20 pl-6 pr-2 rounded-lg text-xs font-medium font-display border border-primary bg-primary/10 text-foreground outline-none placeholder:text-muted-foreground/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setShowCustom(true); setSelected(null) }}
+                  className="h-8 px-3.5 rounded-lg text-xs font-medium font-display border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all duration-200"
+                >
+                  Other
+                </button>
+              )}
+              <Button
+                onClick={handleAdd}
+                disabled={!activeAmount || activeAmount <= 0}
+                size="sm"
+                className="rounded-lg bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-8 px-4 text-xs disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
+              >
+                Add Balance
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function HandleCard({ handle, visibleHash, onToggleHash }) {
+  const redeemCode = handle.hash
+
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 last:border-b-0">
+      <span className="font-mono text-sm text-foreground">
+        fluxy.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AF27E3] to-[#04D1FE] font-semibold">{handle.handle}</span>
+      </span>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs text-muted-foreground select-all">
+          {visibleHash ? redeemCode : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+        </span>
+        {visibleHash && <CopyButton text={redeemCode} />}
+        <button
+          onClick={onToggleHash}
+          className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
+        >
+          {visibleHash ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PurchaseRow({ purchase }) {
+  const typeStyles = {
+    skill: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    bundle: 'bg-primary/10 text-primary border-primary/20',
+    wallet: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    handle: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    hosting: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  }
+
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 last:border-b-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[purchase.type] || typeStyles.skill}`}>
+          {purchase.type}
+        </span>
+        <span className="text-sm text-foreground font-display truncate">{purchase.name}</span>
+      </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="text-xs text-muted-foreground font-display hidden sm:inline">{purchase.date}</span>
+        <span className="text-sm font-semibold font-display text-foreground w-16 text-right">{purchase.amount}</span>
+      </div>
+    </div>
+  )
+}
+
+const mockFluxies = [
+  { id: 'fluxy-1', name: 'Jarvis', role: 'Personal Assistant', avatar: '\u{1F916}', balance: 12.50 },
+  { id: 'fluxy-2', name: 'Nova', role: 'Marketing Agent', avatar: '\u2728', balance: 0 },
+  { id: 'fluxy-3', name: 'Atlas', role: 'Sales Agent', avatar: '\u{1F5FA}\uFE0F', balance: 25.00 },
+]
+
+const mockPurchases = [
+  { id: 1, type: 'bundle', name: 'Fluxy for Lawyers', amount: '$49.00', date: 'Mar 28, 2026' },
+  { id: 2, type: 'skill', name: 'Gmail Integration', amount: '$3.00', date: 'Mar 27, 2026' },
+  { id: 3, type: 'wallet', name: 'Wallet Top-up (Jarvis)', amount: '$25.00', date: 'Mar 25, 2026' },
+  { id: 4, type: 'handle', name: 'fluxy.bot/jarvis', amount: '$5.00', date: 'Mar 20, 2026' },
+  { id: 5, type: 'skill', name: 'WhatsApp Business', amount: '$5.00', date: 'Mar 18, 2026' },
+  { id: 6, type: 'hosting', name: 'Starter Instance (NA)', amount: '$29.00/mo', date: 'Mar 15, 2026' },
+  { id: 7, type: 'bundle', name: 'Fluxy for Hotels', amount: '$69.00', date: 'Mar 10, 2026' },
+  { id: 8, type: 'skill', name: 'Slack Integration', amount: 'Free', date: 'Mar 8, 2026' },
+]
+
+export default function Dashboard() {
+  const navigate = useNavigate()
+  const [user, setUser] = useState(null)
+  const [reservedHandles, setReservedHandles] = useState([])
+  const [fluxies, setFluxies] = useState(mockFluxies)
+  const [purchases] = useState(mockPurchases)
+  const [visibleHashes, setVisibleHashes] = useState({})
+  const [loading, setLoading] = useState(true)
+  const tokenClientRef = useRef(null)
+  const loginResolveRef = useRef(null)
+
+  const fetchReservedHandles = async () => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/handles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReservedHandles(data.reservedHandles || [])
+      }
+    } catch (err) {
+      console.error('[handles] fetch failed:', err)
+    }
+  }
+
+  useEffect(() => {
+    const token = localStorage.getItem('fluxy_token')
+    if (!token) {
+      setLoading(false)
+      navigate('/')
+      return
+    }
+    fetch(`${API_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user)
+          fetchReservedHandles()
+        } else {
+          navigate('/')
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        localStorage.removeItem('fluxy_token')
+        setLoading(false)
+        navigate('/')
+      })
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('fluxy_token')
+    setUser(null)
+    setReservedHandles([])
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect()
+    }
+    navigate('/')
+  }
+
+  const handleAddBalance = (fluxyId, amount) => {
+    setFluxies(prev => prev.map(f =>
+      f.id === fluxyId ? { ...f, balance: f.balance + amount } : f
+    ))
+  }
+
+  const toggleHash = (handle) => {
+    setVisibleHashes(prev => ({ ...prev, [handle]: !prev[handle] }))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+          className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    )
+  }
+
+  if (!user) return null
+
+  return (
+    <div className="min-h-screen bg-background">
+      <DashNavbar user={user} onLogout={handleLogout} />
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 sm:space-y-14">
+        <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Fluxies</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
+            {fluxies.map((fluxy) => (
+              <FluxyCard key={fluxy.id} fluxy={fluxy} onAddBalance={handleAddBalance} />
+            ))}
+          </div>
+          <ClaimFluxyCard />
+        </motion.section>
+
+        <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Handles</h2>
+          </div>
+          {reservedHandles.length > 0 ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+              {reservedHandles.map((rh) => (
+                <HandleCard
+                  key={rh.handle}
+                  handle={rh}
+                  visibleHash={visibleHashes[rh.handle]}
+                  onToggleHash={() => toggleHash(rh.handle)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-8 text-center">
+              <p className="text-sm text-muted-foreground font-display mb-3">You haven't reserved any handles yet.</p>
+              <Link
+                to="/#handle"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium font-display transition-colors duration-200"
+              >
+                Reserve your first handle
+                <span className="text-xs">-&gt;</span>
+              </Link>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground/60 mt-3 font-display">
+            Handles are activated during <code className="text-foreground/50">fluxy init</code>
+          </p>
+        </motion.section>
+
+        <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Purchase History</h2>
+          </div>
+          {purchases.length > 0 ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+              {purchases.map((purchase) => (
+                <PurchaseRow key={purchase.id} purchase={purchase} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-8 text-center">
+              <p className="text-sm text-muted-foreground font-display mb-3">No purchases yet.</p>
+              <Link
+                to="/marketplace"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium font-display transition-colors duration-200"
+              >
+                Browse the Marketplace
+                <span className="text-xs">-&gt;</span>
+              </Link>
+            </div>
+          )}
+        </motion.section>
+      </main>
+    </div>
+  )
+}

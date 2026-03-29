@@ -14,6 +14,7 @@ import {
 import HandleSelector from './components/HandleSelector'
 import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
+import Dashboard from './pages/Dashboard'
 import { API_URL } from './api'
 
 function detectOS() {
@@ -1671,7 +1672,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/dashboard" element={<div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground font-display">Dashboard coming soon...</p></div>} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   )
