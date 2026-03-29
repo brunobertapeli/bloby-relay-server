@@ -192,10 +192,16 @@ function Navbar({ user, onLogin, onLogout }) {
               <span className="font-medium">Star</span>
             </a>
             {user ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-3">
                 <span className="text-sm text-foreground/80 font-display">
-                  Hey, <span className="font-semibold text-foreground">{user.name}</span>
+                  Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
                 </span>
+                <a
+                  href="/dashboard"
+                  className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm flex items-center transition-all duration-200"
+                >
+                  Dashboard
+                </a>
                 <button
                   onClick={onLogout}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
@@ -249,16 +255,25 @@ function Navbar({ user, onLogin, onLogout }) {
               </div>
 
               {user ? (
-                <div className="flex items-center justify-between px-3 py-3 mb-4 rounded-xl bg-white/[0.03] border border-border/50">
-                  <span className="text-sm text-foreground/80 font-display">
-                    Hey, <span className="font-semibold text-foreground">{user.name}</span>
-                  </span>
-                  <button
-                    onClick={() => { onLogout(); setMobileOpen(false) }}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                <div className="mb-4">
+                  <div className="flex items-center justify-between px-3 py-3 rounded-xl bg-white/[0.03] border border-border/50">
+                    <span className="text-sm text-foreground/80 font-display">
+                      Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
+                    </span>
+                    <button
+                      onClick={() => { onLogout(); setMobileOpen(false) }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                  <a
+                    href="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="mt-3 rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full flex items-center justify-center transition-all duration-200"
                   >
-                    Sair
-                  </button>
+                    Dashboard
+                  </a>
                 </div>
               ) : (
                 <div className="mb-4 mt-2">
@@ -1656,6 +1671,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/dashboard" element={<div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground font-display">Dashboard coming soon...</p></div>} />
       </Routes>
     </BrowserRouter>
   )
