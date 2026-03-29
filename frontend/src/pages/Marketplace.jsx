@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import {
-  HiMagnifyingGlass, HiChevronRight, HiArrowLeft, HiInformationCircle,
+  HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet
 } from 'react-icons/hi2'
 
@@ -66,10 +66,10 @@ const bundles = [
 ]
 
 const cloudServices = [
-  { name: 'Nano Image Gen', vendor: 'Fluxy Cloud', description: 'Generate images from text prompts without loading models locally', rating: 4.5, price: '$0.02 / call' },
-  { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', rating: 4, price: '$0.05 / call' },
-  { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', rating: 5, price: '$0.01 / page' },
-  { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', rating: 4, price: '$0.03 / min' },
+  { name: 'Nano Image Gen', vendor: 'Fluxy Cloud', description: 'Generate images from text prompts without loading models locally', calls: '142.3k', price: '$0.02 / call' },
+  { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', calls: '89.1k', price: '$0.05 / call' },
+  { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', calls: '214.7k', price: '$0.01 / page' },
+  { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', calls: '56.4k', price: '$0.03 / min' },
 ]
 
 const trendingSkills = [
@@ -133,7 +133,7 @@ function ItemIcon({ name }) {
   )
 }
 
-function InfoTooltip() {
+function InfoTooltip({ text }) {
   const [show, setShow] = useState(false)
   return (
     <div className="relative inline-flex">
@@ -146,7 +146,7 @@ function InfoTooltip() {
       </button>
       {show && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
-          We offer services on the cloud so your Fluxy doesn't get overloaded with too many skills. Just ask your Fluxy to use the service and it already knows how to.
+          {text}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
         </div>
       )}
@@ -182,7 +182,10 @@ function WalletTopup({ onAdd }) {
           <HiWallet className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold font-display text-foreground">Fund your Wallet</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold font-display text-foreground">Fund your Fluxy Wallet</h3>
+            <InfoTooltip text="Your Fluxy Wallet is used to pay for cloud services and premium skills. Add credits here and they'll be available instantly for your agent to use." />
+          </div>
           <p className="text-xs text-muted-foreground">Credits for cloud services and premium skills</p>
         </div>
       </div>
@@ -438,11 +441,9 @@ export default function Marketplace() {
           </div>
 
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={1} className="mb-12">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5 mb-5">
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
-              <button className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1 font-medium">
-                See all <HiChevronRight className="w-4 h-4" />
-              </button>
+              <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {bundles.map((bundle, i) => (
@@ -490,43 +491,8 @@ export default function Marketplace() {
 
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="mb-12">
             <div className="flex items-center gap-2.5 mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
-              <InfoTooltip />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {cloudServices.map((service, i) => (
-                <motion.div
-                  key={service.name}
-                  variants={fadeUp}
-                  custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <ItemIcon name={service.name} />
-                    <div>
-                      <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
-                  <Stars rating={service.rating} />
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                    <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
-                    <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
-                      See Details
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-
-          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Trending Skills</h2>
-              <button className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1 font-medium">
-                See all <HiChevronRight className="w-4 h-4" />
-              </button>
+              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
+              <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {trendingSkills.map((skill, i) => (
@@ -559,6 +525,42 @@ export default function Marketplace() {
                         Add
                       </Button>
                     )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+
+          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
+            <div className="flex items-center gap-2.5 mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
+              <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {cloudServices.map((service, i) => (
+                <motion.div
+                  key={service.name}
+                  variants={fadeUp}
+                  custom={i * 0.5}
+                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <ItemIcon name={service.name} />
+                    <div>
+                      <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
+                      <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                    <span>{service.calls} calls</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                    <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
+                    <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
+                      See Details
+                    </button>
                   </div>
                 </motion.div>
               ))}
