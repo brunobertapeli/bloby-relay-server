@@ -242,7 +242,7 @@ function InfoTooltip({ text }) {
             {text}
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
           </div>
-          <div className="sm:hidden fixed left-4 right-4 bottom-6 p-4 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-2xl z-50">
+          <div className="sm:hidden fixed left-4 right-4 top-1/2 -translate-y-1/2 p-4 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-2xl z-50">
             {text}
           </div>
         </>
@@ -1031,10 +1031,10 @@ export default function Marketplace() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); addToCart(bundle) }}
-                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
+                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-primary sm:text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
-                          <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
-                            <HiPlus className="w-3 h-3" />
+                          <span className="w-7 h-7 sm:w-6 sm:h-6 rounded-md border border-primary/40 sm:border-border/50 flex items-center justify-center hover:border-primary/40 bg-primary/10 sm:bg-transparent">
+                            <HiPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </span>
                           <span className="font-medium hidden sm:inline">Add to Cart</span>
                         </button>
@@ -1082,10 +1082,10 @@ export default function Marketplace() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); addToCart(skill) }}
-                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
+                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-primary sm:text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
-                          <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
-                            <HiPlus className="w-3 h-3" />
+                          <span className="w-7 h-7 sm:w-6 sm:h-6 rounded-md border border-primary/40 sm:border-border/50 flex items-center justify-center hover:border-primary/40 bg-primary/10 sm:bg-transparent">
+                            <HiPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </span>
                           <span className="font-medium hidden sm:inline">Add to Cart</span>
                         </button>
@@ -1102,7 +1102,7 @@ export default function Marketplace() {
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Cloud Services</span></h2>
                 <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
               </div>
               <FilterTabs active={cloudFilter} onChange={setCloudFilter} />
