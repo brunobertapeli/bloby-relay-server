@@ -175,7 +175,7 @@ function FluxyCard({ fluxy, onAddBalance }) {
           <span className="text-2xl">{fluxy.avatar}</span>
           <div>
             <h3 className="font-semibold font-display text-foreground text-sm">{fluxy.name}</h3>
-            <p className="text-xs text-muted-foreground">{fluxy.role}</p>
+            <p className="text-[11px] text-muted-foreground font-mono">{fluxy.url}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -258,18 +258,17 @@ function FluxyCard({ fluxy, onAddBalance }) {
 }
 
 function HandleCard({ handle, visibleHash, onToggleHash }) {
-  const redeemCode = handle.hash
-
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 last:border-b-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b border-border/30 last:border-b-0 gap-2 sm:gap-4">
       <span className="font-mono text-sm text-foreground">
         fluxy.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AF27E3] to-[#04D1FE] font-semibold">{handle.handle}</span>
       </span>
       <div className="flex items-center gap-2">
-        <span className="font-mono text-xs text-muted-foreground select-all">
-          {visibleHash ? redeemCode : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-        </span>
-        {visibleHash && <CopyButton text={redeemCode} />}
+        <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
+        <code className="font-mono text-xs text-muted-foreground select-all">
+          {visibleHash ? handle.hash : '\u2022\u2022\u2022\u2022\u2022'}
+        </code>
+        {visibleHash && <CopyButton text={handle.hash} />}
         <button
           onClick={onToggleHash}
           className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
@@ -307,9 +306,9 @@ function PurchaseRow({ purchase }) {
 }
 
 const mockFluxies = [
-  { id: 'fluxy-1', name: 'Jarvis', role: 'Personal Assistant', avatar: '\u{1F916}', balance: 12.50 },
-  { id: 'fluxy-2', name: 'Nova', role: 'Marketing Agent', avatar: '\u2728', balance: 0 },
-  { id: 'fluxy-3', name: 'Atlas', role: 'Sales Agent', avatar: '\u{1F5FA}\uFE0F', balance: 25.00 },
+  { id: 'fluxy-1', name: 'Jarvis', avatar: '\u{1F916}', url: 'fluxy.bot/jarvis', balance: 12.50 },
+  { id: 'fluxy-2', name: 'Nova', avatar: '\u2728', url: 'my.fluxy.bot/nova', balance: 0 },
+  { id: 'fluxy-3', name: 'Atlas', avatar: '\u{1F5FA}\uFE0F', url: 'fluxy.bot/atlas', balance: 25.00 },
 ]
 
 const mockPurchases = [
@@ -476,7 +475,7 @@ export default function Dashboard() {
             </div>
           )}
           <p className="text-xs text-muted-foreground/60 mt-3 font-display">
-            Handles are activated during <code className="text-foreground/50">fluxy init</code>
+            Use the activation code during <code className="text-foreground/50">fluxy init</code> to claim your handle
           </p>
         </motion.section>
 
