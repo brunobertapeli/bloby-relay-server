@@ -82,14 +82,25 @@ function DashNavbar({ user, onLogout }) {
 
 function ClaimFluxyCard() {
   const [claimCode, setClaimCode] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const handleGenerate = () => {
     setClaimCode(generateClaimCode())
   }
 
+  const premadeMessage = claimCode
+    ? `Link your self-hosted Fluxy to your fluxy.bot account using this claim code: ${claimCode}`
+    : ''
+
+  const copyMessage = () => {
+    navigator.clipboard.writeText(premadeMessage)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
-      <p className="text-xs text-muted-foreground font-display">Generate a claim code, then tell your Fluxy to link using it. Once verified, it will appear here.</p>
+      <p className="text-xs text-muted-foreground font-display">Generate a claim code and send it to your Fluxy. Once verified, it will appear here.</p>
       {!claimCode ? (
         <Button
           onClick={handleGenerate}
@@ -106,7 +117,15 @@ function ClaimFluxyCard() {
               <CopyButton text={claimCode} />
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground/60 font-display">Send this code to your Fluxy. It will use it to link to your account automatically.</p>
+          <div className="rounded-xl bg-background border border-border/50 p-4">
+            <p className="text-xs text-muted-foreground mb-2 font-display">Copy and paste this to your Fluxy</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-foreground/80 font-display flex-1">{premadeMessage}</p>
+              <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0 mt-0.5">
+                {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
           <button
             onClick={() => setClaimCode(null)}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
