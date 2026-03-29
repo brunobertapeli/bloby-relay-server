@@ -572,9 +572,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                 <div key={item.id} className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2">
                     {item.type === 'wallet' ? (
-                      <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
-                        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-3 h-3" />
-                      </div>
+                      <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[30px] w-auto shrink-0" />
                     ) : (
                       <div className="w-6 h-6 rounded-md bg-emerald-500/15 flex items-center justify-center shrink-0">
                         <HiCheckCircle className="w-3 h-3 text-emerald-400" />
@@ -604,9 +602,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                       className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
                     >
                       {item.type === 'wallet' ? (
-                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                          <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-4 h-4" />
-                        </div>
+                        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[30px] w-auto shrink-0" />
                       ) : (
                         <ItemIcon name={item.name || item.title} />
                       )}
