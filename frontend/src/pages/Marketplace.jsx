@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
-import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import {
-  HiMagnifyingGlass, HiChevronRight, HiArrowLeft, HiInformationCircle
+  HiMagnifyingGlass, HiChevronRight, HiArrowLeft, HiInformationCircle,
+  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus
 } from 'react-icons/hi2'
 
 const bundles = [
   {
+    id: 'bundle-1',
+    type: 'bundle',
     title: 'Productivity Pack',
     description: 'Essential skills to supercharge your daily workflow and task management',
     skills: [
@@ -17,10 +19,12 @@ const bundles = [
       { name: 'File Manager', vendor: 'Fluxy' },
       { name: 'Scheduler', vendor: 'Fluxy' },
     ],
-    tags: ['Productivity', 'Automation', '+3'],
     price: 'Free',
+    priceNum: 0,
   },
   {
+    id: 'bundle-2',
+    type: 'bundle',
     title: 'AI / ML',
     description: 'Advanced AI and machine learning skills for data-driven projects',
     skills: [
@@ -28,10 +32,12 @@ const bundles = [
       { name: 'Data Analyst', vendor: 'Fluxy' },
       { name: 'Model Trainer', vendor: 'Fluxy' },
     ],
-    tags: ['AI', 'Machine Learning', '+2'],
-    price: '$156.00',
+    price: '$15.60',
+    priceNum: 15.60,
   },
   {
+    id: 'bundle-3',
+    type: 'bundle',
     title: 'Developer Tools',
     description: 'Full-stack development skills for building and shipping faster',
     skills: [
@@ -39,11 +45,13 @@ const bundles = [
       { name: 'API Builder', vendor: 'Fluxy' },
       { name: 'Debugger', vendor: 'Fluxy' },
     ],
-    tags: ['Development', 'DevOps', '+3'],
-    price: '$134.00',
+    price: '$13.40',
+    priceNum: 13.40,
     extra: '+ 4 More...',
   },
   {
+    id: 'bundle-4',
+    type: 'bundle',
     title: 'Content Creator',
     description: 'Everything you need to write, design, and publish content',
     skills: [
@@ -51,24 +59,60 @@ const bundles = [
       { name: 'Image Gen', vendor: 'Fluxy' },
       { name: 'Social Media', vendor: 'Fluxy' },
     ],
-    tags: ['Content', 'Marketing', '+9'],
-    price: '$190.00',
+    price: '$19.00',
+    priceNum: 19.00,
     extra: '+ 6 More...',
   },
 ]
 
 const cloudServices = [
-  { name: 'GPU Compute', vendor: 'Fluxy Cloud', description: 'High-performance GPU instances for heavy AI workloads', rating: 4, price: '$192.00' },
-  { name: 'Vector Store', vendor: 'Fluxy Cloud', description: 'Managed vector database for embeddings and semantic search', rating: 3.5, price: '$124.00' },
-  { name: 'Model Hosting', vendor: 'Fluxy Cloud', description: 'Deploy and serve ML models with auto-scaling infrastructure', rating: 5, price: '$150.00' },
-  { name: 'Data Pipeline', vendor: 'Fluxy Cloud', description: 'Serverless ETL pipelines for real-time data processing', rating: 4.5, price: '$192.00' },
+  { name: 'Nano Image Gen', vendor: 'Fluxy Cloud', description: 'Generate images from text prompts without loading models locally', rating: 4.5, price: '$0.02 / call' },
+  { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', rating: 4, price: '$0.05 / call' },
+  { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', rating: 5, price: '$0.01 / page' },
+  { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', rating: 4, price: '$0.03 / min' },
 ]
 
 const trendingSkills = [
-  { name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', rating: 5, price: 'Free' },
-  { name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', rating: 4.5, price: '$12.00' },
-  { name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', rating: 4, price: 'Free' },
-  { name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', rating: 4, price: '$8.00' },
+  {
+    id: 'skill-1',
+    type: 'skill',
+    name: 'Web Search',
+    vendor: 'Fluxy',
+    description: 'Search the web in real-time and bring back structured results',
+    rating: 5,
+    price: 'Free',
+    priceNum: 0,
+  },
+  {
+    id: 'skill-2',
+    type: 'skill',
+    name: 'Code Review',
+    vendor: 'Fluxy',
+    description: 'Automated code review with best practices and security checks',
+    rating: 4.5,
+    price: '$4.00',
+    priceNum: 4.00,
+  },
+  {
+    id: 'skill-3',
+    type: 'skill',
+    name: 'Translator',
+    vendor: 'Fluxy',
+    description: 'Translate text between 50+ languages with context awareness',
+    rating: 4,
+    price: 'Free',
+    priceNum: 0,
+  },
+  {
+    id: 'skill-4',
+    type: 'skill',
+    name: 'PDF Reader',
+    vendor: 'Fluxy',
+    description: 'Extract, summarize, and query content from PDF documents',
+    rating: 4,
+    price: '$3.00',
+    priceNum: 3.00,
+  },
 ]
 
 const fadeUp = {
@@ -108,11 +152,10 @@ function ItemIcon({ name }) {
     'Copywriter': 'bg-pink-500/20 text-pink-400',
     'Image Gen': 'bg-violet-500/20 text-violet-400',
     'Social Media': 'bg-sky-500/20 text-sky-400',
-    'GPU Compute': 'bg-amber-500/20 text-amber-400',
-    'Vector Store': 'bg-teal-500/20 text-teal-400',
-    'Model Hosting': 'bg-indigo-500/20 text-indigo-400',
-    'Data Pipeline': 'bg-emerald-500/20 text-emerald-400',
+    'Nano Image Gen': 'bg-violet-500/20 text-violet-400',
     'Code Review': 'bg-orange-500/20 text-orange-400',
+    'PDF Convert': 'bg-rose-500/20 text-rose-400',
+    'Speech to Text': 'bg-teal-500/20 text-teal-400',
     'Translator': 'bg-sky-500/20 text-sky-400',
     'PDF Reader': 'bg-rose-500/20 text-rose-400',
   }
@@ -136,7 +179,7 @@ function InfoTooltip() {
         <HiInformationCircle className="w-5 h-5" />
       </button>
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
           We offer services on the cloud so your Fluxy doesn't get overloaded with too many skills. Just ask your Fluxy to use the service and it already knows how to.
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
         </div>
@@ -145,8 +188,141 @@ function InfoTooltip() {
   )
 }
 
+function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
+  const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
+
+  return (
+    <>
+      <motion.div
+        className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed top-0 right-0 bottom-0 z-[80] w-full sm:w-[420px] bg-background border-l border-border/50 flex flex-col shadow-2xl"
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+      >
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <HiShoppingCart className="w-5 h-5 text-foreground" />
+            <h2 className="text-lg font-bold font-display text-foreground">Your Cart</h2>
+            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+              {cart.reduce((sum, item) => sum + item.qty, 0)} items
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200"
+          >
+            <HiXMark className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
+          {cart.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <HiShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-4" />
+              <p className="text-sm text-muted-foreground mb-1">Your cart is empty</p>
+              <p className="text-xs text-muted-foreground/60">Add skills or bundles from the marketplace</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
+                >
+                  <ItemIcon name={item.name || item.title} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium font-display text-foreground leading-tight">{item.name || item.title}</p>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type}</p>
+                      </div>
+                      <button
+                        onClick={() => onRemove(item.id)}
+                        className="p-1 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-400/10 transition-colors duration-200 shrink-0"
+                      >
+                        <HiTrash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm font-semibold text-foreground">{item.price}</span>
+                      {item.priceNum > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => onQuantityChange(item.id, item.qty - 1)}
+                            className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-colors duration-200"
+                          >
+                            <HiMinus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-medium text-foreground w-6 text-center">{item.qty}</span>
+                          <button
+                            onClick={() => onQuantityChange(item.id, item.qty + 1)}
+                            className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-colors duration-200"
+                          >
+                            <HiPlus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {cart.length > 0 && (
+          <div className="p-5 border-t border-border/50">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-lg font-bold font-display text-foreground">
+                {total === 0 ? 'Free' : `$${total.toFixed(2)}`}
+              </span>
+            </div>
+            <Button className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm">
+              Checkout
+            </Button>
+          </div>
+        )}
+      </motion.div>
+    </>
+  )
+}
+
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [cart, setCart] = useState([])
+  const [cartOpen, setCartOpen] = useState(false)
+
+  const addToCart = (item) => {
+    setCart(prev => {
+      const exists = prev.find(c => c.id === item.id)
+      if (exists) return prev
+      return [...prev, { ...item, qty: 1 }]
+    })
+  }
+
+  const removeFromCart = (id) => {
+    setCart(prev => prev.filter(c => c.id !== id))
+  }
+
+  const changeQuantity = (id, newQty) => {
+    if (newQty < 1) {
+      removeFromCart(id)
+      return
+    }
+    setCart(prev => prev.map(c => c.id === id ? { ...c, qty: newQty } : c))
+  }
+
+  const isInCart = (id) => cart.some(c => c.id === id)
+  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,7 +347,7 @@ export default function Marketplace() {
         </div>
       </nav>
 
-      <main className="pt-24 pb-16 px-4 sm:px-6">
+      <main className="pt-24 pb-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
@@ -201,7 +377,7 @@ export default function Marketplace() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {bundles.map((bundle, i) => (
                 <motion.div
-                  key={bundle.title}
+                  key={bundle.id}
                   variants={fadeUp}
                   custom={i * 0.5}
                   className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
@@ -222,18 +398,20 @@ export default function Marketplace() {
                   {bundle.extra && (
                     <p className="text-xs text-primary mb-3 font-medium">{bundle.extra}</p>
                   )}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {bundle.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-[10px] rounded-full px-2 py-0.5 border-border/50 text-muted-foreground">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
                     <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
-                    <Button variant="outline" size="sm" className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60">
-                      Add bundle
-                    </Button>
+                    {isInCart(bundle.id) ? (
+                      <span className="text-xs text-emerald-400 font-medium px-4 h-8 flex items-center">Added</span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addToCart(bundle)}
+                        className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                      >
+                        Add bundle
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -263,15 +441,10 @@ export default function Marketplace() {
                   <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
                   <Stars rating={service.rating} />
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                    <span className="text-sm font-semibold font-display text-foreground">{service.price}</span>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60">
-                        Add
-                      </Button>
-                      <button className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200">
-                        See Details
-                      </button>
-                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
+                    <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
+                      See Details
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -288,7 +461,7 @@ export default function Marketplace() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {trendingSkills.map((skill, i) => (
                 <motion.div
-                  key={skill.name}
+                  key={skill.id}
                   variants={fadeUp}
                   custom={i * 0.5}
                   className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
@@ -304,14 +477,18 @@ export default function Marketplace() {
                   <Stars rating={skill.rating} />
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                     <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60">
+                    {isInCart(skill.id) ? (
+                      <span className="text-xs text-emerald-400 font-medium">Added</span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addToCart(skill)}
+                        className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                      >
                         Add
                       </Button>
-                      <button className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200">
-                        See Details
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -319,6 +496,46 @@ export default function Marketplace() {
           </motion.section>
         </div>
       </main>
+
+      <AnimatePresence>
+        {cartCount > 0 && !cartOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            onClick={() => setCartOpen(true)}
+            className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 pl-5 pr-6 h-14 rounded-2xl bg-foreground text-background shadow-2xl shadow-black/30 hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200"
+          >
+            <div className="relative">
+              <HiShoppingCart className="w-5 h-5" />
+              <span className="absolute -top-2 -right-2.5 w-4.5 h-4.5 min-w-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white leading-none">
+                {cartCount}
+              </span>
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-semibold font-display leading-tight">View Cart</span>
+              <span className="text-[11px] opacity-60 leading-tight">
+                {cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0) === 0
+                  ? 'Free'
+                  : `$${cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0).toFixed(2)}`
+                }
+              </span>
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {cartOpen && (
+          <CartSheet
+            cart={cart}
+            onClose={() => setCartOpen(false)}
+            onRemove={removeFromCart}
+            onQuantityChange={changeQuantity}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
