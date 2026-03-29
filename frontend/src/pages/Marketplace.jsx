@@ -72,11 +72,15 @@ const cloudServices = [
   { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', calls: '56.4k', price: '$0.03 / min' },
 ]
 
-const trendingSkills = [
+const skills = [
   { id: 'skill-1', type: 'skill', name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', rating: 5, price: 'Free', priceNum: 0 },
   { id: 'skill-2', type: 'skill', name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', rating: 4.5, price: '$4.00', priceNum: 4.00 },
   { id: 'skill-3', type: 'skill', name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', rating: 4, price: 'Free', priceNum: 0 },
   { id: 'skill-4', type: 'skill', name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', rating: 4, price: '$3.00', priceNum: 3.00 },
+  { id: 'skill-5', type: 'skill', name: 'Scheduler', vendor: 'Fluxy', description: 'Schedule tasks, set reminders, and manage recurring workflows', rating: 4.5, price: 'Free', priceNum: 0 },
+  { id: 'skill-6', type: 'skill', name: 'Image Gen', vendor: 'Fluxy', description: 'Create images, illustrations, and graphics from text descriptions', rating: 4, price: '$5.00', priceNum: 5.00 },
+  { id: 'skill-7', type: 'skill', name: 'Data Analyst', vendor: 'Fluxy', description: 'Analyze datasets, generate reports, and surface actionable insights', rating: 4.5, price: '$6.00', priceNum: 6.00 },
+  { id: 'skill-8', type: 'skill', name: 'File Manager', vendor: 'Fluxy', description: 'Organize, move, rename, and manage files across your system', rating: 5, price: 'Free', priceNum: 0 },
 ]
 
 const walletPresets = [5, 10, 25]
@@ -445,13 +449,13 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
               <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
               {bundles.map((bundle, i) => (
                 <motion.div
                   key={bundle.id}
                   variants={fadeUp}
                   custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
                 >
                   <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
                   <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
@@ -494,40 +498,42 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
               <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {trendingSkills.map((skill, i) => (
-                <motion.div
-                  key={skill.id}
-                  variants={fadeUp}
-                  custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <ItemIcon name={skill.name} />
-                    <div>
-                      <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{skill.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">{skill.vendor}</p>
+            <div className="overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
+              <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
+                {skills.map((skill, i) => (
+                  <motion.div
+                    key={skill.id}
+                    variants={fadeUp}
+                    custom={i * 0.3}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <ItemIcon name={skill.name} />
+                      <div>
+                        <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{skill.name}</h3>
+                        <p className="text-[11px] text-muted-foreground">{skill.vendor}</p>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{skill.description}</p>
-                  <Stars rating={skill.rating} />
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                    <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
-                    {isInCart(skill.id) ? (
-                      <span className="text-xs text-emerald-400 font-medium">Added</span>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addToCart(skill)}
-                        className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
-                      >
-                        Add
-                      </Button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{skill.description}</p>
+                    <Stars rating={skill.rating} />
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                      <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
+                      {isInCart(skill.id) ? (
+                        <span className="text-xs text-emerald-400 font-medium">Added</span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addToCart(skill)}
+                          className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                        >
+                          Add
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.section>
 
@@ -536,13 +542,13 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
               <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
               {cloudServices.map((service, i) => (
                 <motion.div
                   key={service.name}
                   variants={fadeUp}
                   custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <ItemIcon name={service.name} />
