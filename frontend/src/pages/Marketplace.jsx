@@ -615,16 +615,14 @@ export default function Marketplace() {
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
                       <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
                       {isInCart(bundle.id) ? (
-                        <span className="text-xs text-emerald-400 font-medium px-4 h-8 flex items-center">Added</span>
+                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <button
                           onClick={() => addToCart(bundle)}
-                          className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                          className="w-7 h-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-primary hover:border-primary/40 transition-all duration-200"
                         >
-                          Add bundle
-                        </Button>
+                          <HiPlus className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </motion.div>
@@ -664,16 +662,14 @@ export default function Marketplace() {
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                       <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
                       {isInCart(skill.id) ? (
-                        <span className="text-xs text-emerald-400 font-medium">Added</span>
+                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <button
                           onClick={() => addToCart(skill)}
-                          className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                          className="w-7 h-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-primary hover:border-primary/40 transition-all duration-200"
                         >
-                          Add
-                        </Button>
+                          <HiPlus className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </motion.div>
