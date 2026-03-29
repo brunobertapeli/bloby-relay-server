@@ -81,17 +81,15 @@ function DashNavbar({ user, onLogout }) {
 }
 
 function ClaimFluxyCard() {
-  const [name, setName] = useState('')
   const [claimCode, setClaimCode] = useState(null)
   const [copied, setCopied] = useState(false)
 
   const handleGenerate = () => {
-    if (!name.trim()) return
     setClaimCode(generateClaimCode())
   }
 
   const premadeMessage = claimCode
-    ? `Hey ${name.trim()}, use this code to link with me: ${claimCode}\nRun: fluxy claim ${claimCode}`
+    ? `fluxy claim ${claimCode}`
     : ''
 
   const copyMessage = () => {
@@ -102,45 +100,34 @@ function ClaimFluxyCard() {
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
-      <p className="text-xs text-muted-foreground font-display">Link your self-hosted Fluxy to your account</p>
+      <p className="text-xs text-muted-foreground font-display">Generate a code and run it on your Fluxy to link it to your account.</p>
       {!claimCode ? (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Give your Fluxy a name (e.g. Jarvis)"
-            className="flex-1 h-10 px-4 rounded-xl bg-background border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors duration-200 font-display"
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-          />
-          <Button
-            onClick={handleGenerate}
-            disabled={!name.trim()}
-            className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm disabled:opacity-40"
-          >
-            Generate Code
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm"
+        >
+          Generate Claim Code
+        </Button>
       ) : (
         <div className="space-y-3">
           <div className="rounded-xl bg-background border border-border/50 p-4">
-            <p className="text-xs text-muted-foreground mb-2 font-display">Claim code for <span className="text-primary font-semibold">{name.trim()}</span></p>
+            <p className="text-xs text-muted-foreground mb-2 font-display">Your claim code</p>
             <div className="flex items-center justify-between">
               <code className="text-lg font-mono font-semibold text-foreground tracking-wider">{claimCode}</code>
               <CopyButton text={claimCode} />
             </div>
           </div>
           <div className="rounded-xl bg-background border border-border/50 p-4">
-            <p className="text-xs text-muted-foreground mb-2 font-display">Send this to your Fluxy</p>
-            <div className="flex items-start gap-2">
-              <p className="text-xs text-foreground/80 font-mono flex-1 whitespace-pre-line">{premadeMessage}</p>
-              <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0 mt-0.5">
+            <p className="text-xs text-muted-foreground mb-2 font-display">Run this on your Fluxy</p>
+            <div className="flex items-center justify-between gap-2">
+              <code className="text-sm text-foreground/80 font-mono">{premadeMessage}</code>
+              <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0">
                 {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
               </button>
             </div>
           </div>
           <button
-            onClick={() => { setClaimCode(null); setName('') }}
+            onClick={() => setClaimCode(null)}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
           >
             Generate another code
