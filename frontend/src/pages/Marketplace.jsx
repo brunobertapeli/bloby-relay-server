@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiChevronRight, HiArrowLeft, HiInformationCircle,
-  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus
+  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet
 } from 'react-icons/hi2'
 
 const bundles = [
@@ -73,47 +73,13 @@ const cloudServices = [
 ]
 
 const trendingSkills = [
-  {
-    id: 'skill-1',
-    type: 'skill',
-    name: 'Web Search',
-    vendor: 'Fluxy',
-    description: 'Search the web in real-time and bring back structured results',
-    rating: 5,
-    price: 'Free',
-    priceNum: 0,
-  },
-  {
-    id: 'skill-2',
-    type: 'skill',
-    name: 'Code Review',
-    vendor: 'Fluxy',
-    description: 'Automated code review with best practices and security checks',
-    rating: 4.5,
-    price: '$4.00',
-    priceNum: 4.00,
-  },
-  {
-    id: 'skill-3',
-    type: 'skill',
-    name: 'Translator',
-    vendor: 'Fluxy',
-    description: 'Translate text between 50+ languages with context awareness',
-    rating: 4,
-    price: 'Free',
-    priceNum: 0,
-  },
-  {
-    id: 'skill-4',
-    type: 'skill',
-    name: 'PDF Reader',
-    vendor: 'Fluxy',
-    description: 'Extract, summarize, and query content from PDF documents',
-    rating: 4,
-    price: '$3.00',
-    priceNum: 3.00,
-  },
+  { id: 'skill-1', type: 'skill', name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', rating: 5, price: 'Free', priceNum: 0 },
+  { id: 'skill-2', type: 'skill', name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', rating: 4.5, price: '$4.00', priceNum: 4.00 },
+  { id: 'skill-3', type: 'skill', name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', rating: 4, price: 'Free', priceNum: 0 },
+  { id: 'skill-4', type: 'skill', name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', rating: 4, price: '$3.00', priceNum: 3.00 },
 ]
+
+const walletPresets = [5, 10, 25]
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -188,6 +154,87 @@ function InfoTooltip() {
   )
 }
 
+function WalletTopup({ onAdd }) {
+  const [selected, setSelected] = useState(null)
+  const [custom, setCustom] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+
+  const handleAdd = () => {
+    const amount = showCustom ? parseFloat(custom) : selected
+    if (!amount || amount <= 0) return
+    onAdd(amount)
+    setSelected(null)
+    setCustom('')
+    setShowCustom(false)
+  }
+
+  const activeAmount = showCustom ? parseFloat(custom) : selected
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 flex flex-col sm:flex-row sm:items-center gap-4"
+    >
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+          <HiWallet className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold font-display text-foreground">Fund your Wallet</h3>
+          <p className="text-xs text-muted-foreground">Credits for cloud services and premium skills</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+        {walletPresets.map((amount) => (
+          <button
+            key={amount}
+            onClick={() => { setSelected(amount); setShowCustom(false) }}
+            className={`h-9 px-4 rounded-xl text-sm font-medium font-display border transition-all duration-200 ${
+              !showCustom && selected === amount
+                ? 'border-primary bg-primary/15 text-primary'
+                : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            ${amount}
+          </button>
+        ))}
+        {showCustom ? (
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="0"
+              autoFocus
+              className="h-9 w-24 pl-7 pr-3 rounded-xl text-sm font-medium font-display border border-primary bg-primary/10 text-foreground outline-none placeholder:text-muted-foreground/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => { setShowCustom(true); setSelected(null) }}
+            className="h-9 px-4 rounded-xl text-sm font-medium font-display border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all duration-200"
+          >
+            Other
+          </button>
+        )}
+        <Button
+          onClick={handleAdd}
+          disabled={!activeAmount || activeAmount <= 0}
+          size="sm"
+          className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-9 px-5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Add to Cart
+        </Button>
+      </div>
+    </motion.div>
+  )
+}
+
 function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
 
@@ -237,12 +284,18 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
                   key={item.id}
                   className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
                 >
-                  <ItemIcon name={item.name || item.title} />
+                  {item.type === 'wallet' ? (
+                    <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                      <HiWallet className="w-4 h-4 text-primary" />
+                    </div>
+                  ) : (
+                    <ItemIcon name={item.name || item.title} />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium font-display text-foreground leading-tight">{item.name || item.title}</p>
-                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type}</p>
+                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type === 'wallet' ? 'Wallet Top-up' : item.type}</p>
                       </div>
                       <button
                         onClick={() => onRemove(item.id)}
@@ -253,7 +306,7 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm font-semibold text-foreground">{item.price}</span>
-                      {item.priceNum > 0 && (
+                      {item.type !== 'wallet' && item.priceNum > 0 && (
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => onQuantityChange(item.id, item.qty - 1)}
@@ -309,6 +362,18 @@ export default function Marketplace() {
     })
   }
 
+  const addWalletToCart = (amount) => {
+    const walletId = `wallet-${Date.now()}`
+    setCart(prev => [...prev, {
+      id: walletId,
+      type: 'wallet',
+      name: 'Wallet Top-up',
+      price: `$${amount.toFixed(2)}`,
+      priceNum: amount,
+      qty: 1,
+    }])
+  }
+
   const removeFromCart = (id) => {
     setCart(prev => prev.filter(c => c.id !== id))
   }
@@ -323,6 +388,7 @@ export default function Marketplace() {
 
   const isInCart = (id) => cart.some(c => c.id === id)
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0)
+  const cartTotal = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -350,7 +416,7 @@ export default function Marketplace() {
       <main className="pt-24 pb-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
                 <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Fluxy</p>
@@ -366,6 +432,10 @@ export default function Marketplace() {
               </div>
             </div>
           </motion.div>
+
+          <div className="mb-10">
+            <WalletTopup onAdd={addWalletToCart} />
+          </div>
 
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={1} className="mb-12">
             <div className="flex items-center justify-between mb-5">
@@ -505,23 +575,17 @@ export default function Marketplace() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             onClick={() => setCartOpen(true)}
-            className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 pl-5 pr-6 h-14 rounded-2xl bg-foreground text-background shadow-2xl shadow-black/30 hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200"
+            className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl shadow-black/20 px-4 h-12 hover:border-primary/30 active:scale-[0.97] transition-all duration-200"
           >
             <div className="relative">
-              <HiShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-2 -right-2.5 w-4.5 h-4.5 min-w-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white leading-none">
+              <HiShoppingCart className="w-5 h-5 text-foreground" />
+              <span className="absolute -top-2 -right-2.5 min-w-[18px] px-1 h-[18px] flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white leading-none">
                 {cartCount}
               </span>
             </div>
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-semibold font-display leading-tight">View Cart</span>
-              <span className="text-[11px] opacity-60 leading-tight">
-                {cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0) === 0
-                  ? 'Free'
-                  : `$${cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0).toFixed(2)}`
-                }
-              </span>
-            </div>
+            <span className="text-sm font-semibold font-display text-foreground">
+              {cartTotal === 0 ? 'Free' : `$${cartTotal.toFixed(2)}`}
+            </span>
           </motion.button>
         )}
       </AnimatePresence>
