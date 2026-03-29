@@ -6,8 +6,10 @@ import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet,
-  HiChevronLeft, HiChevronRight
+  HiChevronLeft, HiChevronRight, HiCpuChip
 } from 'react-icons/hi2'
+
+const filterOptions = ['Featured', 'Popular', 'Newest', 'Price: Low to High']
 
 const bundles = [
   {
@@ -173,6 +175,28 @@ function InfoTooltip({ text }) {
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
         </div>
       )}
+    </div>
+  )
+}
+
+function FilterTabs({ active, onChange }) {
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      {filterOptions.map((opt, i) => (
+        <span key={opt} className="flex items-center gap-1">
+          {i > 0 && <span className="text-border mx-1 select-none">|</span>}
+          <button
+            onClick={() => onChange(opt)}
+            className={`font-medium transition-colors duration-200 ${
+              active === opt
+                ? 'text-primary'
+                : 'text-muted-foreground/60 hover:text-muted-foreground'
+            }`}
+          >
+            {opt}
+          </button>
+        </span>
+      ))}
     </div>
   )
 }
@@ -427,6 +451,9 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [bundleFilter, setBundleFilter] = useState('Featured')
+  const [skillFilter, setSkillFilter] = useState('Featured')
+  const [cloudFilter, setCloudFilter] = useState('Featured')
 
   const addToCart = (item) => {
     setCart(prev => {
@@ -464,6 +491,33 @@ export default function Marketplace() {
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0)
   const cartTotal = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
 
+  const q = searchQuery.toLowerCase().trim()
+
+  const sortItems = (items, filter, priceKey = 'priceNum') => {
+    const sorted = [...items]
+    if (filter === 'Price: Low to High') sorted.sort((a, b) => (a[priceKey] || 0) - (b[priceKey] || 0))
+    if (filter === 'Newest') sorted.reverse()
+    return sorted
+  }
+
+  const filteredBundles = sortItems(
+    bundles.filter(b => !q || b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || b.skills.some(s => s.name.toLowerCase().includes(q))),
+    bundleFilter
+  )
+
+  const filteredSkills = sortItems(
+    skills.filter(s => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.vendor.toLowerCase().includes(q)),
+    skillFilter
+  )
+
+  const filteredCloud = sortItems(
+    cloudServices.filter(s => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.vendor.toLowerCase().includes(q)),
+    cloudFilter,
+    'priceNum'
+  )
+
+  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
@@ -492,7 +546,13 @@ export default function Marketplace() {
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
+                  <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium font-display">
+                    <HiCpuChip className="w-3.5 h-3.5" />
+                    For Agents
+                  </span>
+                </div>
                 <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Fluxy</p>
               </div>
               <div className="relative w-full sm:w-72">
@@ -501,24 +561,38 @@ export default function Marketplace() {
                   placeholder="Search marketplace..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 rounded-xl bg-card border-border/50 h-10"
+                  className="pl-9 pr-9 rounded-xl bg-card border-border/50 h-10"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors duration-200"
+                  >
+                    <HiXMark className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
 
+          {!q && (
           <div className="mb-10">
             <WalletTopup onAdd={addWalletToCart} />
           </div>
+          )}
 
+          {filteredBundles.length > 0 && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={1} className="mb-12">
-            <div className="flex items-center gap-2.5 mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
-              <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
+                <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
+              </div>
+              <FilterTabs active={bundleFilter} onChange={setBundleFilter} />
             </div>
             <Carousel>
               <div className="flex gap-4">
-                {bundles.map((bundle, i) => (
+                {filteredBundles.map((bundle, i) => (
                   <motion.div
                     key={bundle.id}
                     variants={fadeUp}
@@ -561,15 +635,20 @@ export default function Marketplace() {
               </div>
             </Carousel>
           </motion.section>
+          )}
 
+          {filteredSkills.length > 0 && (
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="mb-12">
-            <div className="flex items-center gap-2.5 mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
-              <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
+                <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
+              </div>
+              <FilterTabs active={skillFilter} onChange={setSkillFilter} />
             </div>
             <Carousel>
               <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
-                {skills.map((skill, i) => (
+                {filteredSkills.map((skill, i) => (
                   <motion.div
                     key={skill.id}
                     variants={fadeUp}
@@ -605,15 +684,20 @@ export default function Marketplace() {
               </div>
             </Carousel>
           </motion.section>
+          )}
 
+          {filteredCloud.length > 0 && (
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
-            <div className="flex items-center gap-2.5 mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
-              <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
+                <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
+              </div>
+              <FilterTabs active={cloudFilter} onChange={setCloudFilter} />
             </div>
             <Carousel>
               <div className="flex gap-4">
-                {cloudServices.map((service, i) => (
+                {filteredCloud.map((service, i) => (
                   <motion.div
                     key={service.name}
                     variants={fadeUp}
@@ -643,6 +727,15 @@ export default function Marketplace() {
               </div>
             </Carousel>
           </motion.section>
+          )}
+
+          {q && !hasResults && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <HiMagnifyingGlass className="w-10 h-10 text-muted-foreground/30 mb-4" />
+              <p className="text-sm font-medium text-foreground mb-1">No results for "{searchQuery}"</p>
+              <p className="text-xs text-muted-foreground">Try a different keyword or browse all categories</p>
+            </div>
+          )}
         </div>
       </main>
 
