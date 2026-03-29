@@ -1,75 +1,74 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import {
-  HiMagnifyingGlass, HiChevronRight, HiPlus, HiCheck,
-  HiBars3, HiXMark, HiArrowLeft, HiInformationCircle
+  HiMagnifyingGlass, HiChevronRight, HiArrowLeft, HiInformationCircle
 } from 'react-icons/hi2'
-import { FaGithub, FaDiscord, FaStar, FaRocket } from 'react-icons/fa'
 
 const bundles = [
   {
-    title: 'Data Migration Bundle',
-    description: 'Everything you need to migrate and transform your data pipelines',
-    services: [
-      { name: 'Google DataFlow', vendor: 'Google' },
-      { name: 'Snowflake', vendor: 'Snowflake Inc.' },
-      { name: 'Databricks', vendor: 'Databricks Inc.' },
+    title: 'Productivity Pack',
+    description: 'Essential skills to supercharge your daily workflow and task management',
+    skills: [
+      { name: 'Web Search', vendor: 'Fluxy' },
+      { name: 'File Manager', vendor: 'Fluxy' },
+      { name: 'Scheduler', vendor: 'Fluxy' },
     ],
-    tags: ['Data Migration', 'Display Reporting', '+3'],
+    tags: ['Productivity', 'Automation', '+3'],
     price: 'Free',
   },
   {
     title: 'AI / ML',
-    description: 'Build and deploy machine learning models at scale',
-    services: [
-      { name: 'Databricks', vendor: 'Snowflake Inc.' },
-      { name: 'dbt', vendor: 'Snowflake Inc.' },
-      { name: 'KubeFlow', vendor: 'Google' },
+    description: 'Advanced AI and machine learning skills for data-driven projects',
+    skills: [
+      { name: 'Code Generator', vendor: 'Fluxy' },
+      { name: 'Data Analyst', vendor: 'Fluxy' },
+      { name: 'Model Trainer', vendor: 'Fluxy' },
     ],
-    tags: ['Data Migration', 'Display Reporting', '+2'],
+    tags: ['AI', 'Machine Learning', '+2'],
     price: '$156.00',
   },
   {
-    title: 'Data Analytics',
-    description: 'Comprehensive analytics stack for data-driven decisions',
-    services: [
-      { name: 'Data Fusion', vendor: 'Google' },
-      { name: 'Tableau', vendor: 'Snowflake Inc.' },
-      { name: 'Databricks', vendor: 'Snowflake Inc.' },
+    title: 'Developer Tools',
+    description: 'Full-stack development skills for building and shipping faster',
+    skills: [
+      { name: 'Git Manager', vendor: 'Fluxy' },
+      { name: 'API Builder', vendor: 'Fluxy' },
+      { name: 'Debugger', vendor: 'Fluxy' },
     ],
-    tags: ['Data Migration', 'Display Reporting', '+3'],
+    tags: ['Development', 'DevOps', '+3'],
     price: '$134.00',
     extra: '+ 4 More...',
   },
   {
-    title: 'Data Fusion Suite',
-    description: 'Unified data integration and transformation platform',
-    services: [
-      { name: 'Data Fusion', vendor: 'Google' },
-      { name: 'Tableau', vendor: 'Snowflake Inc.' },
-      { name: 'Databricks', vendor: 'Snowflake Inc.' },
+    title: 'Content Creator',
+    description: 'Everything you need to write, design, and publish content',
+    skills: [
+      { name: 'Copywriter', vendor: 'Fluxy' },
+      { name: 'Image Gen', vendor: 'Fluxy' },
+      { name: 'Social Media', vendor: 'Fluxy' },
     ],
-    tags: ['Data Migration', 'Display Reporting', '+9'],
+    tags: ['Content', 'Marketing', '+9'],
     price: '$190.00',
     extra: '+ 6 More...',
   },
 ]
 
-const featuredServices = [
-  { name: 'dbt', vendor: 'dbt Inc.', description: 'Transform and model your data with SQL-based workflows', rating: 4, price: '$192.00' },
-  { name: 'Google Cloud', vendor: 'Google Inc.', description: 'Enterprise cloud infrastructure and managed services', rating: 3.5, price: '$124.00' },
-  { name: 'Tableau', vendor: 'Tableau Software LLC.', description: 'Interactive data visualization and business intelligence', rating: 5, price: '$150.00' },
-  { name: 'SnapLogic', vendor: 'Google Inc.', description: 'Intelligent integration platform for modern enterprises', rating: 4.5, price: '$192.00' },
+const cloudServices = [
+  { name: 'GPU Compute', vendor: 'Fluxy Cloud', description: 'High-performance GPU instances for heavy AI workloads', rating: 4, price: '$192.00' },
+  { name: 'Vector Store', vendor: 'Fluxy Cloud', description: 'Managed vector database for embeddings and semantic search', rating: 3.5, price: '$124.00' },
+  { name: 'Model Hosting', vendor: 'Fluxy Cloud', description: 'Deploy and serve ML models with auto-scaling infrastructure', rating: 5, price: '$150.00' },
+  { name: 'Data Pipeline', vendor: 'Fluxy Cloud', description: 'Serverless ETL pipelines for real-time data processing', rating: 4.5, price: '$192.00' },
 ]
 
-const trendingServices = [
-  { name: 'Snowflake', vendor: 'Snow Inc.', description: "The world's leading analytics platform", status: 'added', price: null },
-  { name: 'Databricks', vendor: 'Databricks Inc.', description: 'One of the most unique lakehouse platforms in the world', status: 'provisioning', progress: 30, price: null },
-  { name: 'Tableau', vendor: 'Tableau Software Llc.', description: "The world's leading analytics platform", status: 'available', price: '$134.00' },
+const trendingSkills = [
+  { name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', rating: 5, price: 'Free' },
+  { name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', rating: 4.5, price: '$12.00' },
+  { name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', rating: 4, price: 'Free' },
+  { name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', rating: 4, price: '$8.00' },
 ]
 
 const fadeUp = {
@@ -95,22 +94,53 @@ function Stars({ rating }) {
   )
 }
 
-function ServiceIcon({ name }) {
+function ItemIcon({ name }) {
   const colors = {
-    'Google DataFlow': 'bg-blue-500/20 text-blue-400',
-    'Snowflake': 'bg-cyan-500/20 text-cyan-400',
-    'Databricks': 'bg-red-500/20 text-red-400',
-    'dbt': 'bg-orange-500/20 text-orange-400',
-    'KubeFlow': 'bg-blue-500/20 text-blue-400',
-    'Data Fusion': 'bg-emerald-500/20 text-emerald-400',
-    'Tableau': 'bg-indigo-500/20 text-indigo-400',
-    'Google Cloud': 'bg-blue-500/20 text-blue-400',
-    'SnapLogic': 'bg-violet-500/20 text-violet-400',
+    'Web Search': 'bg-cyan-500/20 text-cyan-400',
+    'File Manager': 'bg-emerald-500/20 text-emerald-400',
+    'Scheduler': 'bg-amber-500/20 text-amber-400',
+    'Code Generator': 'bg-violet-500/20 text-violet-400',
+    'Data Analyst': 'bg-rose-500/20 text-rose-400',
+    'Model Trainer': 'bg-orange-500/20 text-orange-400',
+    'Git Manager': 'bg-emerald-500/20 text-emerald-400',
+    'API Builder': 'bg-cyan-500/20 text-cyan-400',
+    'Debugger': 'bg-red-500/20 text-red-400',
+    'Copywriter': 'bg-pink-500/20 text-pink-400',
+    'Image Gen': 'bg-violet-500/20 text-violet-400',
+    'Social Media': 'bg-sky-500/20 text-sky-400',
+    'GPU Compute': 'bg-amber-500/20 text-amber-400',
+    'Vector Store': 'bg-teal-500/20 text-teal-400',
+    'Model Hosting': 'bg-indigo-500/20 text-indigo-400',
+    'Data Pipeline': 'bg-emerald-500/20 text-emerald-400',
+    'Code Review': 'bg-orange-500/20 text-orange-400',
+    'Translator': 'bg-sky-500/20 text-sky-400',
+    'PDF Reader': 'bg-rose-500/20 text-rose-400',
   }
   const cls = colors[name] || 'bg-primary/20 text-primary'
   return (
     <div className={`w-8 h-8 rounded-lg ${cls} flex items-center justify-center text-xs font-bold font-display shrink-0`}>
       {name.charAt(0)}
+    </div>
+  )
+}
+
+function InfoTooltip() {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative inline-flex">
+      <button
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        className="text-muted-foreground/50 hover:text-muted-foreground transition-colors duration-200"
+      >
+        <HiInformationCircle className="w-5 h-5" />
+      </button>
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
+          We offer services on the cloud so your Fluxy doesn't get overloaded with too many skills. Just ask your Fluxy to use the service and it already knows how to.
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+        </div>
+      )}
     </div>
   )
 }
@@ -147,7 +177,7 @@ export default function Marketplace() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
-                <p className="text-muted-foreground mt-1">Discover services, bundles, and integrations for your stack</p>
+                <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Fluxy</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -179,9 +209,9 @@ export default function Marketplace() {
                   <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
                   <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
                   <div className="flex flex-col gap-2.5 mb-4 flex-1">
-                    {bundle.services.map((s) => (
+                    {bundle.skills.map((s) => (
                       <div key={s.name} className="flex items-center gap-2.5">
-                        <ServiceIcon name={s.name} />
+                        <ItemIcon name={s.name} />
                         <div>
                           <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
                           <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
@@ -211,9 +241,12 @@ export default function Marketplace() {
           </motion.section>
 
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="mb-12">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground mb-5">Featured Services</h2>
+            <div className="flex items-center gap-2.5 mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
+              <InfoTooltip />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {featuredServices.map((service, i) => (
+              {cloudServices.map((service, i) => (
                 <motion.div
                   key={service.name}
                   variants={fadeUp}
@@ -221,7 +254,7 @@ export default function Marketplace() {
                   className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <ServiceIcon name={service.name} />
+                    <ItemIcon name={service.name} />
                     <div>
                       <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
                       <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
@@ -246,57 +279,41 @@ export default function Marketplace() {
           </motion.section>
 
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground mb-5">Trending Services</h2>
-            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden divide-y divide-border/30">
-              {trendingServices.map((service) => (
-                <div key={service.name} className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors duration-200">
-                  <div className="flex items-center gap-4">
-                    <ServiceIcon name={service.name} />
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Trending Skills</h2>
+              <button className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1 font-medium">
+                See all <HiChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {trendingSkills.map((skill, i) => (
+                <motion.div
+                  key={skill.name}
+                  variants={fadeUp}
+                  custom={i * 0.5}
+                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <ItemIcon name={skill.name} />
                     <div>
-                      <h3 className="font-semibold font-display text-foreground text-sm">{service.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{service.description}</p>
+                      <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{skill.name}</h3>
+                      <p className="text-[11px] text-muted-foreground">{skill.vendor}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0 ml-4">
-                    {service.status === 'added' && (
-                      <>
-                        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                          <HiCheck className="w-4 h-4" /> ADDED
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1">
-                            <HiInformationCircle className="w-4 h-4" /> Info
-                          </button>
-                          <Button size="sm" className="rounded-full text-xs h-8 px-4 bg-gradient-brand hover:opacity-90 text-white font-medium">
-                            <FaRocket className="w-3 h-3 mr-1.5" /> Launch
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                    {service.status === 'provisioning' && (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <div className="w-32 bg-border/30 rounded-full h-2 overflow-hidden">
-                            <div className="h-full bg-emerald-400 rounded-full transition-all duration-500" style={{ width: `${service.progress}%` }} />
-                          </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">{service.progress}% Done</span>
-                        </div>
-                        <button className="text-xs text-red-400 hover:text-red-300 transition-colors duration-200 font-medium">
-                          Cancel
-                        </button>
-                      </>
-                    )}
-                    {service.status === 'available' && (
-                      <>
-                        <span className="text-sm font-semibold font-display text-foreground">{service.price}</span>
-                        <Button variant="outline" size="sm" className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60">
-                          Add
-                        </Button>
-                      </>
-                    )}
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{skill.description}</p>
+                  <Stars rating={skill.rating} />
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                    <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60">
+                        Add
+                      </Button>
+                      <button className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200">
+                        See Details
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.section>
