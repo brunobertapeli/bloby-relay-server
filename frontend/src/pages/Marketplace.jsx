@@ -445,10 +445,112 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
   )
 }
 
+function DetailModal({ item, onClose, onAddToCart, isInCart }) {
+  if (!item) return null
+  const isBundle = item.type === 'bundle'
+  const isCloud = !!item.calls
+
+  return (
+    <>
+      <motion.div
+        className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="bg-background border border-border/50 rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto shadow-2xl"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between p-5 border-b border-border/30">
+            <div className="flex items-center gap-3">
+              <ItemIcon name={item.name || item.title} />
+              <div>
+                <h3 className="text-base font-bold font-display text-foreground">{item.name || item.title}</h3>
+                <p className="text-xs text-muted-foreground">{item.vendor || 'Fluxy'}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
+              <HiXMark className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-5">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.description}</p>
+
+            {isBundle && item.skills && (
+              <div className="mb-5">
+                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Included Skills</h4>
+                <div className="flex flex-col gap-2.5">
+                  {item.skills.map((s) => (
+                    <div key={s.name} className="flex items-center gap-2.5">
+                      <ItemIcon name={s.name} />
+                      <div>
+                        <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
+                        <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {item.extra && (
+                  <p className="text-xs text-primary mt-3 font-medium">{item.extra}</p>
+                )}
+              </div>
+            )}
+
+            {!isCloud && item.rating && (
+              <div className="mb-5">
+                <Stars rating={item.rating} />
+              </div>
+            )}
+
+            {isCloud && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                <span>{item.calls} calls</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t border-border/30">
+              <span className="text-sm font-semibold font-display text-foreground">{item.price}</span>
+              {!isCloud && (
+                isInCart ? (
+                  <span className="text-xs text-emerald-400 font-medium">Already in cart</span>
+                ) : (
+                  <button
+                    onClick={() => { onAddToCart(item); onClose() }}
+                    className="flex items-center gap-1.5 h-8 px-4 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium hover:bg-primary/20 transition-all duration-200"
+                  >
+                    <HiPlus className="w-3.5 h-3.5" />
+                    Add to Cart
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </>
+  )
+}
+
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [detailItem, setDetailItem] = useState(null)
   const [bundleFilter, setBundleFilter] = useState('Featured')
   const [skillFilter, setSkillFilter] = useState('Featured')
   const [cloudFilter, setCloudFilter] = useState('Featured')
@@ -594,7 +696,8 @@ export default function Marketplace() {
                     key={bundle.id}
                     variants={fadeUp}
                     custom={i * 0.5}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
+                    onClick={() => setDetailItem(bundle)}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start cursor-pointer"
                   >
                     <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
@@ -610,7 +713,12 @@ export default function Marketplace() {
                       ))}
                     </div>
                     {bundle.extra && (
-                      <p className="text-xs text-primary mb-3 font-medium">{bundle.extra}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDetailItem(bundle) }}
+                        className="text-xs text-primary mb-3 font-medium hover:text-primary/80 transition-colors duration-200 text-left"
+                      >
+                        {bundle.extra}
+                      </button>
                     )}
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
                       <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
@@ -618,10 +726,13 @@ export default function Marketplace() {
                         <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
                         <button
-                          onClick={() => addToCart(bundle)}
-                          className="w-7 h-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-primary hover:border-primary/40 transition-all duration-200"
+                          onClick={(e) => { e.stopPropagation(); addToCart(bundle) }}
+                          className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
-                          <HiPlus className="w-3.5 h-3.5" />
+                          <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
+                            <HiPlus className="w-3 h-3" />
+                          </span>
+                          <span className="font-medium">Add to Cart</span>
                         </button>
                       )}
                     </div>
@@ -648,7 +759,8 @@ export default function Marketplace() {
                     key={skill.id}
                     variants={fadeUp}
                     custom={i * 0.3}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start"
+                    onClick={() => setDetailItem(skill)}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start cursor-pointer"
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <ItemIcon name={skill.name} />
@@ -665,10 +777,13 @@ export default function Marketplace() {
                         <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
                         <button
-                          onClick={() => addToCart(skill)}
-                          className="w-7 h-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-primary hover:border-primary/40 transition-all duration-200"
+                          onClick={(e) => { e.stopPropagation(); addToCart(skill) }}
+                          className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
-                          <HiPlus className="w-3.5 h-3.5" />
+                          <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
+                            <HiPlus className="w-3 h-3" />
+                          </span>
+                          <span className="font-medium">Add to Cart</span>
                         </button>
                       )}
                     </div>
@@ -695,7 +810,8 @@ export default function Marketplace() {
                     key={service.name}
                     variants={fadeUp}
                     custom={i * 0.5}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
+                    onClick={() => setDetailItem(service)}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start cursor-pointer"
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <ItemIcon name={service.name} />
@@ -711,9 +827,9 @@ export default function Marketplace() {
                     </div>
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                       <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
-                      <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
+                      <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-all duration-200 font-medium">
                         See Details
-                      </button>
+                      </span>
                     </div>
                   </motion.div>
                 ))}
@@ -762,6 +878,17 @@ export default function Marketplace() {
             onClose={() => setCartOpen(false)}
             onRemove={removeFromCart}
             onQuantityChange={changeQuantity}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {detailItem && (
+          <DetailModal
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onAddToCart={addToCart}
+            isInCart={detailItem && isInCart(detailItem.id)}
           />
         )}
       </AnimatePresence>
