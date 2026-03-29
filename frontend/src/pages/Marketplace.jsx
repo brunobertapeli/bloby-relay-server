@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
@@ -10,7 +10,7 @@ import {
   HiChevronUpDown
 } from 'react-icons/hi2'
 
-const filterOptions = ['Featured', 'Popular', 'Newest', 'Price: Low to High']
+const filterOptions = ['Featured', 'Popular', 'Newest']
 
 const myFluxies = [
   { id: 'fluxy-1', name: 'Jarvis', role: 'Personal Assistant', avatar: '🤖', balance: 12.50 },
@@ -228,6 +228,7 @@ function InfoTooltip({ text }) {
   return (
     <div className="relative inline-flex">
       <button
+        onClick={() => setShow(!show)}
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
         className="text-muted-foreground/50 hover:text-muted-foreground transition-colors duration-200"
@@ -235,10 +236,16 @@ function InfoTooltip({ text }) {
         <HiInformationCircle className="w-5 h-5" />
       </button>
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
-          {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
-        </div>
+        <>
+          <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setShow(false)} />
+          <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-lg z-50 pointer-events-none">
+            {text}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+          </div>
+          <div className="sm:hidden fixed left-4 right-4 bottom-6 p-4 rounded-xl bg-foreground text-background text-xs leading-relaxed shadow-2xl z-50">
+            {text}
+          </div>
+        </>
       )}
     </div>
   )
@@ -428,6 +435,11 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   const [fluxyDropdownOpen, setFluxyDropdownOpen] = useState(false)
   const redeemCode = useState(() => generateRedeemCode())[0]
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const fluxyName = selectedFluxy.name
 
   const hasSkillsOrBundles = success && success.items.some(i => i.type !== 'wallet')
@@ -446,14 +458,14 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+        className="hidden sm:block fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
       <motion.div
-        className="fixed top-0 right-0 bottom-0 z-[80] w-full sm:w-[420px] bg-background border-l border-border/50 flex flex-col shadow-2xl"
+        className="fixed inset-0 sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 z-[80] w-full sm:w-[420px] bg-background sm:border-l border-border/50 flex flex-col shadow-2xl"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -724,6 +736,12 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
 }
 
 function DetailModal({ item, onClose, onAddToCart, isInCart }) {
+  useEffect(() => {
+    if (!item) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [item])
+
   if (!item) return null
   const isBundle = item.type === 'bundle'
   const isCloud = !!item.calls
@@ -881,9 +899,8 @@ export default function Marketplace() {
 
   const q = searchQuery.toLowerCase().trim()
 
-  const sortItems = (items, filter, priceKey = 'priceNum') => {
+  const sortItems = (items, filter) => {
     const sorted = [...items]
-    if (filter === 'Price: Low to High') sorted.sort((a, b) => (a[priceKey] || 0) - (b[priceKey] || 0))
     if (filter === 'Newest') sorted.reverse()
     return sorted
   }
@@ -900,8 +917,7 @@ export default function Marketplace() {
 
   const filteredCloud = sortItems(
     cloudServices.filter(s => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.vendor.toLowerCase().includes(q)),
-    cloudFilter,
-    'priceNum'
+    cloudFilter
   )
 
   const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0
@@ -1015,12 +1031,12 @@ export default function Marketplace() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); addToCart(bundle) }}
-                          className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
+                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
                           <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
                             <HiPlus className="w-3 h-3" />
                           </span>
-                          <span className="font-medium">Add to Cart</span>
+                          <span className="font-medium hidden sm:inline">Add to Cart</span>
                         </button>
                       )}
                     </div>
@@ -1066,12 +1082,12 @@ export default function Marketplace() {
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); addToCart(skill) }}
-                          className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
+                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
                         >
                           <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
                             <HiPlus className="w-3 h-3" />
                           </span>
-                          <span className="font-medium">Add to Cart</span>
+                          <span className="font-medium hidden sm:inline">Add to Cart</span>
                         </button>
                       )}
                     </div>
@@ -1115,7 +1131,7 @@ export default function Marketplace() {
                     </div>
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                       <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
-                      <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-all duration-200 font-medium">
+                      <span className="text-xs text-primary sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 font-medium">
                         See Details
                       </span>
                     </div>
