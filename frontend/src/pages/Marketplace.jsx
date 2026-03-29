@@ -487,12 +487,14 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
               className="flex justify-center mt-1 mb-1"
             >
               <video
-                src="/assets/videos/fluxy_happy_reappearing.webm"
                 autoPlay
                 muted
                 playsInline
                 className="w-[200px] object-contain"
-              />
+              >
+                <source src="/assets/videos/fluxy_happy_reappearing.mov" type='video/mp4; codecs="hvc1"' />
+                <source src="/assets/videos/fluxy_happy_reappearing.webm" type="video/webm" />
+              </video>
             </motion.div>
 
             <motion.div
