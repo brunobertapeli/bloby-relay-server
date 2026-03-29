@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
-  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet
+  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus, HiWallet,
+  HiChevronLeft, HiChevronRight
 } from 'react-icons/hi2'
 
 const bundles = [
@@ -63,6 +64,20 @@ const bundles = [
     priceNum: 19.00,
     extra: '+ 6 More...',
   },
+  {
+    id: 'bundle-5',
+    type: 'bundle',
+    title: 'Support Agent',
+    description: 'Turn your Fluxy into a customer support specialist with ticketing and chat',
+    skills: [
+      { name: 'Translator', vendor: 'Fluxy' },
+      { name: 'Web Search', vendor: 'Fluxy' },
+      { name: 'Scheduler', vendor: 'Fluxy' },
+    ],
+    price: '$11.00',
+    priceNum: 11.00,
+    extra: '+ 3 More...',
+  },
 ]
 
 const cloudServices = [
@@ -70,6 +85,7 @@ const cloudServices = [
   { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', calls: '89.1k', price: '$0.05 / call' },
   { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', calls: '214.7k', price: '$0.01 / page' },
   { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', calls: '56.4k', price: '$0.03 / min' },
+  { name: 'Web Scraper', vendor: 'Fluxy Cloud', description: 'Extract structured data from any website without getting blocked', calls: '331.2k', price: '$0.01 / page' },
 ]
 
 const skills = [
@@ -81,6 +97,8 @@ const skills = [
   { id: 'skill-6', type: 'skill', name: 'Image Gen', vendor: 'Fluxy', description: 'Create images, illustrations, and graphics from text descriptions', rating: 4, price: '$5.00', priceNum: 5.00 },
   { id: 'skill-7', type: 'skill', name: 'Data Analyst', vendor: 'Fluxy', description: 'Analyze datasets, generate reports, and surface actionable insights', rating: 4.5, price: '$6.00', priceNum: 6.00 },
   { id: 'skill-8', type: 'skill', name: 'File Manager', vendor: 'Fluxy', description: 'Organize, move, rename, and manage files across your system', rating: 5, price: 'Free', priceNum: 0 },
+  { id: 'skill-9', type: 'skill', name: 'Copywriter', vendor: 'Fluxy', description: 'Draft emails, blog posts, landing pages, and marketing copy', rating: 4.5, price: '$4.50', priceNum: 4.50 },
+  { id: 'skill-10', type: 'skill', name: 'Debugger', vendor: 'Fluxy', description: 'Identify bugs, trace errors, and suggest fixes across your codebase', rating: 4, price: '$5.00', priceNum: 5.00 },
 ]
 
 const walletPresets = [5, 10, 25]
@@ -128,6 +146,7 @@ function ItemIcon({ name }) {
     'Speech to Text': 'bg-teal-500/20 text-teal-400',
     'Translator': 'bg-sky-500/20 text-sky-400',
     'PDF Reader': 'bg-rose-500/20 text-rose-400',
+    'Web Scraper': 'bg-emerald-500/20 text-emerald-400',
   }
   const cls = colors[name] || 'bg-primary/20 text-primary'
   return (
@@ -153,6 +172,54 @@ function InfoTooltip({ text }) {
           {text}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
         </div>
+      )}
+    </div>
+  )
+}
+
+function Carousel({ children, className = '' }) {
+  const scrollRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4)
+  }, [])
+
+  const scroll = (dir) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * 300, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="relative group/carousel">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        onLoad={checkScroll}
+        className={`overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory ${className}`}
+      >
+        {children}
+      </div>
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll(-1)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-xl bg-background/90 border border-border/50 backdrop-blur-sm flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border shadow-lg transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+        >
+          <HiChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll(1)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-xl bg-background/90 border border-border/50 backdrop-blur-sm flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border shadow-lg transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+        >
+          <HiChevronRight className="w-5 h-5" />
+        </button>
       )}
     </div>
   )
@@ -449,48 +516,50 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
               <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
             </div>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
-              {bundles.map((bundle, i) => (
-                <motion.div
-                  key={bundle.id}
-                  variants={fadeUp}
-                  custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
-                >
-                  <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
-                  <div className="flex flex-col gap-2.5 mb-4 flex-1">
-                    {bundle.skills.map((s) => (
-                      <div key={s.name} className="flex items-center gap-2.5">
-                        <ItemIcon name={s.name} />
-                        <div>
-                          <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
-                          <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
+            <Carousel>
+              <div className="flex gap-4">
+                {bundles.map((bundle, i) => (
+                  <motion.div
+                    key={bundle.id}
+                    variants={fadeUp}
+                    custom={i * 0.5}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
+                  >
+                    <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
+                    <div className="flex flex-col gap-2.5 mb-4 flex-1">
+                      {bundle.skills.map((s) => (
+                        <div key={s.name} className="flex items-center gap-2.5">
+                          <ItemIcon name={s.name} />
+                          <div>
+                            <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
+                            <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  {bundle.extra && (
-                    <p className="text-xs text-primary mb-3 font-medium">{bundle.extra}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
-                    <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
-                    {isInCart(bundle.id) ? (
-                      <span className="text-xs text-emerald-400 font-medium px-4 h-8 flex items-center">Added</span>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addToCart(bundle)}
-                        className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
-                      >
-                        Add bundle
-                      </Button>
+                      ))}
+                    </div>
+                    {bundle.extra && (
+                      <p className="text-xs text-primary mb-3 font-medium">{bundle.extra}</p>
                     )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
+                      <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
+                      {isInCart(bundle.id) ? (
+                        <span className="text-xs text-emerald-400 font-medium px-4 h-8 flex items-center">Added</span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addToCart(bundle)}
+                          className="rounded-full text-xs h-8 px-4 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
+                        >
+                          Add bundle
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </Carousel>
           </motion.section>
 
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="mb-12">
@@ -498,7 +567,7 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
               <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
             </div>
-            <div className="overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
+            <Carousel>
               <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
                 {skills.map((skill, i) => (
                   <motion.div
@@ -534,7 +603,7 @@ export default function Marketplace() {
                   </motion.div>
                 ))}
               </div>
-            </div>
+            </Carousel>
           </motion.section>
 
           <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
@@ -542,35 +611,37 @@ export default function Marketplace() {
               <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Cloud Services</h2>
               <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
             </div>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory">
-              {cloudServices.map((service, i) => (
-                <motion.div
-                  key={service.name}
-                  variants={fadeUp}
-                  custom={i * 0.5}
-                  className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <ItemIcon name={service.name} />
-                    <div>
-                      <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
+            <Carousel>
+              <div className="flex gap-4">
+                {cloudServices.map((service, i) => (
+                  <motion.div
+                    key={service.name}
+                    variants={fadeUp}
+                    custom={i * 0.5}
+                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <ItemIcon name={service.name} />
+                      <div>
+                        <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
+                        <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                    <span>{service.calls} calls</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                    <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
-                    <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
-                      See Details
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                      <span>{service.calls} calls</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                      <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
+                      <button className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
+                        See Details
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </Carousel>
           </motion.section>
         </div>
       </main>
