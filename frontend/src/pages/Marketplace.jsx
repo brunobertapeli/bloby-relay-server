@@ -506,10 +506,10 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
               <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {hasSkillsOrBundles && hasWallet
-                  ? 'Your Fluxy Jarvis will be so happy with its new skills and its new balance.'
+                  ? <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> will be so happy with its new skills and its new balance.</>
                   : hasSkillsOrBundles
-                    ? 'Your Fluxy Jarvis will be so happy with its new skills.'
-                    : 'Your Fluxy Jarvis wallet has been funded.'}
+                    ? <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> will be so happy with its new skills.</>
+                    : <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> wallet has been funded.</>}
               </p>
             </motion.div>
 
@@ -523,7 +523,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                 <div className="flex items-center gap-3">
                   <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Fluxy Jarvis balance updated</p>
+                    <p className="text-xs text-muted-foreground">Fluxy <span className="text-primary font-semibold">Jarvis</span> balance updated</p>
                     <p className="text-lg font-bold font-display text-emerald-400">${walletTotal.toFixed(2)}</p>
                   </div>
                 </div>
