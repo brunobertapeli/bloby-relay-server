@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import {
   HiPlus, HiXMark, HiClipboardDocument,
-  HiEye, HiEyeSlash, HiCheckCircle
+  HiEye, HiEyeSlash, HiCheckCircle, HiChevronDown
 } from 'react-icons/hi2'
 import { API_URL } from '../api'
 
@@ -291,27 +291,93 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
   )
 }
 
-function PurchaseRow({ purchase }) {
-  const typeStyles = {
-    skill: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    bundle: 'bg-primary/10 text-primary border-primary/20',
-    wallet: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    handle: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    hosting: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  }
+const typeStyles = {
+  skill: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  bundle: 'bg-primary/10 text-primary border-primary/20',
+  wallet: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  handle: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+  hosting: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+}
+
+function OrderCard({ order }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const itemCount = order.items.length
+  const summary = order.items.length <= 2
+    ? order.items.map(i => i.name).join(', ')
+    : `${order.items[0].name} + ${order.items.length - 1} more`
 
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 last:border-b-0">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[purchase.type] || typeStyles.skill}`}>
-          {purchase.type}
-        </span>
-        <span className="text-sm text-foreground font-display truncate">{purchase.name}</span>
-      </div>
-      <div className="flex items-center gap-4 shrink-0">
-        <span className="text-xs text-muted-foreground font-display hidden sm:inline">{purchase.date}</span>
-        <span className="text-sm font-semibold font-display text-foreground w-16 text-right">{purchase.amount}</span>
-      </div>
+    <div className="rounded-2xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:border-border">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left px-5 py-4 flex items-center gap-4"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-semibold font-display text-foreground">Order #{order.id}</span>
+            <span className="text-[11px] text-muted-foreground font-display">{order.date}</span>
+          </div>
+          <p className="text-xs text-muted-foreground font-display truncate">{summary}</p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          {order.redeemed ? (
+            <span className="text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+              Redeemed
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-400 border-amber-500/20">
+              Pending
+            </span>
+          )}
+          <span className="text-sm font-semibold font-display text-foreground">{order.total}</span>
+          <HiChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border/30">
+              <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/[0.01]">
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-display shrink-0">Redeem Code</p>
+                  {order.redeemed ? (
+                    <span className="text-xs text-muted-foreground/40 font-mono line-through">{order.redeemCode}</span>
+                  ) : (
+                    <>
+                      <code className="text-xs font-mono font-semibold text-foreground">{order.redeemCode}</code>
+                      <CopyButton text={order.redeemCode} />
+                    </>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground font-display">
+                  Fluxy: <span className="text-foreground font-medium">{order.fluxy}</span>
+                </span>
+              </div>
+
+              {order.items.map((item, i) => (
+                <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-border/20">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[item.type] || typeStyles.skill}`}>
+                      {item.type}
+                    </span>
+                    <span className="text-sm text-foreground font-display truncate">{item.name}</span>
+                  </div>
+                  <span className="text-sm font-medium font-display text-muted-foreground shrink-0 ml-4">{item.amount}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -322,15 +388,55 @@ const mockFluxies = [
   { id: 'fluxy-3', name: 'Atlas', url: 'fluxy.bot/atlas', balance: 25.00, wallet: '0x2e5F...1d7C' },
 ]
 
-const mockPurchases = [
-  { id: 1, type: 'bundle', name: 'Fluxy for Lawyers', amount: '$49.00', date: 'Mar 28, 2026' },
-  { id: 2, type: 'skill', name: 'Gmail Integration', amount: '$3.00', date: 'Mar 27, 2026' },
-  { id: 3, type: 'wallet', name: 'Wallet Top-up (Jarvis)', amount: '$25.00', date: 'Mar 25, 2026' },
-  { id: 4, type: 'handle', name: 'fluxy.bot/jarvis', amount: '$5.00', date: 'Mar 20, 2026' },
-  { id: 5, type: 'skill', name: 'WhatsApp Business', amount: '$5.00', date: 'Mar 18, 2026' },
-  { id: 6, type: 'hosting', name: 'Starter Instance (NA)', amount: '$29.00/mo', date: 'Mar 15, 2026' },
-  { id: 7, type: 'bundle', name: 'Fluxy for Hotels', amount: '$69.00', date: 'Mar 10, 2026' },
-  { id: 8, type: 'skill', name: 'Slack Integration', amount: 'Free', date: 'Mar 8, 2026' },
+const mockOrders = [
+  {
+    id: '1042',
+    date: 'Mar 28, 2026',
+    fluxy: 'Jarvis',
+    total: '$77.00',
+    redeemCode: 'RDM-7K4P-X9BN-Q2LF',
+    redeemed: false,
+    items: [
+      { type: 'bundle', name: 'Fluxy for Lawyers', amount: '$49.00' },
+      { type: 'skill', name: 'Gmail Integration', amount: '$3.00' },
+      { type: 'wallet', name: 'Wallet Top-up', amount: '$25.00' },
+    ],
+  },
+  {
+    id: '1038',
+    date: 'Mar 20, 2026',
+    fluxy: 'Jarvis',
+    total: '$10.00',
+    redeemCode: 'RDM-2NVT-8HCW-J5MR',
+    redeemed: true,
+    items: [
+      { type: 'skill', name: 'WhatsApp Business', amount: '$5.00' },
+      { type: 'handle', name: 'fluxy.bot/jarvis', amount: '$5.00' },
+    ],
+  },
+  {
+    id: '1031',
+    date: 'Mar 15, 2026',
+    fluxy: 'Atlas',
+    total: '$69.00',
+    redeemCode: 'RDM-5FGY-3KPL-W8DN',
+    redeemed: true,
+    items: [
+      { type: 'bundle', name: 'Fluxy for Hotels', amount: '$69.00' },
+    ],
+  },
+  {
+    id: '1025',
+    date: 'Mar 8, 2026',
+    fluxy: 'Nova',
+    total: '$29.00/mo',
+    redeemCode: 'RDM-9QAZ-6TBX-M4JR',
+    redeemed: true,
+    items: [
+      { type: 'hosting', name: 'Starter Instance (NA)', amount: '$29.00/mo' },
+      { type: 'skill', name: 'Slack Integration', amount: 'Free' },
+    ],
+  },
 ]
 
 export default function Dashboard() {
@@ -338,7 +444,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [reservedHandles, setReservedHandles] = useState([])
   const [fluxies, setFluxies] = useState(mockFluxies)
-  const [purchases] = useState(mockPurchases)
+  const [orders] = useState(mockOrders)
   const [visibleHashes, setVisibleHashes] = useState({})
   const [showClaim, setShowClaim] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -494,10 +600,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Purchase History</h2>
           </div>
-          {purchases.length > 0 ? (
-            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
-              {purchases.map((purchase) => (
-                <PurchaseRow key={purchase.id} purchase={purchase} />
+          {orders.length > 0 ? (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <OrderCard key={order.id} order={order} />
               ))}
             </div>
           ) : (
