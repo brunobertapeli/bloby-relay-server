@@ -484,7 +484,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-              className="flex justify-center mt-4 mb-4"
+              className="flex justify-center mt-1 mb-1"
             >
               <video
                 src="/assets/videos/fluxy_happy_reappearing.webm"
