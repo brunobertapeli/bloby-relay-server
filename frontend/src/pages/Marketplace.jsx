@@ -17,6 +17,8 @@ const bundles = [
     type: 'bundle',
     title: 'Productivity Pack',
     description: 'Essential skills to supercharge your daily workflow and task management',
+    longDescription: 'The Productivity Pack gives your Fluxy everything it needs to handle day-to-day operations autonomously. From real-time web research to file organization and calendar management, this bundle turns your agent into a reliable personal assistant that keeps your workflow moving without constant supervision.',
+    image: '/assets/images/icons/wallet.png',
     skills: [
       { name: 'Web Search', vendor: 'Fluxy' },
       { name: 'File Manager', vendor: 'Fluxy' },
@@ -30,6 +32,7 @@ const bundles = [
     type: 'bundle',
     title: 'AI / ML',
     description: 'Advanced AI and machine learning skills for data-driven projects',
+    longDescription: 'Equip your Fluxy with cutting-edge AI and machine learning capabilities. This bundle lets your agent generate code from natural language, analyze complex datasets, and even train lightweight models on your behalf. Ideal for data scientists and ML engineers who want to automate repetitive pipeline tasks.',
     skills: [
       { name: 'Code Generator', vendor: 'Fluxy' },
       { name: 'Data Analyst', vendor: 'Fluxy' },
@@ -43,10 +46,16 @@ const bundles = [
     type: 'bundle',
     title: 'Developer Tools',
     description: 'Full-stack development skills for building and shipping faster',
+    longDescription: 'A complete toolkit for software developers. Your Fluxy can manage git workflows, scaffold and test APIs, debug errors across your stack, and more. Whether you are building a side project or shipping production code, this bundle accelerates every stage of development.',
+    image: '/assets/images/icons/wallet.png',
     skills: [
       { name: 'Git Manager', vendor: 'Fluxy' },
       { name: 'API Builder', vendor: 'Fluxy' },
       { name: 'Debugger', vendor: 'Fluxy' },
+      { name: 'Code Review', vendor: 'Fluxy' },
+      { name: 'File Manager', vendor: 'Fluxy' },
+      { name: 'Web Search', vendor: 'Fluxy' },
+      { name: 'Data Analyst', vendor: 'Fluxy' },
     ],
     price: '$13.40',
     priceNum: 13.40,
@@ -57,10 +66,17 @@ const bundles = [
     type: 'bundle',
     title: 'Content Creator',
     description: 'Everything you need to write, design, and publish content',
+    longDescription: 'Turn your Fluxy into a full content production pipeline. From drafting blog posts and marketing emails to generating social media graphics and scheduling publications, this bundle handles the entire content lifecycle so you can focus on strategy instead of execution.',
     skills: [
       { name: 'Copywriter', vendor: 'Fluxy' },
       { name: 'Image Gen', vendor: 'Fluxy' },
       { name: 'Social Media', vendor: 'Fluxy' },
+      { name: 'Translator', vendor: 'Fluxy' },
+      { name: 'Web Search', vendor: 'Fluxy' },
+      { name: 'Scheduler', vendor: 'Fluxy' },
+      { name: 'PDF Reader', vendor: 'Fluxy' },
+      { name: 'File Manager', vendor: 'Fluxy' },
+      { name: 'Data Analyst', vendor: 'Fluxy' },
     ],
     price: '$19.00',
     priceNum: 19.00,
@@ -71,10 +87,15 @@ const bundles = [
     type: 'bundle',
     title: 'Support Agent',
     description: 'Turn your Fluxy into a customer support specialist with ticketing and chat',
+    longDescription: 'Deploy your Fluxy as a front-line customer support agent. This bundle combines language translation, knowledge-base search, and scheduling to handle multilingual customer inquiries, escalate tickets, and follow up automatically. Reduce response times without growing your team.',
+    image: '/assets/images/icons/wallet.png',
     skills: [
       { name: 'Translator', vendor: 'Fluxy' },
       { name: 'Web Search', vendor: 'Fluxy' },
       { name: 'Scheduler', vendor: 'Fluxy' },
+      { name: 'Copywriter', vendor: 'Fluxy' },
+      { name: 'PDF Reader', vendor: 'Fluxy' },
+      { name: 'File Manager', vendor: 'Fluxy' },
     ],
     price: '$11.00',
     priceNum: 11.00,
@@ -83,24 +104,24 @@ const bundles = [
 ]
 
 const cloudServices = [
-  { name: 'Nano Image Gen', vendor: 'Fluxy Cloud', description: 'Generate images from text prompts without loading models locally', calls: '142.3k', price: '$0.02 / call' },
-  { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', calls: '89.1k', price: '$0.05 / call' },
-  { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', calls: '214.7k', price: '$0.01 / page' },
-  { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', calls: '56.4k', price: '$0.03 / min' },
-  { name: 'Web Scraper', vendor: 'Fluxy Cloud', description: 'Extract structured data from any website without getting blocked', calls: '331.2k', price: '$0.01 / page' },
+  { name: 'Nano Image Gen', vendor: 'Fluxy Cloud', description: 'Generate images from text prompts without loading models locally', longDescription: 'Nano Image Gen runs lightweight diffusion models on Fluxy Cloud so your agent can create images, icons, and illustrations without downloading large model files. Supports multiple aspect ratios, style presets, and batch generation. Results are returned as URLs your agent can embed anywhere.', image: '/assets/images/icons/wallet.png', calls: '142.3k', price: '$0.02 / call' },
+  { name: 'Code Review', vendor: 'Fluxy Cloud', description: 'Deep code analysis, security audit, and best-practice checks via API', longDescription: 'Submit any code snippet or pull request diff and get back a structured report covering security vulnerabilities, performance bottlenecks, style violations, and suggested refactors. Supports 20+ languages and integrates with your CI pipeline through webhooks.', calls: '89.1k', price: '$0.05 / call' },
+  { name: 'PDF Convert', vendor: 'Fluxy Cloud', description: 'Convert, merge, split, and OCR PDF documents on the cloud', longDescription: 'A full PDF processing pipeline in the cloud. Convert documents to and from PDF, merge multiple files, split by page range, and run OCR on scanned documents to extract searchable text. Handles files up to 200MB with enterprise-grade accuracy.', calls: '214.7k', price: '$0.01 / page' },
+  { name: 'Speech to Text', vendor: 'Fluxy Cloud', description: 'Transcribe audio files to text with speaker detection', longDescription: 'Upload audio in any common format and receive accurate transcriptions with timestamps and speaker diarization. Supports 30+ languages, handles background noise gracefully, and can output structured formats like SRT subtitles or JSON segments.', image: '/assets/images/icons/wallet.png', calls: '56.4k', price: '$0.03 / min' },
+  { name: 'Web Scraper', vendor: 'Fluxy Cloud', description: 'Extract structured data from any website without getting blocked', longDescription: 'Our managed scraping infrastructure handles proxies, CAPTCHAs, and JavaScript rendering so your agent can extract clean, structured data from any public website. Define extraction schemas or let the AI auto-detect tables, lists, and key-value pairs.', calls: '331.2k', price: '$0.01 / page' },
 ]
 
 const skills = [
-  { id: 'skill-1', type: 'skill', name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', rating: 5, price: 'Free', priceNum: 0 },
-  { id: 'skill-2', type: 'skill', name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', rating: 4.5, price: '$4.00', priceNum: 4.00 },
-  { id: 'skill-3', type: 'skill', name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', rating: 4, price: 'Free', priceNum: 0 },
-  { id: 'skill-4', type: 'skill', name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', rating: 4, price: '$3.00', priceNum: 3.00 },
-  { id: 'skill-5', type: 'skill', name: 'Scheduler', vendor: 'Fluxy', description: 'Schedule tasks, set reminders, and manage recurring workflows', rating: 4.5, price: 'Free', priceNum: 0 },
-  { id: 'skill-6', type: 'skill', name: 'Image Gen', vendor: 'Fluxy', description: 'Create images, illustrations, and graphics from text descriptions', rating: 4, price: '$5.00', priceNum: 5.00 },
-  { id: 'skill-7', type: 'skill', name: 'Data Analyst', vendor: 'Fluxy', description: 'Analyze datasets, generate reports, and surface actionable insights', rating: 4.5, price: '$6.00', priceNum: 6.00 },
-  { id: 'skill-8', type: 'skill', name: 'File Manager', vendor: 'Fluxy', description: 'Organize, move, rename, and manage files across your system', rating: 5, price: 'Free', priceNum: 0 },
-  { id: 'skill-9', type: 'skill', name: 'Copywriter', vendor: 'Fluxy', description: 'Draft emails, blog posts, landing pages, and marketing copy', rating: 4.5, price: '$4.50', priceNum: 4.50 },
-  { id: 'skill-10', type: 'skill', name: 'Debugger', vendor: 'Fluxy', description: 'Identify bugs, trace errors, and suggest fixes across your codebase', rating: 4, price: '$5.00', priceNum: 5.00 },
+  { id: 'skill-1', type: 'skill', name: 'Web Search', vendor: 'Fluxy', description: 'Search the web in real-time and bring back structured results', longDescription: 'Web Search lets your Fluxy query multiple search engines simultaneously and return clean, structured results with titles, snippets, and source URLs. It filters out spam, deduplicates results, and can follow links to extract full article content when needed. Your agent uses this skill automatically whenever it needs up-to-date information.', image: '/assets/images/icons/wallet.png', rating: 5, price: 'Free', priceNum: 0 },
+  { id: 'skill-2', type: 'skill', name: 'Code Review', vendor: 'Fluxy', description: 'Automated code review with best practices and security checks', longDescription: 'Code Review analyzes your code for bugs, security issues, performance problems, and style violations. It understands context across files and provides actionable suggestions with line-level precision. Supports JavaScript, TypeScript, Python, Go, Rust, and 15+ other languages.', rating: 4.5, price: '$4.00', priceNum: 4.00 },
+  { id: 'skill-3', type: 'skill', name: 'Translator', vendor: 'Fluxy', description: 'Translate text between 50+ languages with context awareness', longDescription: 'Unlike basic translation, this skill preserves tone, idioms, and technical terminology across 50+ language pairs. It handles documents, UI strings, emails, and conversations with equal fluency. Your Fluxy can also detect the source language automatically and maintain glossaries for domain-specific terms.', rating: 4, price: 'Free', priceNum: 0 },
+  { id: 'skill-4', type: 'skill', name: 'PDF Reader', vendor: 'Fluxy', description: 'Extract, summarize, and query content from PDF documents', longDescription: 'PDF Reader parses any PDF file and makes its content queryable. Your Fluxy can extract specific sections, summarize entire documents, answer questions about the content, and pull out tables or images. Works with scanned documents through built-in OCR.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$3.00', priceNum: 3.00 },
+  { id: 'skill-5', type: 'skill', name: 'Scheduler', vendor: 'Fluxy', description: 'Schedule tasks, set reminders, and manage recurring workflows', longDescription: 'Scheduler gives your Fluxy time awareness. Set one-off reminders, create recurring tasks on custom intervals, and build multi-step workflows that execute automatically. Integrates with your calendar and notification systems so nothing falls through the cracks.', rating: 4.5, price: 'Free', priceNum: 0 },
+  { id: 'skill-6', type: 'skill', name: 'Image Gen', vendor: 'Fluxy', description: 'Create images, illustrations, and graphics from text descriptions', longDescription: 'Image Gen transforms natural language descriptions into high-quality images. Whether you need product mockups, social media graphics, illustrations, or icons, your Fluxy can generate them on demand. Supports style control, aspect ratio selection, and iterative refinement.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$5.00', priceNum: 5.00 },
+  { id: 'skill-7', type: 'skill', name: 'Data Analyst', vendor: 'Fluxy', description: 'Analyze datasets, generate reports, and surface actionable insights', longDescription: 'Data Analyst lets your Fluxy work with CSV, JSON, and database queries to find patterns, generate visualizations, and produce written reports. It handles statistical analysis, trend detection, anomaly identification, and can output charts alongside its findings.', rating: 4.5, price: '$6.00', priceNum: 6.00 },
+  { id: 'skill-8', type: 'skill', name: 'File Manager', vendor: 'Fluxy', description: 'Organize, move, rename, and manage files across your system', longDescription: 'File Manager gives your Fluxy the ability to navigate your file system, organize files into folders, batch rename using patterns, detect duplicates, and clean up unused files. It respects your permissions and always asks before destructive operations.', rating: 5, price: 'Free', priceNum: 0 },
+  { id: 'skill-9', type: 'skill', name: 'Copywriter', vendor: 'Fluxy', description: 'Draft emails, blog posts, landing pages, and marketing copy', longDescription: 'Copywriter turns your Fluxy into a versatile content writer. It adapts to your brand voice, follows your style guides, and can produce everything from punchy ad copy to long-form articles. Includes built-in SEO optimization, readability scoring, and A/B variant generation.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$4.50', priceNum: 4.50 },
+  { id: 'skill-10', type: 'skill', name: 'Debugger', vendor: 'Fluxy', description: 'Identify bugs, trace errors, and suggest fixes across your codebase', longDescription: 'Debugger reads stack traces, reproduces issues, and traces execution paths to find the root cause of bugs. It suggests targeted fixes with explanations, can apply patches directly, and learns from your codebase patterns to catch similar issues in the future.', rating: 4, price: '$5.00', priceNum: 5.00 },
 ]
 
 const walletPresets = [5, 10, 25]
@@ -487,12 +508,20 @@ function DetailModal({ item, onClose, onAddToCart, isInCart }) {
             </button>
           </div>
 
+          {item.image && (
+            <div className="px-5 pt-5">
+              <div className="rounded-xl bg-card border border-border/30 overflow-hidden flex items-center justify-center h-40">
+                <img src={item.image} alt={item.name || item.title} className="h-20 w-auto object-contain" />
+              </div>
+            </div>
+          )}
+
           <div className="p-5">
-            <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.description}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.longDescription || item.description}</p>
 
             {isBundle && item.skills && (
               <div className="mb-5">
-                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Included Skills</h4>
+                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Included Skills ({item.skills.length})</h4>
                 <div className="flex flex-col gap-2.5">
                   {item.skills.map((s) => (
                     <div key={s.name} className="flex items-center gap-2.5">
@@ -504,15 +533,13 @@ function DetailModal({ item, onClose, onAddToCart, isInCart }) {
                     </div>
                   ))}
                 </div>
-                {item.extra && (
-                  <p className="text-xs text-primary mt-3 font-medium">{item.extra}</p>
-                )}
               </div>
             )}
 
             {!isCloud && item.rating && (
-              <div className="mb-5">
+              <div className="flex items-center gap-2 mb-5">
                 <Stars rating={item.rating} />
+                <span className="text-xs text-muted-foreground">{item.rating}</span>
               </div>
             )}
 
@@ -702,7 +729,7 @@ export default function Marketplace() {
                     <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
                     <div className="flex flex-col gap-2.5 mb-4 flex-1">
-                      {bundle.skills.map((s) => (
+                      {bundle.skills.slice(0, 3).map((s) => (
                         <div key={s.name} className="flex items-center gap-2.5">
                           <ItemIcon name={s.name} />
                           <div>
@@ -712,12 +739,12 @@ export default function Marketplace() {
                         </div>
                       ))}
                     </div>
-                    {bundle.extra && (
+                    {bundle.skills.length > 3 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setDetailItem(bundle) }}
                         className="text-xs text-primary mb-3 font-medium hover:text-primary/80 transition-colors duration-200 text-left"
                       >
-                        {bundle.extra}
+                        + {bundle.skills.length - 3} More...
                       </button>
                     )}
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
