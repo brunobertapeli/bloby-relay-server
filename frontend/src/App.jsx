@@ -13,6 +13,7 @@ import {
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
 import Docs from './pages/Docs'
+import Marketplace from './pages/Marketplace'
 import { API_URL } from './api'
 
 function detectOS() {
@@ -147,7 +148,7 @@ function Navbar({ user, onLogin, onLogout }) {
   const navLinks = [
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How it works' },
-    { href: '#open-source', label: 'Open Source' },
+    { href: '/marketplace', label: 'Marketplace' },
     { href: '/docs', label: 'Docs' },
   ]
 
@@ -1654,6 +1655,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/docs" element={<Docs />} />
+        <Route path="/marketplace" element={<Marketplace />} />
       </Routes>
     </BrowserRouter>
   )
