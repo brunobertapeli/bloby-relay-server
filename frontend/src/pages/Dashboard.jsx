@@ -3,9 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import {
-  HiArrowLeft, HiPlus, HiXMark, HiClipboardDocument,
-  HiChevronDown, HiEye, HiEyeSlash, HiShoppingCart,
-  HiClock, HiCheckCircle, HiWallet
+  HiPlus, HiXMark, HiClipboardDocument,
+  HiEye, HiEyeSlash, HiCheckCircle
 } from 'react-icons/hi2'
 import { API_URL } from '../api'
 
@@ -81,16 +80,14 @@ function DashNavbar({ user, onLogout }) {
   )
 }
 
-function ClaimFluxyCard({ onClaim }) {
-  const [expanded, setExpanded] = useState(false)
+function ClaimFluxyCard() {
   const [name, setName] = useState('')
   const [claimCode, setClaimCode] = useState(null)
   const [copied, setCopied] = useState(false)
 
   const handleGenerate = () => {
     if (!name.trim()) return
-    const code = generateClaimCode()
-    setClaimCode(code)
+    setClaimCode(generateClaimCode())
   }
 
   const premadeMessage = claimCode
@@ -104,83 +101,52 @@ function ClaimFluxyCard({ onClaim }) {
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-border/60 bg-card/50 overflow-hidden transition-all duration-300">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors duration-200"
-      >
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-            <HiPlus className="w-5 h-5" />
-          </span>
-          <div className="text-left">
-            <p className="text-sm font-semibold font-display text-foreground">Claim a Fluxy</p>
-            <p className="text-xs text-muted-foreground">Link your self-hosted Fluxy to your account</p>
-          </div>
-        </div>
-        <HiChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
+    <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
+      <p className="text-xs text-muted-foreground font-display">Link your self-hosted Fluxy to your account</p>
+      {!claimCode ? (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Give your Fluxy a name (e.g. Jarvis)"
+            className="flex-1 h-10 px-4 rounded-xl bg-background border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors duration-200 font-display"
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+          />
+          <Button
+            onClick={handleGenerate}
+            disabled={!name.trim()}
+            className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm disabled:opacity-40"
           >
-            <div className="px-5 pb-5 space-y-4 border-t border-border/30 pt-4">
-              {!claimCode ? (
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Give your Fluxy a name (e.g. Jarvis)"
-                    className="flex-1 h-10 px-4 rounded-xl bg-background border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors duration-200 font-display"
-                    onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                  />
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={!name.trim()}
-                    className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm disabled:opacity-40"
-                  >
-                    Generate Code
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="rounded-xl bg-background border border-border/50 p-4">
-                    <p className="text-xs text-muted-foreground mb-2 font-display">Claim code for <span className="text-primary font-semibold">{name.trim()}</span></p>
-                    <div className="flex items-center justify-between">
-                      <code className="text-lg font-mono font-semibold text-foreground tracking-wider">{claimCode}</code>
-                      <CopyButton text={claimCode} />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-background border border-border/50 p-4">
-                    <p className="text-xs text-muted-foreground mb-2 font-display">Send this to your Fluxy</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-foreground/80 font-mono flex-1 whitespace-pre-line">{premadeMessage}</p>
-                      <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0 mt-0.5">
-                        {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => { setClaimCode(null); setName(''); }}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
-                  >
-                    Generate another code
-                  </button>
-                </div>
-              )}
+            Generate Code
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="rounded-xl bg-background border border-border/50 p-4">
+            <p className="text-xs text-muted-foreground mb-2 font-display">Claim code for <span className="text-primary font-semibold">{name.trim()}</span></p>
+            <div className="flex items-center justify-between">
+              <code className="text-lg font-mono font-semibold text-foreground tracking-wider">{claimCode}</code>
+              <CopyButton text={claimCode} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          <div className="rounded-xl bg-background border border-border/50 p-4">
+            <p className="text-xs text-muted-foreground mb-2 font-display">Send this to your Fluxy</p>
+            <div className="flex items-start gap-2">
+              <p className="text-xs text-foreground/80 font-mono flex-1 whitespace-pre-line">{premadeMessage}</p>
+              <button onClick={copyMessage} className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1 shrink-0 mt-0.5">
+                {copied ? <HiCheckCircle className="w-4 h-4 text-emerald-400" /> : <HiClipboardDocument className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => { setClaimCode(null); setName('') }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 font-display"
+          >
+            Generate another code
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -212,20 +178,20 @@ function FluxyCard({ fluxy, onAddBalance }) {
             <p className="text-xs text-muted-foreground">{fluxy.role}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-xl bg-primary/10 border border-primary/20 border-r-0">
             <img src="/assets/images/icons/wallet.png" alt="" className="h-4 w-auto" />
             <span className="text-sm font-semibold font-display text-primary">${fluxy.balance.toFixed(2)}</span>
           </div>
           <button
             onClick={() => setShowTopup(!showTopup)}
-            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all duration-200 ${
+            className={`h-[34px] px-2.5 rounded-r-xl border text-xs font-medium font-display transition-all duration-200 ${
               showTopup
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'border-primary/40 bg-primary/15 text-primary border-l-primary/20'
+                : 'border-primary/20 bg-primary/5 text-primary/70 hover:bg-primary/10 hover:text-primary border-l-primary/10'
             }`}
           >
-            {showTopup ? <HiXMark className="w-4 h-4" /> : <HiPlus className="w-4 h-4" />}
+            {showTopup ? 'Close' : '+ Funds'}
           </button>
         </div>
       </div>
@@ -364,6 +330,7 @@ export default function Dashboard() {
   const [fluxies, setFluxies] = useState(mockFluxies)
   const [purchases] = useState(mockPurchases)
   const [visibleHashes, setVisibleHashes] = useState({})
+  const [showClaim, setShowClaim] = useState(false)
   const [loading, setLoading] = useState(true)
   const tokenClientRef = useRef(null)
   const loginResolveRef = useRef(null)
@@ -453,13 +420,32 @@ export default function Dashboard() {
         <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0}>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Fluxies</h2>
+            <button
+              onClick={() => setShowClaim(!showClaim)}
+              className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
+            >
+              <HiPlus className="w-4 h-4" />
+              Claim a Fluxy
+            </button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
+          <AnimatePresence>
+            {showClaim && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden mb-4"
+              >
+                <ClaimFluxyCard />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fluxies.map((fluxy) => (
               <FluxyCard key={fluxy.id} fluxy={fluxy} onAddBalance={handleAddBalance} />
             ))}
           </div>
-          <ClaimFluxyCard />
         </motion.section>
 
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
