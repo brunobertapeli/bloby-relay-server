@@ -6,10 +6,17 @@ import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus,
-  HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument
+  HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument,
+  HiChevronUpDown
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Newest', 'Price: Low to High']
+
+const myFluxies = [
+  { id: 'fluxy-1', name: 'Jarvis', role: 'Personal Assistant', avatar: '🤖', balance: 12.50 },
+  { id: 'fluxy-2', name: 'Nova', role: 'Marketing Agent', avatar: '✨', balance: 0 },
+  { id: 'fluxy-3', name: 'Atlas', role: 'Sales Agent', avatar: '🗺️', balance: 25.00 },
+]
 
 const bundles = [
   {
@@ -417,14 +424,18 @@ function ConfettiDot({ delay, left }) {
 function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
   const [copied, setCopied] = useState(false)
+  const [selectedFluxy, setSelectedFluxy] = useState(myFluxies[0])
+  const [fluxyDropdownOpen, setFluxyDropdownOpen] = useState(false)
   const redeemCode = useState(() => generateRedeemCode())[0]
+
+  const fluxyName = selectedFluxy.name
 
   const hasSkillsOrBundles = success && success.items.some(i => i.type !== 'wallet')
   const hasWallet = success && success.items.some(i => i.type === 'wallet')
   const walletTotal = success ? success.items.filter(i => i.type === 'wallet').reduce((s, i) => s + i.priceNum, 0) : 0
   const itemNames = success ? success.items.filter(i => i.type !== 'wallet').map(i => i.name || i.title) : []
 
-  const premadeMessage = `Hey Jarvis, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
+  const premadeMessage = `Hey ${fluxyName}, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
 
   const handleCopy = () => {
     navigator.clipboard.writeText(premadeMessage)
@@ -472,6 +483,55 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
           </button>
         </div>
 
+        {!success && (
+          <div className="px-5 pt-4 pb-2">
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium mb-2">Purchasing for</p>
+            <div className="relative">
+              <button
+                onClick={() => setFluxyDropdownOpen(!fluxyDropdownOpen)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 transition-all duration-200"
+              >
+                <span className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-lg">{selectedFluxy.avatar}</span>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold font-display text-foreground leading-tight">{selectedFluxy.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{selectedFluxy.role}</p>
+                </div>
+                <HiChevronUpDown className="w-4 h-4 text-muted-foreground/50" />
+              </button>
+              <AnimatePresence>
+                {fluxyDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 right-0 mt-1.5 z-10 rounded-xl border border-border/50 bg-background shadow-xl overflow-hidden"
+                  >
+                    {myFluxies.map((fluxy) => (
+                      <button
+                        key={fluxy.id}
+                        onClick={() => { setSelectedFluxy(fluxy); setFluxyDropdownOpen(false) }}
+                        className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors duration-150 ${
+                          selectedFluxy.id === fluxy.id ? 'bg-primary/[0.04]' : ''
+                        }`}
+                      >
+                        <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">{fluxy.avatar}</span>
+                        <div className="flex-1 text-left">
+                          <p className="text-sm font-medium font-display text-foreground leading-tight">{fluxy.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{fluxy.role}</p>
+                        </div>
+                        {selectedFluxy.id === fluxy.id && (
+                          <HiCheckCircle className="w-4 h-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+
         {success ? (
           <div className="flex-1 overflow-y-auto p-5">
             <div className="relative overflow-hidden">
@@ -506,10 +566,10 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
               <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {hasSkillsOrBundles && hasWallet
-                  ? <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> will be so happy with its new skills and its new balance.</>
+                  ? <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> will be so happy with its new skills and its new balance.</>
                   : hasSkillsOrBundles
-                    ? <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> will be so happy with its new skills.</>
-                    : <>Your Fluxy <span className="text-primary font-semibold">Jarvis</span> wallet has been funded.</>}
+                    ? <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> will be so happy with its new skills.</>
+                    : <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> wallet has been funded.</>}
               </p>
             </motion.div>
 
@@ -523,7 +583,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                 <div className="flex items-center gap-3">
                   <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Fluxy <span className="text-primary font-semibold">Jarvis</span> balance updated</p>
+                    <p className="text-xs text-muted-foreground">Fluxy <span className="text-primary font-semibold">{fluxyName}</span> balance updated</p>
                     <p className="text-lg font-bold font-display text-emerald-400">${walletTotal.toFixed(2)}</p>
                   </div>
                 </div>
