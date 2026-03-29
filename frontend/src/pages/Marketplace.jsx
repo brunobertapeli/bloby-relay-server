@@ -5,8 +5,8 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import {
   HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
-  HiShoppingCart, HiXMark, HiTrash, HiPlus, HiMinus,
-  HiChevronLeft, HiChevronRight
+  HiShoppingCart, HiXMark, HiTrash, HiPlus,
+  HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Newest', 'Price: Low to High']
@@ -389,8 +389,48 @@ function WalletTopup({ onAdd }) {
   )
 }
 
-function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
+function generateRedeemCode() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+function ConfettiDot({ delay, left }) {
+  const colors = ['bg-primary', 'bg-emerald-400', 'bg-amber-400', 'bg-rose-400', 'bg-cyan-400', 'bg-violet-400']
+  const color = colors[Math.floor(Math.random() * colors.length)]
+  return (
+    <motion.div
+      className={`absolute w-2 h-2 rounded-full ${color}`}
+      style={{ left: `${left}%`, top: '-8px' }}
+      initial={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+      animate={{
+        opacity: [1, 1, 0],
+        y: [0, 200 + Math.random() * 150],
+        x: [0, (Math.random() - 0.5) * 120],
+        scale: [1, 0.6],
+        rotate: [0, Math.random() * 360],
+      }}
+      transition={{ duration: 1.8 + Math.random() * 0.8, delay, ease: 'easeOut' }}
+    />
+  )
+}
+
+function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
+  const [copied, setCopied] = useState(false)
+  const redeemCode = useState(() => generateRedeemCode())[0]
+
+  const hasSkillsOrBundles = success && success.items.some(i => i.type !== 'wallet')
+  const hasWallet = success && success.items.some(i => i.type === 'wallet')
+  const walletTotal = success ? success.items.filter(i => i.type === 'wallet').reduce((s, i) => s + i.priceNum, 0) : 0
+  const itemNames = success ? success.items.filter(i => i.type !== 'wallet').map(i => i.name || i.title) : []
+
+  const premadeMessage = `Hey Jarvis, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(premadeMessage)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <>
@@ -410,11 +450,19 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
       >
         <div className="flex items-center justify-between p-5 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <HiShoppingCart className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-bold font-display text-foreground">Your Cart</h2>
-            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-              {cart.reduce((sum, item) => sum + item.qty, 0)} items
-            </span>
+            {success ? (
+              <HiCheckCircle className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <HiShoppingCart className="w-5 h-5 text-foreground" />
+            )}
+            <h2 className="text-lg font-bold font-display text-foreground">
+              {success ? 'Order Complete' : 'Your Cart'}
+            </h2>
+            {!success && cart.length > 0 && (
+              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                {cart.length} {cart.length === 1 ? 'item' : 'items'}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -424,77 +472,187 @@ function CartSheet({ cart, onClose, onRemove, onQuantityChange }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <HiShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-4" />
-              <p className="text-sm text-muted-foreground mb-1">Your cart is empty</p>
-              <p className="text-xs text-muted-foreground/60">Add skills or bundles from the marketplace</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
-                >
-                  {item.type === 'wallet' ? (
-                    <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                      <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-4 h-4" />
-                    </div>
-                  ) : (
-                    <ItemIcon name={item.name || item.title} />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium font-display text-foreground leading-tight">{item.name || item.title}</p>
-                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type === 'wallet' ? 'Wallet Top-up' : item.type}</p>
-                      </div>
-                      <button
-                        onClick={() => onRemove(item.id)}
-                        className="p-1 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-400/10 transition-colors duration-200 shrink-0"
-                      >
-                        <HiTrash className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-semibold text-foreground">{item.price}</span>
-                      {item.type !== 'wallet' && item.priceNum > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => onQuantityChange(item.id, item.qty - 1)}
-                            className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-colors duration-200"
-                          >
-                            <HiMinus className="w-3 h-3" />
-                          </button>
-                          <span className="text-xs font-medium text-foreground w-6 text-center">{item.qty}</span>
-                          <button
-                            onClick={() => onQuantityChange(item.id, item.qty + 1)}
-                            className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-colors duration-200"
-                          >
-                            <HiPlus className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+        {success ? (
+          <div className="flex-1 overflow-y-auto p-5">
+            <div className="relative overflow-hidden">
+              {[...Array(30)].map((_, i) => (
+                <ConfettiDot key={i} delay={i * 0.04} left={Math.random() * 100} />
               ))}
             </div>
-          )}
-        </div>
 
-        {cart.length > 0 && (
-          <div className="p-5 border-t border-border/50">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-lg font-bold font-display text-foreground">
-                {total === 0 ? 'Free' : `$${total.toFixed(2)}`}
-              </span>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+              className="flex justify-center mt-6 mb-6"
+            >
+              <div className="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                <HiCheckCircle className="w-10 h-10 text-emerald-400" />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center mb-8"
+            >
+              <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {hasSkillsOrBundles && hasWallet
+                  ? 'Your Fluxy Jarvis will be so happy with its new skills and its new balance.'
+                  : hasSkillsOrBundles
+                    ? 'Your Fluxy Jarvis will be so happy with its new skills.'
+                    : 'Your Fluxy Jarvis wallet has been funded.'}
+              </p>
+            </motion.div>
+
+            {hasWallet && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+                className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 mb-5"
+              >
+                <div className="flex items-center gap-3">
+                  <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fluxy Jarvis balance updated</p>
+                    <p className="text-lg font-bold font-display text-emerald-400">${walletTotal.toFixed(2)}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {hasSkillsOrBundles && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55 }}
+                className="rounded-xl border border-border/30 bg-card p-4 mb-5"
+              >
+                <p className="text-xs text-muted-foreground mb-3">
+                  Ask Jarvis to redeem this code on the Marketplace:
+                </p>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-background border border-border/50 mb-4">
+                  <code className="flex-1 text-sm font-mono text-primary tracking-wide break-all">{redeemCode}</code>
+                </div>
+
+                <p className="text-xs text-muted-foreground mb-2">Or copy a premade message:</p>
+                <button
+                  onClick={handleCopy}
+                  className="w-full flex items-center gap-2 p-3 rounded-lg border border-border/30 bg-background hover:border-primary/30 transition-all duration-200 text-left group"
+                >
+                  <p className="flex-1 text-xs text-muted-foreground leading-relaxed">{premadeMessage}</p>
+                  <div className="shrink-0 w-8 h-8 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary/40 transition-all duration-200">
+                    {copied ? (
+                      <HiCheckCircle className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <HiClipboardDocument className="w-4 h-4" />
+                    )}
+                  </div>
+                </button>
+              </motion.div>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+              className="space-y-2"
+            >
+              <p className="text-xs text-muted-foreground font-medium mb-2">Items purchased</p>
+              {success.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center gap-2">
+                    {item.type === 'wallet' ? (
+                      <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-3 h-3" />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-md bg-emerald-500/15 flex items-center justify-center shrink-0">
+                        <HiCheckCircle className="w-3 h-3 text-emerald-400" />
+                      </div>
+                    )}
+                    <span className="text-sm text-foreground">{item.name || item.title}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{item.price}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-5">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <HiShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                  <p className="text-sm text-muted-foreground mb-1">Your cart is empty</p>
+                  <p className="text-xs text-muted-foreground/60">Add skills or bundles from the marketplace</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {cart.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
+                    >
+                      {item.type === 'wallet' ? (
+                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                          <img src="/assets/images/icons/wallet.png" alt="Wallet" className="w-4 h-4" />
+                        </div>
+                      ) : (
+                        <ItemIcon name={item.name || item.title} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-medium font-display text-foreground leading-tight">{item.name || item.title}</p>
+                            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type === 'wallet' ? 'Wallet Top-up' : item.type}</p>
+                          </div>
+                          <button
+                            onClick={() => onRemove(item.id)}
+                            className="p-1 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-400/10 transition-colors duration-200 shrink-0"
+                          >
+                            <HiTrash className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="mt-2">
+                          <span className="text-sm font-semibold text-foreground">{item.price}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <Button className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm">
-              Checkout
+
+            {cart.length > 0 && (
+              <div className="p-5 border-t border-border/50">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-muted-foreground">Total</span>
+                  <span className="text-lg font-bold font-display text-foreground">
+                    {total === 0 ? 'Free' : `$${total.toFixed(2)}`}
+                  </span>
+                </div>
+                <Button
+                  onClick={onCheckout}
+                  className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm"
+                >
+                  Checkout
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {success && (
+          <div className="p-5 border-t border-border/50">
+            <Button
+              onClick={onClose}
+              className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm"
+            >
+              Back to Marketplace
             </Button>
           </div>
         )}
@@ -614,6 +772,7 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [checkoutSuccess, setCheckoutSuccess] = useState(null)
   const [detailItem, setDetailItem] = useState(null)
   const [bundleFilter, setBundleFilter] = useState('Featured')
   const [skillFilter, setSkillFilter] = useState('Featured')
@@ -643,12 +802,15 @@ export default function Marketplace() {
     setCart(prev => prev.filter(c => c.id !== id))
   }
 
-  const changeQuantity = (id, newQty) => {
-    if (newQty < 1) {
-      removeFromCart(id)
-      return
-    }
-    setCart(prev => prev.map(c => c.id === id ? { ...c, qty: newQty } : c))
+
+  const handleCheckout = () => {
+    setCheckoutSuccess({ items: [...cart] })
+    setCart([])
+  }
+
+  const handleCloseCart = () => {
+    setCartOpen(false)
+    setCheckoutSuccess(null)
   }
 
   const isInCart = (id) => cart.some(c => c.id === id)
@@ -936,12 +1098,13 @@ export default function Marketplace() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {cartOpen && (
+        {(cartOpen || checkoutSuccess) && (
           <CartSheet
             cart={cart}
-            onClose={() => setCartOpen(false)}
+            onClose={handleCloseCart}
             onRemove={removeFromCart}
-            onQuantityChange={changeQuantity}
+            onCheckout={handleCheckout}
+            success={checkoutSuccess}
           />
         )}
       </AnimatePresence>
