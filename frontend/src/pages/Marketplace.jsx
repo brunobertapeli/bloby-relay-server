@@ -273,7 +273,7 @@ function WalletTopup({ onAdd }) {
       className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 flex flex-col sm:flex-row sm:items-center gap-4"
     >
       <div className="flex items-center gap-3 shrink-0">
-        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[50px] w-auto" />
+        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[40px] w-auto" />
         <div>
           <div className="flex items-center gap-1.5">
             <h3 className="text-sm font-semibold font-display text-foreground">Fund your Fluxy Wallet</h3>
