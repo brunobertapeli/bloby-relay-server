@@ -28,6 +28,61 @@ function getConfig() {
   };
 }
 
+// ─── Stripe instance for Crypto Onramp ─────────────────────────────────────
+let _stripeOnramp;
+function getStripeOnramp() {
+  if (!_stripeOnramp) _stripeOnramp = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return _stripeOnramp;
+}
+
+// Custom resource for the Crypto Onramp API (not yet in the SDK)
+const OnrampSessionResource = Stripe.StripeResource.extend({
+  create: Stripe.StripeResource.method({
+    method: 'POST',
+    path: 'crypto/onramp_sessions',
+  }),
+});
+
+// ─── Create Crypto Onramp Session (Fund Bot wallet) ────────────────────────
+router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
+  try {
+    const { fluxyId, amount } = req.body;
+    if (!fluxyId || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'Missing fluxyId or valid amount' });
+    }
+
+    const accountId = new ObjectId(req.account.id);
+    const fluxy = await getUsers().findOne({
+      _id: new ObjectId(fluxyId),
+      accountId,
+    });
+
+    if (!fluxy) {
+      return res.status(404).json({ error: 'Fluxy not found' });
+    }
+    if (!fluxy.walletAddress) {
+      return res.status(400).json({ error: 'Fluxy has no wallet address' });
+    }
+
+    const stripe = getStripeOnramp();
+    const session = await new OnrampSessionResource(stripe).create({
+      transaction_details: {
+        destination_currency: 'usdc',
+        destination_exchange_amount: String(amount),
+        destination_network: 'base',
+      },
+      wallet_addresses: { ethereum: fluxy.walletAddress },
+      lock_wallet_address: true,
+      customer_ip_address: req.ip,
+    });
+
+    res.json({ clientSecret: session.client_secret });
+  } catch (error) {
+    console.error('[stripe/onramp-session] error:', error.message, error.raw || '');
+    res.status(500).json({ error: 'Failed to create onramp session' });
+  }
+});
+
 // ─── Create Checkout Session ────────────────────────────────────────────────
 router.post('/stripe/checkout', jwtAuth, async (req, res) => {
   try {

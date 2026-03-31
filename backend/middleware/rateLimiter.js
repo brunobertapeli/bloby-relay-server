@@ -46,3 +46,21 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Rate limit exceeded — please try again later' },
 });
+
+/** Claim code generation — 10 per account per hour */
+export const claimGenerateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many claim codes generated — try again later' },
+});
+
+/** Claim verification — 5 per IP per 5 minutes (anti-brute-force) */
+export const claimVerifyLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts — try again later' },
+});

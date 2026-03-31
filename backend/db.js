@@ -41,6 +41,13 @@ async function createIndexes() {
     users.createIndex({ tokenHash: 1 }, { unique: true }),
     users.createIndex({ lastHeartbeat: 1 }),
   ]);
+
+  const claims = db.collection('claims');
+  await Promise.all([
+    claims.createIndex({ code: 1 }),
+    claims.createIndex({ accountId: 1 }),
+    claims.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
+  ]);
 }
 
 export function getDb() {

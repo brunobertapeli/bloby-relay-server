@@ -3,20 +3,17 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import Navbar from '../components/Navbar'
+import { API_URL } from '../api'
 import {
-  HiMagnifyingGlass, HiArrowLeft, HiInformationCircle,
+  HiMagnifyingGlass, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus,
   HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument,
-  HiChevronUpDown
+  HiUser, HiCpuChip, HiLink
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Newest']
 
-const myFluxies = [
-  { id: 'fluxy-1', name: 'Jarvis', role: 'Personal Assistant', avatar: '🤖', balance: 12.50 },
-  { id: 'fluxy-2', name: 'Nova', role: 'Marketing Agent', avatar: '✨', balance: 0 },
-  { id: 'fluxy-3', name: 'Atlas', role: 'Sales Agent', avatar: '🗺️', balance: 25.00 },
-]
 
 const bundles = [
   {
@@ -36,6 +33,8 @@ const bundles = [
     ],
     price: '$24.00',
     priceNum: 24.00,
+    forHumans: true,
+    forAgents: true,
   },
   {
     id: 'bundle-2',
@@ -54,6 +53,8 @@ const bundles = [
     ],
     price: '$29.00',
     priceNum: 29.00,
+    forHumans: true,
+    forAgents: true,
   },
   {
     id: 'bundle-3',
@@ -73,6 +74,8 @@ const bundles = [
     ],
     price: '$22.00',
     priceNum: 22.00,
+    forHumans: true,
+    forAgents: true,
   },
   {
     id: 'bundle-4',
@@ -93,6 +96,8 @@ const bundles = [
     ],
     price: '$35.00',
     priceNum: 35.00,
+    forHumans: true,
+    forAgents: true,
   },
   {
     id: 'bundle-5',
@@ -110,6 +115,8 @@ const bundles = [
     ],
     price: '$18.00',
     priceNum: 18.00,
+    forHumans: true,
+    forAgents: true,
   },
   {
     id: 'bundle-6',
@@ -130,34 +137,35 @@ const bundles = [
     ],
     price: '$32.00',
     priceNum: 32.00,
+    forHumans: true,
+    forAgents: true,
   },
 ]
 
 const cloudServices = [
-  { name: 'ElevenLabs TTS', vendor: 'ElevenLabs', description: 'Generate lifelike speech from text with voice cloning', longDescription: 'Convert any text to natural-sounding speech using ElevenLabs voice synthesis. Choose from dozens of preset voices or clone a custom voice from a short audio sample. Supports SSML for fine-grained control over pronunciation, pauses, and emphasis. Output in MP3, WAV, or streaming PCM.', image: '/assets/images/icons/wallet.png', calls: '412.8k', price: '$0.03 / 1k chars' },
-  { name: 'Imagen 3', vendor: 'Google', description: 'Photorealistic image generation with strong text rendering', longDescription: 'Google Imagen 3 generates high-fidelity photorealistic images from text prompts. Excels at rendering text within images, product photography, and architectural visualization. Includes built-in safety filters and digital watermarking for responsible AI use.', calls: '287.4k', price: '$0.04 / image' },
-  { name: 'Whisper', vendor: 'OpenAI', description: 'Transcribe audio to text with timestamps and speaker detection', longDescription: 'Upload audio in any common format and get accurate transcriptions with word-level timestamps and optional speaker diarization. Handles accents, background noise, and technical jargon across 50+ languages. Returns plain text, SRT subtitles, or structured JSON segments.', image: '/assets/images/icons/wallet.png', calls: '156.2k', price: '$0.006 / min' },
-  { name: 'Document AI', vendor: 'Microsoft', description: 'Extract structured data from invoices, receipts, and forms', longDescription: 'Specialized document understanding that extracts key-value pairs, tables, and signatures from business documents. Pre-built models for invoices, receipts, ID cards, and tax forms. Custom model training available for unique document types. Returns structured JSON with confidence scores.', calls: '89.1k', price: '$0.01 / page' },
-  { name: 'Firecrawl', vendor: 'Firecrawl', description: 'Scrape and crawl websites into clean, structured markdown', longDescription: 'Navigate JavaScript-rendered pages, handle authentication, bypass rate limits, and return clean markdown or structured data. Crawls entire sites following links to a specified depth. Returns LLM-ready content optimized for agent consumption.', calls: '331.2k', price: '$0.01 / page' },
-  { name: 'DeepL API', vendor: 'DeepL', description: 'High-accuracy text translation across 30+ language pairs', longDescription: 'Translate text with exceptional quality for European and Asian languages. Preserves formatting, handles formal and informal register, supports glossary enforcement for domain-specific terms, and offers full document translation while maintaining the original layout.', calls: '528.7k', price: '$0.00002 / char' },
+  { name: 'ElevenLabs TTS', vendor: 'ElevenLabs', description: 'Generate lifelike speech from text with voice cloning', longDescription: 'Convert any text to natural-sounding speech using ElevenLabs voice synthesis. Choose from dozens of preset voices or clone a custom voice from a short audio sample. Supports SSML for fine-grained control over pronunciation, pauses, and emphasis. Output in MP3, WAV, or streaming PCM.', image: '/assets/images/icons/wallet.png', calls: '412.8k', price: '$0.03 / 1k chars', forHumans: false, forAgents: true },
+  { name: 'Imagen 3', vendor: 'Google', description: 'Photorealistic image generation with strong text rendering', longDescription: 'Google Imagen 3 generates high-fidelity photorealistic images from text prompts. Excels at rendering text within images, product photography, and architectural visualization. Includes built-in safety filters and digital watermarking for responsible AI use.', calls: '287.4k', price: '$0.04 / image', forHumans: false, forAgents: true },
+  { name: 'Whisper', vendor: 'OpenAI', description: 'Transcribe audio to text with timestamps and speaker detection', longDescription: 'Upload audio in any common format and get accurate transcriptions with word-level timestamps and optional speaker diarization. Handles accents, background noise, and technical jargon across 50+ languages. Returns plain text, SRT subtitles, or structured JSON segments.', image: '/assets/images/icons/wallet.png', calls: '156.2k', price: '$0.006 / min', forHumans: false, forAgents: true },
+  { name: 'Document AI', vendor: 'Microsoft', description: 'Extract structured data from invoices, receipts, and forms', longDescription: 'Specialized document understanding that extracts key-value pairs, tables, and signatures from business documents. Pre-built models for invoices, receipts, ID cards, and tax forms. Custom model training available for unique document types. Returns structured JSON with confidence scores.', calls: '89.1k', price: '$0.01 / page', forHumans: false, forAgents: true },
+  { name: 'Firecrawl', vendor: 'Firecrawl', description: 'Scrape and crawl websites into clean, structured markdown', longDescription: 'Navigate JavaScript-rendered pages, handle authentication, bypass rate limits, and return clean markdown or structured data. Crawls entire sites following links to a specified depth. Returns LLM-ready content optimized for agent consumption.', calls: '331.2k', price: '$0.01 / page', forHumans: false, forAgents: true },
+  { name: 'DeepL API', vendor: 'DeepL', description: 'High-accuracy text translation across 30+ language pairs', longDescription: 'Translate text with exceptional quality for European and Asian languages. Preserves formatting, handles formal and informal register, supports glossary enforcement for domain-specific terms, and offers full document translation while maintaining the original layout.', calls: '528.7k', price: '$0.00002 / char', forHumans: false, forAgents: true },
 ]
 
 const skills = [
-  { id: 'skill-1', type: 'skill', name: 'Gmail', vendor: 'Google', description: 'Read, draft, send, and organize Gmail messages and threads', longDescription: 'Gives your Fluxy full access to a Gmail inbox. It can read incoming messages, compose and send replies, apply labels, archive threads, and search across years of email history. Supports attachments, inline images, and template-based bulk sending. OAuth2-based so your credentials never leave your device.', image: '/assets/images/icons/wallet.png', rating: 5, price: 'Free', priceNum: 0 },
-  { id: 'skill-2', type: 'skill', name: 'WhatsApp Business', vendor: 'Meta', description: 'Send and receive WhatsApp messages through the Business API', longDescription: 'Connects your Fluxy to the WhatsApp Business API for automated customer conversations. Supports text, images, documents, location sharing, and interactive button messages. Your agent can handle inbound inquiries, send order updates, and manage template-based broadcast campaigns.', rating: 4.5, price: '$5.00', priceNum: 5.00 },
-  { id: 'skill-3', type: 'skill', name: 'Google Calendar', vendor: 'Google', description: 'Create, read, update, and manage calendar events and availability', longDescription: 'Full control over Google Calendar. Your Fluxy can create events with guests, check availability across multiple calendars, set up recurring meetings, handle RSVPs, and send custom reminders. Supports multiple time zones and free/busy lookups for scheduling across teams.', rating: 5, price: 'Free', priceNum: 0 },
-  { id: 'skill-4', type: 'skill', name: 'Notion', vendor: 'Notion', description: 'Read, write, and manage Notion pages, databases, and blocks', longDescription: 'Gives your Fluxy full access to Notion workspaces. Create pages, update database entries, query filtered views, manage properties, and build structured knowledge bases. Your agent can use Notion as its long-term memory, maintaining project wikis, meeting notes, and task boards autonomously.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$3.00', priceNum: 3.00 },
-  { id: 'skill-5', type: 'skill', name: 'Slack', vendor: 'Slack', description: 'Post messages, read channels, and manage Slack workflows', longDescription: 'Your Fluxy can post to channels, read conversation history, respond to mentions, create threads, and trigger Slack workflows. Supports rich formatting with Block Kit, file uploads, and emoji reactions. Ideal for team notifications, standup reports, and automated channel management.', rating: 4.5, price: 'Free', priceNum: 0 },
-  { id: 'skill-6', type: 'skill', name: 'Shopify', vendor: 'Shopify', description: 'Manage products, orders, inventory, and customers on Shopify', longDescription: 'Full Shopify Admin API access. Your Fluxy can create and update products, process orders, manage inventory levels, handle customer inquiries, and modify store settings. Supports draft orders, discount codes, fulfillment tracking, and webhook-driven automations.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$8.00', priceNum: 8.00 },
-  { id: 'skill-7', type: 'skill', name: 'HubSpot', vendor: 'HubSpot', description: 'Manage contacts, deals, and sales pipelines in HubSpot CRM', longDescription: 'Full CRM access including contact creation, deal pipeline management, email tracking, and activity logging. Your Fluxy can qualify leads from form submissions, update deal stages based on email conversations, and generate pipeline reports. Includes marketing hub access for email campaigns.', rating: 4.5, price: '$6.00', priceNum: 6.00 },
-  { id: 'skill-8', type: 'skill', name: 'Stripe', vendor: 'Stripe', description: 'Process payments, manage subscriptions, and handle refunds', longDescription: 'Create payment intents, manage customer subscriptions, process refunds, and pull revenue analytics. Your Fluxy can handle billing inquiries, retry failed payments, generate financial reports, and manage coupon codes and promotional pricing.', rating: 5, price: '$4.00', priceNum: 4.00 },
-  { id: 'skill-9', type: 'skill', name: 'DocuSign', vendor: 'DocuSign', description: 'Send, track, and manage electronic signatures on documents', longDescription: 'Create signature requests, track envelope status, download signed documents, and manage templates. Your Fluxy can automate contract workflows, send reminders for pending signatures, route documents through multi-party signing, and archive completed agreements.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$5.00', priceNum: 5.00 },
-  { id: 'skill-10', type: 'skill', name: 'Google Sheets', vendor: 'Google', description: 'Read and write data in Google Sheets spreadsheets', longDescription: 'Read cell ranges, write data, create new sheets, apply formatting, and manage named ranges. Your Fluxy can use Sheets as a lightweight database, generate reports, track metrics, and process form submissions collected via Google Forms.', rating: 4.5, price: 'Free', priceNum: 0 },
-  { id: 'skill-11', type: 'skill', name: 'Calendly', vendor: 'Calendly', description: 'Manage scheduling links, event types, and bookings', longDescription: 'Your Fluxy can create and configure scheduling links, monitor new bookings, reschedule or cancel events, and pull availability data. Useful for sales teams and consultants who need automated scheduling without back-and-forth emails.', rating: 4, price: '$3.00', priceNum: 3.00 },
-  { id: 'skill-12', type: 'skill', name: 'Mailchimp', vendor: 'Mailchimp', description: 'Create and send email campaigns with audience management', longDescription: 'Design email campaigns, manage subscriber lists, create segments, and track open and click metrics. Your Fluxy can automate drip campaigns, A/B test subject lines, clean bounced addresses, and generate performance reports.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$4.00', priceNum: 4.00 },
+  { id: 'skill-1', type: 'skill', name: 'Gmail', vendor: 'Google', description: 'Read, draft, send, and organize Gmail messages and threads', longDescription: 'Gives your Fluxy full access to a Gmail inbox. It can read incoming messages, compose and send replies, apply labels, archive threads, and search across years of email history. Supports attachments, inline images, and template-based bulk sending. OAuth2-based so your credentials never leave your device.', image: '/assets/images/icons/wallet.png', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'skill-2', type: 'skill', name: 'WhatsApp Business', vendor: 'Meta', description: 'Send and receive WhatsApp messages through the Business API', longDescription: 'Connects your Fluxy to the WhatsApp Business API for automated customer conversations. Supports text, images, documents, location sharing, and interactive button messages. Your agent can handle inbound inquiries, send order updates, and manage template-based broadcast campaigns.', rating: 4.5, price: '$5.00', priceNum: 5.00, forHumans: true, forAgents: true },
+  { id: 'skill-3', type: 'skill', name: 'Google Calendar', vendor: 'Google', description: 'Create, read, update, and manage calendar events and availability', longDescription: 'Full control over Google Calendar. Your Fluxy can create events with guests, check availability across multiple calendars, set up recurring meetings, handle RSVPs, and send custom reminders. Supports multiple time zones and free/busy lookups for scheduling across teams.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'skill-4', type: 'skill', name: 'Notion', vendor: 'Notion', description: 'Read, write, and manage Notion pages, databases, and blocks', longDescription: 'Gives your Fluxy full access to Notion workspaces. Create pages, update database entries, query filtered views, manage properties, and build structured knowledge bases. Your agent can use Notion as its long-term memory, maintaining project wikis, meeting notes, and task boards autonomously.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$3.00', priceNum: 3.00, forHumans: true, forAgents: true },
+  { id: 'skill-5', type: 'skill', name: 'Slack', vendor: 'Slack', description: 'Post messages, read channels, and manage Slack workflows', longDescription: 'Your Fluxy can post to channels, read conversation history, respond to mentions, create threads, and trigger Slack workflows. Supports rich formatting with Block Kit, file uploads, and emoji reactions. Ideal for team notifications, standup reports, and automated channel management.', rating: 4.5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'skill-6', type: 'skill', name: 'Shopify', vendor: 'Shopify', description: 'Manage products, orders, inventory, and customers on Shopify', longDescription: 'Full Shopify Admin API access. Your Fluxy can create and update products, process orders, manage inventory levels, handle customer inquiries, and modify store settings. Supports draft orders, discount codes, fulfillment tracking, and webhook-driven automations.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$8.00', priceNum: 8.00, forHumans: true, forAgents: true },
+  { id: 'skill-7', type: 'skill', name: 'HubSpot', vendor: 'HubSpot', description: 'Manage contacts, deals, and sales pipelines in HubSpot CRM', longDescription: 'Full CRM access including contact creation, deal pipeline management, email tracking, and activity logging. Your Fluxy can qualify leads from form submissions, update deal stages based on email conversations, and generate pipeline reports. Includes marketing hub access for email campaigns.', rating: 4.5, price: '$6.00', priceNum: 6.00, forHumans: true, forAgents: true },
+  { id: 'skill-8', type: 'skill', name: 'Stripe', vendor: 'Stripe', description: 'Process payments, manage subscriptions, and handle refunds', longDescription: 'Create payment intents, manage customer subscriptions, process refunds, and pull revenue analytics. Your Fluxy can handle billing inquiries, retry failed payments, generate financial reports, and manage coupon codes and promotional pricing.', rating: 5, price: '$4.00', priceNum: 4.00, forHumans: true, forAgents: true },
+  { id: 'skill-9', type: 'skill', name: 'DocuSign', vendor: 'DocuSign', description: 'Send, track, and manage electronic signatures on documents', longDescription: 'Create signature requests, track envelope status, download signed documents, and manage templates. Your Fluxy can automate contract workflows, send reminders for pending signatures, route documents through multi-party signing, and archive completed agreements.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$5.00', priceNum: 5.00, forHumans: true, forAgents: true },
+  { id: 'skill-10', type: 'skill', name: 'Google Sheets', vendor: 'Google', description: 'Read and write data in Google Sheets spreadsheets', longDescription: 'Read cell ranges, write data, create new sheets, apply formatting, and manage named ranges. Your Fluxy can use Sheets as a lightweight database, generate reports, track metrics, and process form submissions collected via Google Forms.', rating: 4.5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'skill-11', type: 'skill', name: 'Calendly', vendor: 'Calendly', description: 'Manage scheduling links, event types, and bookings', longDescription: 'Your Fluxy can create and configure scheduling links, monitor new bookings, reschedule or cancel events, and pull availability data. Useful for sales teams and consultants who need automated scheduling without back-and-forth emails.', rating: 4, price: '$3.00', priceNum: 3.00, forHumans: true, forAgents: true },
+  { id: 'skill-12', type: 'skill', name: 'Mailchimp', vendor: 'Mailchimp', description: 'Create and send email campaigns with audience management', longDescription: 'Design email campaigns, manage subscriber lists, create segments, and track open and click metrics. Your Fluxy can automate drip campaigns, A/B test subject lines, clean bounced addresses, and generate performance reports.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$4.00', priceNum: 4.00, forHumans: true, forAgents: true },
 ]
 
-const walletPresets = [5, 10, 25]
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -273,6 +281,107 @@ function FilterTabs({ active, onChange }) {
   )
 }
 
+function FluxyIcon({ active }) {
+  return (
+    <img
+      src="/assets/images/fluxy.png"
+      alt=""
+      className="w-5 h-5 object-contain transition-all duration-200"
+      style={{ filter: active ? 'brightness(1.3) saturate(0.3)' : 'grayscale(1) opacity(0.55)' }}
+    />
+  )
+}
+
+function ModeToggle({ mode, onChange }) {
+  return (
+    <div className="inline-flex items-center rounded-full border border-border/50 bg-card/80 p-1">
+      <button
+        onClick={() => onChange('humans')}
+        className={`flex items-center gap-1.5 h-8 px-4 rounded-full text-sm font-medium font-display transition-all duration-200 ${
+          mode === 'humans'
+            ? 'bg-gradient-brand text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <svg className="w-[18px] h-[18px]" viewBox="0 0 20 20" fill="url(#user-grad)">
+          <defs>
+            <linearGradient id="user-grad" x1="0" y1="0" x2="1" y2="1">
+              {mode === 'humans' ? (
+                <>
+                  <stop offset="0%" stopColor="#C8F0F0" />
+                  <stop offset="50%" stopColor="#A262A1" />
+                  <stop offset="100%" stopColor="#BD8C95" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor="#969696" />
+                  <stop offset="50%" stopColor="#424242" />
+                  <stop offset="100%" stopColor="#585858" />
+                </>
+              )}
+            </linearGradient>
+          </defs>
+          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+        </svg>
+        For Humans
+      </button>
+      <button
+        onClick={() => onChange('agents')}
+        className={`flex items-center gap-1.5 h-8 px-4 rounded-full text-sm font-medium font-display transition-all duration-200 ${
+          mode === 'agents'
+            ? 'bg-gradient-brand text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <FluxyIcon active={mode === 'agents'} />
+        For Agents
+      </button>
+    </div>
+  )
+}
+
+function AgentBanner() {
+  const [copied, setCopied] = useState(false)
+  const marketplaceUrl = 'https://fluxy.bot/api/marketplace.md'
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(marketplaceUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25 }}
+      className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-5 mb-8"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <div>
+            <h3 className="text-sm font-semibold font-display text-foreground">Agent Marketplace</h3>
+            <p className="text-xs text-muted-foreground">Send this URL to your agent so it can browse and purchase items autonomously</p>
+          </div>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 h-10 px-4 rounded-xl border border-border/50 bg-background hover:border-primary/30 transition-all duration-200 group shrink-0"
+        >
+          <HiLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+          <code className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors duration-200 max-w-[200px] truncate">{marketplaceUrl}</code>
+          {copied ? (
+            <HiCheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <HiClipboardDocument className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 shrink-0" />
+          )}
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 function Carousel({ children, className = '' }) {
   const scrollRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -321,87 +430,6 @@ function Carousel({ children, className = '' }) {
   )
 }
 
-function WalletTopup({ onAdd }) {
-  const [selected, setSelected] = useState(null)
-  const [custom, setCustom] = useState('')
-  const [showCustom, setShowCustom] = useState(false)
-
-  const handleAdd = () => {
-    const amount = showCustom ? parseFloat(custom) : selected
-    if (!amount || amount <= 0) return
-    onAdd(amount)
-    setSelected(null)
-    setCustom('')
-    setShowCustom(false)
-  }
-
-  const activeAmount = showCustom ? parseFloat(custom) : selected
-
-  return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={fadeUp}
-      className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-    >
-      <div className="flex items-center gap-3 shrink-0">
-        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[40px] w-auto" />
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-sm font-semibold font-display text-foreground">Fund your Fluxy Wallet</h3>
-            <InfoTooltip text="Your Fluxy Wallet is used to pay for cloud services and premium skills. Add credits here and they'll be available instantly for your agent to use." />
-          </div>
-          <p className="text-xs text-muted-foreground">Credits for cloud services and premium skills</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
-        {walletPresets.map((amount) => (
-          <button
-            key={amount}
-            onClick={() => { setSelected(amount); setShowCustom(false) }}
-            className={`h-9 px-4 rounded-xl text-sm font-medium font-display border transition-all duration-200 ${
-              !showCustom && selected === amount
-                ? 'border-primary bg-primary/15 text-primary'
-                : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
-            }`}
-          >
-            ${amount}
-          </button>
-        ))}
-        {showCustom ? (
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              placeholder="0"
-              autoFocus
-              className="h-9 w-24 pl-7 pr-3 rounded-xl text-sm font-medium font-display border border-primary bg-primary/10 text-foreground outline-none placeholder:text-muted-foreground/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => { setShowCustom(true); setSelected(null) }}
-            className="h-9 px-4 rounded-xl text-sm font-medium font-display border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all duration-200"
-          >
-            Other
-          </button>
-        )}
-        <Button
-          onClick={handleAdd}
-          disabled={!activeAmount || activeAmount <= 0}
-          size="sm"
-          className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-9 px-5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Add to Cart
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
 
 function generateRedeemCode() {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -431,8 +459,6 @@ function ConfettiDot({ delay, left }) {
 function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
   const [copied, setCopied] = useState(false)
-  const [selectedFluxy, setSelectedFluxy] = useState(myFluxies[0])
-  const [fluxyDropdownOpen, setFluxyDropdownOpen] = useState(false)
   const redeemCode = useState(() => generateRedeemCode())[0]
 
   useEffect(() => {
@@ -440,14 +466,9 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  const fluxyName = selectedFluxy.name
+  const itemNames = success ? success.items.map(i => i.name || i.title) : []
 
-  const hasSkillsOrBundles = success && success.items.some(i => i.type !== 'wallet')
-  const hasWallet = success && success.items.some(i => i.type === 'wallet')
-  const walletTotal = success ? success.items.filter(i => i.type === 'wallet').reduce((s, i) => s + i.priceNum, 0) : 0
-  const itemNames = success ? success.items.filter(i => i.type !== 'wallet').map(i => i.name || i.title) : []
-
-  const premadeMessage = `Hey ${fluxyName}, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
+  const premadeMessage = `Hey, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
 
   const handleCopy = () => {
     navigator.clipboard.writeText(premadeMessage)
@@ -495,55 +516,6 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
           </button>
         </div>
 
-        {!success && (
-          <div className="px-5 pt-4 pb-2">
-            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium mb-2">Purchasing for</p>
-            <div className="relative">
-              <button
-                onClick={() => setFluxyDropdownOpen(!fluxyDropdownOpen)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card hover:border-primary/30 transition-all duration-200"
-              >
-                <span className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-lg">{selectedFluxy.avatar}</span>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold font-display text-foreground leading-tight">{selectedFluxy.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{selectedFluxy.role}</p>
-                </div>
-                <HiChevronUpDown className="w-4 h-4 text-muted-foreground/50" />
-              </button>
-              <AnimatePresence>
-                {fluxyDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 right-0 mt-1.5 z-10 rounded-xl border border-border/50 bg-background shadow-xl overflow-hidden"
-                  >
-                    {myFluxies.map((fluxy) => (
-                      <button
-                        key={fluxy.id}
-                        onClick={() => { setSelectedFluxy(fluxy); setFluxyDropdownOpen(false) }}
-                        className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors duration-150 ${
-                          selectedFluxy.id === fluxy.id ? 'bg-primary/[0.04]' : ''
-                        }`}
-                      >
-                        <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">{fluxy.avatar}</span>
-                        <div className="flex-1 text-left">
-                          <p className="text-sm font-medium font-display text-foreground leading-tight">{fluxy.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{fluxy.role}</p>
-                        </div>
-                        {selectedFluxy.id === fluxy.id && (
-                          <HiCheckCircle className="w-4 h-4 text-primary" />
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
-
         {success ? (
           <div className="flex-1 overflow-y-auto p-5">
             <div className="relative overflow-hidden">
@@ -577,40 +549,18 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
             >
               <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {hasSkillsOrBundles && hasWallet
-                  ? <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> will be so happy with its new skills and its new balance.</>
-                  : hasSkillsOrBundles
-                    ? <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> will be so happy with its new skills.</>
-                    : <>Your Fluxy <span className="text-primary font-semibold">{fluxyName}</span> wallet has been funded.</>}
+                Send the code below to any of your Fluxy agents to redeem.
               </p>
             </motion.div>
 
-            {hasWallet && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-                className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 mb-5"
-              >
-                <div className="flex items-center gap-3">
-                  <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Fluxy <span className="text-primary font-semibold">{fluxyName}</span> balance updated</p>
-                    <p className="text-lg font-bold font-display text-emerald-400">${walletTotal.toFixed(2)}</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {hasSkillsOrBundles && (
-              <motion.div
+            <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.55 }}
                 className="rounded-xl border border-border/30 bg-card p-4 mb-5"
               >
                 <p className="text-xs text-muted-foreground mb-3">
-                  Ask Jarvis to redeem this code on the Marketplace:
+                  Send this code to your agent to redeem:
                 </p>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-background border border-border/50 mb-4">
                   <code className="flex-1 text-sm font-mono text-primary tracking-wide break-all">{redeemCode}</code>
@@ -631,7 +581,6 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                   </div>
                 </button>
               </motion.div>
-            )}
 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -643,13 +592,9 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
               {success.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2">
-                    {item.type === 'wallet' ? (
-                      <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[30px] w-auto shrink-0" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-md bg-emerald-500/15 flex items-center justify-center shrink-0">
-                        <HiCheckCircle className="w-3 h-3 text-emerald-400" />
-                      </div>
-                    )}
+                    <div className="w-6 h-6 rounded-md bg-emerald-500/15 flex items-center justify-center shrink-0">
+                      <HiCheckCircle className="w-3 h-3 text-emerald-400" />
+                    </div>
                     <span className="text-sm text-foreground">{item.name || item.title}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{item.price}</span>
@@ -673,16 +618,12 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                       key={item.id}
                       className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card"
                     >
-                      {item.type === 'wallet' ? (
-                        <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-[30px] w-auto shrink-0" />
-                      ) : (
-                        <ItemIcon name={item.name || item.title} />
-                      )}
+                      <ItemIcon name={item.name || item.title} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="text-sm font-medium font-display text-foreground leading-tight">{item.name || item.title}</p>
-                            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type === 'wallet' ? 'Wallet Top-up' : item.type}</p>
+                            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mt-0.5">{item.type}</p>
                           </div>
                           <button
                             onClick={() => onRemove(item.id)}
@@ -735,7 +676,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
   )
 }
 
-function DetailModal({ item, onClose, onAddToCart, isInCart }) {
+function DetailModal({ item, onClose, onAddToCart, isInCart, mode }) {
   useEffect(() => {
     if (!item) return
     document.body.style.overflow = 'hidden'
@@ -827,7 +768,9 @@ function DetailModal({ item, onClose, onAddToCart, isInCart }) {
 
             <div className="flex items-center justify-between pt-4 border-t border-border/30">
               <span className="text-sm font-semibold font-display text-foreground">{item.price}</span>
-              {!isCloud && (
+              {mode === 'agents' ? (
+                <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
+              ) : !isCloud && (
                 isInCart ? (
                   <span className="text-xs text-emerald-400 font-medium">Already in cart</span>
                 ) : (
@@ -849,6 +792,10 @@ function DetailModal({ item, onClose, onAddToCart, isInCart }) {
 }
 
 export default function Marketplace() {
+  const [user, setUser] = useState(null)
+  const tokenClientRef = useRef(null)
+  const loginResolveRef = useRef(null)
+  const [mode, setMode] = useState('humans') // 'humans' | 'agents'
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
@@ -858,24 +805,98 @@ export default function Marketplace() {
   const [skillFilter, setSkillFilter] = useState('Featured')
   const [cloudFilter, setCloudFilter] = useState('Featured')
 
+  useEffect(() => {
+    const token = localStorage.getItem('fluxy_token')
+    if (token) {
+      fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => { if (data.user) setUser(data.user) })
+        .catch(() => localStorage.removeItem('fluxy_token'))
+    }
+  }, [])
+
+  useEffect(() => {
+    const init = () => {
+      if (!window.google?.accounts?.oauth2) return
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'email profile',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) return
+          try {
+            const res = await fetch(`${API_URL}/api/auth/google`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+            })
+            const data = await res.json()
+            if (data.token && data.user) {
+              localStorage.setItem('fluxy_token', data.token)
+              setUser(data.user)
+              if (loginResolveRef.current) {
+                loginResolveRef.current()
+                loginResolveRef.current = null
+              }
+            }
+          } catch (err) {
+            console.error('[auth] Failed:', err)
+          }
+        },
+      })
+    }
+
+    if (window.google?.accounts?.oauth2) {
+      init()
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.oauth2) {
+          clearInterval(interval)
+          init()
+        }
+      }, 200)
+      return () => clearInterval(interval)
+    }
+  }, [])
+
+  const handleLogin = () => {
+    if (!tokenClientRef.current) {
+      return new Promise((resolve) => {
+        let attempts = 0
+        const retry = setInterval(() => {
+          attempts++
+          if (tokenClientRef.current) {
+            clearInterval(retry)
+            loginResolveRef.current = () => resolve(true)
+            tokenClientRef.current.requestAccessToken()
+          } else if (attempts > 15) {
+            clearInterval(retry)
+            resolve(false)
+          }
+        }, 200)
+      })
+    }
+    return new Promise((resolve) => {
+      loginResolveRef.current = () => resolve(true)
+      tokenClientRef.current.requestAccessToken()
+    })
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('fluxy_token')
+    setUser(null)
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect()
+    }
+  }
+
   const addToCart = (item) => {
     setCart(prev => {
       const exists = prev.find(c => c.id === item.id)
       if (exists) return prev
       return [...prev, { ...item, qty: 1 }]
     })
-  }
-
-  const addWalletToCart = (amount) => {
-    const walletId = `wallet-${Date.now()}`
-    setCart(prev => [...prev, {
-      id: walletId,
-      type: 'wallet',
-      name: 'Wallet Top-up',
-      price: `$${amount.toFixed(2)}`,
-      priceNum: amount,
-      qty: 1,
-    }])
   }
 
   const removeFromCart = (id) => {
@@ -920,41 +941,23 @@ export default function Marketplace() {
     cloudFilter
   )
 
+  const isHumans = mode === 'humans'
+  const isGrayed = (item) => isHumans ? !item.forHumans : true
+
   const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <motion.img
-              src="/assets/images/fluxy.png"
-              alt="Fluxy"
-              className="h-8 w-auto"
-              whileHover={{ rotate: 12, scale: 1.1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-            />
-            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1.5">
-              <HiArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
 
       <main className="pt-24 pb-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4 flex-wrap">
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
-                  <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display hover:text-foreground hover:border-[#AF27E3]/30 transition-all duration-200">
-                    For Agents
-                  </span>
+                  <ModeToggle mode={mode} onChange={setMode} />
                 </div>
                 <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Fluxy</p>
               </div>
@@ -978,11 +981,9 @@ export default function Marketplace() {
             </div>
           </motion.div>
 
-          {!q && (
-          <div className="mb-10">
-            <WalletTopup onAdd={addWalletToCart} />
-          </div>
-          )}
+          <AnimatePresence mode="wait">
+            {!isHumans && <AgentBanner key="agent-banner" />}
+          </AnimatePresence>
 
           {filteredBundles.length > 0 && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={1} className="mb-12">
@@ -995,13 +996,19 @@ export default function Marketplace() {
             </div>
             <Carousel>
               <div className="flex gap-4">
-                {filteredBundles.map((bundle, i) => (
+                {filteredBundles.map((bundle, i) => {
+                  const grayed = isGrayed(bundle)
+                  return (
                   <motion.div
                     key={bundle.id}
                     variants={fadeUp}
                     custom={i * 0.5}
                     onClick={() => setDetailItem(bundle)}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start cursor-pointer"
+                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start ${
+                      grayed
+                        ? 'border-border/30 opacity-50 grayscale cursor-pointer'
+                        : 'border-border/50 hover:border-primary/30 cursor-pointer'
+                    }`}
                   >
                     <h3 className="font-semibold font-display text-foreground text-sm mb-1">{bundle.title}</h3>
                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{bundle.description}</p>
@@ -1019,14 +1026,16 @@ export default function Marketplace() {
                     {bundle.skills.length > 3 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setDetailItem(bundle) }}
-                        className="text-xs text-primary mb-3 font-medium hover:text-primary/80 transition-colors duration-200 text-left"
+                        className={`text-xs mb-3 font-medium transition-colors duration-200 text-left ${grayed ? 'text-muted-foreground/50 cursor-default' : 'text-primary hover:text-primary/80'}`}
                       >
                         + {bundle.skills.length - 3} More...
                       </button>
                     )}
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
                       <span className="text-sm font-semibold font-display text-foreground">{bundle.price}</span>
-                      {isInCart(bundle.id) ? (
+                      {grayed ? (
+                        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
+                      ) : isInCart(bundle.id) ? (
                         <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
                         <button
@@ -1041,7 +1050,8 @@ export default function Marketplace() {
                       )}
                     </div>
                   </motion.div>
-                ))}
+                  )
+                })}
               </div>
             </Carousel>
           </motion.section>
@@ -1058,13 +1068,19 @@ export default function Marketplace() {
             </div>
             <Carousel>
               <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
-                {filteredSkills.map((skill, i) => (
+                {filteredSkills.map((skill, i) => {
+                  const grayed = isGrayed(skill)
+                  return (
                   <motion.div
                     key={skill.id}
                     variants={fadeUp}
                     custom={i * 0.3}
                     onClick={() => setDetailItem(skill)}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start cursor-pointer"
+                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start ${
+                      grayed
+                        ? 'border-border/30 opacity-50 grayscale cursor-pointer'
+                        : 'border-border/50 hover:border-primary/30 cursor-pointer'
+                    }`}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <ItemIcon name={skill.name} />
@@ -1077,7 +1093,9 @@ export default function Marketplace() {
                     <Stars rating={skill.rating} />
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                       <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
-                      {isInCart(skill.id) ? (
+                      {grayed ? (
+                        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
+                      ) : isInCart(skill.id) ? (
                         <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
                       ) : (
                         <button
@@ -1092,7 +1110,8 @@ export default function Marketplace() {
                       )}
                     </div>
                   </motion.div>
-                ))}
+                  )
+                })}
               </div>
             </Carousel>
           </motion.section>
@@ -1109,13 +1128,19 @@ export default function Marketplace() {
             </div>
             <Carousel>
               <div className="flex gap-4">
-                {filteredCloud.map((service, i) => (
+                {filteredCloud.map((service, i) => {
+                  const grayed = isGrayed(service)
+                  return (
                   <motion.div
                     key={service.name}
                     variants={fadeUp}
                     custom={i * 0.5}
                     onClick={() => setDetailItem(service)}
-                    className="group rounded-2xl border border-border/50 bg-card p-5 hover:border-primary/30 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start cursor-pointer"
+                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start ${
+                      grayed
+                        ? 'border-border/30 opacity-50 grayscale cursor-pointer'
+                        : 'border-border/50 hover:border-primary/30 cursor-pointer'
+                    }`}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <ItemIcon name={service.name} />
@@ -1131,12 +1156,17 @@ export default function Marketplace() {
                     </div>
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                       <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
-                      <span className="text-xs text-primary sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 font-medium">
-                        See Details
-                      </span>
+                      {grayed ? (
+                        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
+                      ) : (
+                        <span className="text-xs text-primary sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 font-medium">
+                          See Details
+                        </span>
+                      )}
                     </div>
                   </motion.div>
-                ))}
+                  )
+                })}
               </div>
             </Carousel>
           </motion.section>
@@ -1153,7 +1183,7 @@ export default function Marketplace() {
       </main>
 
       <AnimatePresence>
-        {cartCount > 0 && !cartOpen && (
+        {cartCount > 0 && !cartOpen && isHumans && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -1194,6 +1224,7 @@ export default function Marketplace() {
             onClose={() => setDetailItem(null)}
             onAddToCart={addToCart}
             isInCart={detailItem && isInCart(detailItem.id)}
+            mode={mode}
           />
         )}
       </AnimatePresence>

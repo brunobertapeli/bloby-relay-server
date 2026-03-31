@@ -408,7 +408,7 @@ export default function Docs() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
+            <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
               <FaDiscord className="w-[18px] h-[18px]" />
             </a>
             <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">

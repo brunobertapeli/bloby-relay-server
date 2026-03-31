@@ -16,6 +16,7 @@ import availabilityRoutes from './routes/availability.js';
 import authRoutes from './routes/auth.js';
 import instanceRoutes from './routes/instances.js';
 import stripeRoutes, { stripeWebhookHandler } from './routes/stripe.js';
+import claimRoutes from './routes/claim.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -75,6 +76,7 @@ app.use('/api', availabilityRoutes);
 app.use('/api', authRoutes);
 app.use('/api', instanceRoutes);
 app.use('/api', stripeRoutes);
+app.use('/api', claimRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────

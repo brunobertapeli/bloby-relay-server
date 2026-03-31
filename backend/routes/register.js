@@ -23,6 +23,8 @@ router.post('/register', registerLimiter, async (req, res) => {
     const tv = validateTier(req.body.tier);
     if (!tv.valid) return res.status(400).json({ error: tv.error });
 
+    const walletAddress = req.body.walletAddress || null;
+
     const { raw, hash } = generateToken();
     const now = new Date();
 
@@ -31,6 +33,7 @@ router.post('/register', registerLimiter, async (req, res) => {
         username: uv.username,
         tier: tv.tier,
         tokenHash: hash,
+        walletAddress,
         tunnelUrl: null,
         isOnline: false,
         lastHeartbeat: null,
@@ -87,6 +90,7 @@ router.post('/handle/claim-reserved', registerLimiter, async (req, res) => {
     }
 
     // Register the handle in users collection
+    const walletAddress = req.body.walletAddress || null;
     const { raw, hash: tokenHash } = generateToken();
     const now = new Date();
 
@@ -95,6 +99,7 @@ router.post('/handle/claim-reserved', registerLimiter, async (req, res) => {
         username: uv.username,
         tier: 'premium',
         tokenHash,
+        walletAddress,
         tunnelUrl: null,
         isOnline: false,
         lastHeartbeat: null,

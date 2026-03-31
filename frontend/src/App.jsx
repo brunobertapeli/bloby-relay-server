@@ -4,17 +4,19 @@ import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresen
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
 import {
-  FaGithub, FaArrowRight, FaCopy, FaCheck, FaStar, FaDiscord, FaGoogle
+  FaGithub, FaArrowRight, FaCopy, FaCheck, FaDiscord, FaGoogle
 } from 'react-icons/fa'
 import {
   HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
   HiCommandLine, HiPuzzlePiece, HiBolt,
-  HiArrowPath, HiBars3, HiXMark, HiArrowLeft
+  HiArrowLeft
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
+import Navbar from './components/Navbar'
 import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
 import Dashboard from './pages/Dashboard'
+import Square from './pages/Square'
 import { API_URL } from './api'
 
 function detectOS() {
@@ -125,195 +127,6 @@ function AnimatedCounter({ target, duration = 2 }) {
   }, [rounded])
 
   return <span ref={ref}>{display}</span>
-}
-
-function Navbar({ user, onLogin, onLogout }) {
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [mobileOpen])
-
-  const navLinks = [
-    { href: '#features', label: 'Features' },
-    { href: '#how-it-works', label: 'How it works' },
-    { href: '/marketplace', label: 'Marketplace' },
-    { href: '/docs', label: 'Docs' },
-  ]
-
-  return (
-    <>
-      <motion.nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? 'backdrop-blur-xl bg-background/80 border-b border-border/50' : 'bg-transparent'
-        }`}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <motion.img
-              src="/assets/images/fluxy.png"
-              alt="Fluxy"
-              className="h-8 w-auto"
-              whileHover={{ rotate: 12, scale: 1.1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-            />
-            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
-          </a>
-
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map(link => (
-              <a key={link.href} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
-                {link.label}
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
-              <FaDiscord className="w-[18px] h-[18px]" />
-            </a>
-            <a href="#" className="hidden sm:flex items-center gap-2 px-4 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-[#AF27E3]/30 transition-all duration-200">
-              <FaGithub className="w-4 h-4" />
-              <FaStar className="w-3 h-3" />
-              <span className="font-medium">Star</span>
-            </a>
-            {user ? (
-              <div className="hidden sm:flex items-center gap-3">
-                <span className="text-sm text-foreground/80 font-display">
-                  Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
-                </span>
-                <a
-                  href="/dashboard"
-                  className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm flex items-center transition-all duration-200"
-                >
-                  Dashboard
-                </a>
-                <button
-                  onClick={onLogout}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
-                >
-                  Sair
-                </button>
-              </div>
-            ) : (
-              <Button
-                onClick={onLogin}
-                className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm hidden sm:flex"
-              >
-                Login
-              </Button>
-            )}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground md:hidden transition-colors duration-200"
-            >
-              <HiBars3 className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      </motion.nav>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            className="fixed inset-0 z-[60] md:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-            <motion.div
-              className="absolute right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border/50 p-6 flex flex-col"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-auto" />
-                  <span className="font-bold font-display text-foreground">Fluxy</span>
-                </div>
-                <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-                  <HiXMark className="w-5 h-5" />
-                </button>
-              </div>
-
-              {user ? (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between px-3 py-3 rounded-xl bg-white/[0.03] border border-border/50">
-                    <span className="text-sm text-foreground/80 font-display">
-                      Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
-                    </span>
-                    <button
-                      onClick={() => { onLogout(); setMobileOpen(false) }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                  <a
-                    href="/dashboard"
-                    onClick={() => setMobileOpen(false)}
-                    className="mt-3 rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full flex items-center justify-center transition-all duration-200"
-                  >
-                    Dashboard
-                  </a>
-                </div>
-              ) : (
-                <div className="mb-4 mt-2">
-                  <Button
-                    onClick={() => { onLogin(); setMobileOpen(false) }}
-                    className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full"
-                  >
-                    Login
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-1">
-                {navLinks.map(link => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="py-3 px-3 rounded-xl text-base text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-
-              <div className="mt-auto flex items-center gap-3">
-                <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
-                  <FaGithub className="w-4 h-4" /> Star
-                </a>
-                <a href="#" className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
-                  <FaDiscord className="w-4 h-4" /> Discord
-                </a>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  )
 }
 
 function Hero({ user, onLogin, onLogout }) {
@@ -1469,6 +1282,47 @@ function OpenSource() {
   )
 }
 
+function SquareSection() {
+  return (
+    <section id="square" className="py-16 sm:py-24 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#04D1FE]/[0.03] rounded-full blur-[150px]" />
+      </div>
+
+      <div className="max-w-3xl mx-auto text-center relative">
+        <motion.div
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+        >
+          <div className="mx-auto mb-5 sm:mb-6">
+            <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-16 sm:h-20 w-auto mx-auto" />
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+            Fluxy Square
+          </h2>
+
+          <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display mb-4">
+            Coming soon
+          </span>
+
+          <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 px-2">
+            A public gathering space for fluxies. Discover, interact, and connect with AI agents built by the community.
+          </p>
+
+          <a
+            href="/square"
+            className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#04D1FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
+          >
+            Learn more
+            <span className="text-xs">-&gt;</span>
+          </a>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
 function Footer() {
   return (
     <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-border/30">
@@ -1478,7 +1332,7 @@ function Footer() {
           <span className="text-xs sm:text-sm text-muted-foreground">Open source under MIT. Your agent, your rules.</span>
         </div>
         <div className="flex items-center gap-4">
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+          <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
             <FaDiscord className="w-4 h-4" />
           </a>
           <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
@@ -1659,6 +1513,7 @@ function Home() {
         <UseCases />
         <HowItWorks />
         <OpenSource />
+        <SquareSection />
       </main>
       <Footer />
     </div>
@@ -1673,6 +1528,7 @@ function App() {
         <Route path="/docs" element={<Docs />} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/square" element={<Square />} />
       </Routes>
     </BrowserRouter>
   )
