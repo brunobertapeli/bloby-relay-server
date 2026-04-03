@@ -203,6 +203,12 @@ install_fluxy() {
   printf "  ${BLUE}↓${RESET}  Installing dependencies...\n"
   (cd "$FLUXY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
 
+  # Install workspace dependencies (rebuilds native modules for this platform)
+  if [ -f "$FLUXY_HOME/workspace/package.json" ]; then
+    printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
+    (cd "$FLUXY_HOME/workspace" && "$NPM" install --omit=dev 2>/dev/null)
+  fi
+
   # Verify
   if [ ! -f "$FLUXY_HOME/bin/cli.js" ]; then
     printf "  ${RED}✗${RESET}  Installation failed\n"

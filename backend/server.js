@@ -17,6 +17,7 @@ import authRoutes from './routes/auth.js';
 import instanceRoutes from './routes/instances.js';
 import stripeRoutes, { stripeWebhookHandler } from './routes/stripe.js';
 import claimRoutes from './routes/claim.js';
+import marketplaceRoutes from './routes/marketplace.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -77,6 +78,7 @@ app.use('/api', authRoutes);
 app.use('/api', instanceRoutes);
 app.use('/api', stripeRoutes);
 app.use('/api', claimRoutes);
+app.use('/api', marketplaceRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ app.get('/install.ps1', (_req, res) => {
 app.get('/', (req, res, next) => {
   const domain = process.env.RELAY_DOMAIN;
   if (domain && req.hostname === domain) {
-    return res.redirect(301, `https://www.${domain}`);
+    return res.redirect(301, `https://www.${domain}/`);
   }
   next();
 });

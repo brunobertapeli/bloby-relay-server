@@ -1,12 +1,21 @@
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
-const RESERVED = new Set([
+export const RESERVED = new Set([
+  // Infrastructure / internal
   'api', 'admin', 'www', 'mail', 'ftp', 'localhost', 'relay', 'my',
   'register', 'login', 'signup', 'status', 'health', 'tunnel',
   'heartbeat', 'app', 'dashboard', 'docs', 'help', 'support',
   'blog', 'about', 'contact', 'terms', 'privacy', 'static',
   'assets', 'public', 'favicon', 'robots', 'sitemap', 'disconnect',
   'ws', 'wss', 'socket', 'cdn', 'img', 'css', 'js', 'fonts',
+  // Frontend pages / common routes
+  'marketplace', 'square', 'how', 'pricing', 'features', 'changelog',
+  'store', 'shop', 'download', 'downloads', 'faq', 'explore', 'search',
+  'home', 'install', 'settings', 'account', 'profile', 'billing',
+  'notifications', 'inbox', 'messages', 'community', 'templates',
+  'plugins', 'extensions', 'integrations', 'webhooks', 'oauth', 'sso',
+  'verify', 'confirm', 'invite', 'enterprise', 'pro', 'team', 'teams',
+  'security', 'legal', 'careers', 'press', 'news', 'updates', 'demo',
 ]);
 
 // ─── Tiers ───────────────────────────────────────────────────────────────────

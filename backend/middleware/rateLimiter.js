@@ -64,3 +64,21 @@ export const claimVerifyLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many verification attempts — try again later' },
 });
+
+/** Marketplace checkout — 20 per account per hour */
+export const marketplaceCheckoutLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many checkout attempts — try again later' },
+});
+
+/** Marketplace redeem — 10 per IP per 5 minutes (anti-brute-force) */
+export const marketplaceRedeemLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many redeem attempts — try again later' },
+});

@@ -355,15 +355,23 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
   const [step, setStep] = useState('select') // 'select' | 'loading' | 'pay' | 'done'
   const [error, setError] = useState(null)
   const onrampRef = useRef(null)
-  const sessionRef = useRef(null)
+  const [onrampSession, setOnrampSession] = useState(null)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = ''
-      sessionRef.current?.destroy?.()
+      onrampSession?.destroy?.()
     }
   }, [])
+
+  // Mount the onramp widget once the container and session are both ready
+  useEffect(() => {
+    if (step === 'pay' && onrampSession && onrampRef.current) {
+      onrampRef.current.innerHTML = ''
+      onrampSession.mount(onrampRef.current)
+    }
+  }, [step, onrampSession])
 
   const activeAmount = showCustom ? parseFloat(custom) : selected
   const canProceed = activeAmount && activeAmount > 0
@@ -397,7 +405,6 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
         clientSecret,
         appearance: { theme: 'dark' },
       })
-      sessionRef.current = session
 
       session.addEventListener('onramp_session_updated', (e) => {
         if (e.payload.session.status === 'fulfillment_complete') {
@@ -406,14 +413,8 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
         }
       })
 
+      setOnrampSession(session)
       setStep('pay')
-
-      // Mount after state update so the ref container is rendered
-      requestAnimationFrame(() => {
-        if (onrampRef.current) {
-          session.mount(onrampRef.current)
-        }
-      })
     } catch (err) {
       console.error('[fund] onramp error:', err)
       setError(err.message)

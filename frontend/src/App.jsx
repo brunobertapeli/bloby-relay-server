@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
@@ -1366,6 +1366,22 @@ function Home() {
     }
   }
 
+  // Handle #hash scroll on fresh page load (React hasn't rendered targets yet)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) return
+    const id = hash.replace('#', '')
+    const scrollToHash = () => {
+      const el = document.getElementById(id)
+      if (el) { el.scrollIntoView({ behavior: 'smooth' }); return true }
+      return false
+    }
+    if (scrollToHash()) return
+    // Element not in DOM yet — retry after render settles
+    const timer = setTimeout(scrollToHash, 600)
+    return () => clearTimeout(timer)
+  }, [])
+
   useEffect(() => {
     const token = localStorage.getItem('fluxy_token')
     if (token) {
@@ -1520,6 +1536,18 @@ function Home() {
   )
 }
 
+// Catch-all: unknown paths on www → redirect to bare domain for bot resolution
+function BotRedirect() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const slug = pathname.replace(/^\//, '')
+    if (slug) {
+      window.location.replace(`https://fluxy.bot/${slug}`)
+    }
+  }, [pathname])
+  return null
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -1529,6 +1557,7 @@ function App() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/square" element={<Square />} />
+        <Route path="*" element={<BotRedirect />} />
       </Routes>
     </BrowserRouter>
   )

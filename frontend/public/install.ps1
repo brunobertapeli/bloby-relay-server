@@ -244,6 +244,17 @@ function Install-Fluxy {
     } catch {}
     Pop-Location
 
+    # Install workspace dependencies (rebuilds native modules for this platform)
+    $wsDir = Join-Path $FLUXY_HOME "workspace"
+    if (Test-Path (Join-Path $wsDir "package.json")) {
+        Write-Down "Installing workspace dependencies..."
+        Push-Location $wsDir
+        try {
+            & $NPM install --omit=dev 2>$null
+        } catch {}
+        Pop-Location
+    }
+
     # Verify
     $cliPath = Join-Path $FLUXY_HOME "bin\cli.js"
     if (-not (Test-Path $cliPath)) {

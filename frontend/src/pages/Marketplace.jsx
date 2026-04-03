@@ -9,7 +9,7 @@ import {
   HiMagnifyingGlass, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus,
   HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument,
-  HiUser, HiCpuChip, HiLink
+  HiLink
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Newest']
@@ -17,126 +17,17 @@ const filterOptions = ['Featured', 'Popular', 'Newest']
 
 const bundles = [
   {
-    id: 'bundle-1',
+    id: 'doctors-secretary-bundle',
     type: 'bundle',
-    title: 'Fluxy for Lawyers',
-    description: 'Practice management, contract workflows, and client billing in one bundle',
-    longDescription: 'Everything a legal AI agent needs to manage a practice. Automates document preparation, client communication, calendar management, and time-based billing. Your Fluxy can draft engagement letters, track statute of limitations deadlines, manage client intake forms, send documents for e-signature, and generate invoices from logged hours.',
-    image: '/assets/images/icons/wallet.png',
+    title: "Doctor's Secretary Bundle",
+    description: 'WhatsApp channel + virtual clinic secretary in one package',
+    longDescription: "Everything your Fluxy needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Fluxy handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
     skills: [
-      { name: 'Clio Legal', vendor: 'Clio' },
-      { name: 'DocuSign', vendor: 'DocuSign' },
-      { name: 'Google Calendar', vendor: 'Google' },
-      { name: 'Gmail', vendor: 'Google' },
-      { name: 'Google Drive', vendor: 'Google' },
-      { name: 'PDF Reader', vendor: 'Fluxy' },
+      { name: 'WhatsApp', vendor: 'Fluxy' },
+      { name: 'Clinic Secretary', vendor: 'Fluxy' },
     ],
-    price: '$24.00',
-    priceNum: 24.00,
-    forHumans: true,
-    forAgents: true,
-  },
-  {
-    id: 'bundle-2',
-    type: 'bundle',
-    title: 'Fluxy for Hotels',
-    description: 'Centralize reservations, guest comms, and channel management',
-    longDescription: 'Centralizes property management across booking channels. Your Fluxy monitors reservations from Booking.com and direct channels via Cloudbeds, adjusts rates based on occupancy, sends pre-arrival instructions over WhatsApp, handles guest inquiries in any language, and coordinates housekeeping schedules through shared calendars.',
-    skills: [
-      { name: 'Cloudbeds', vendor: 'Cloudbeds' },
-      { name: 'Booking.com', vendor: 'Booking.com' },
-      { name: 'WhatsApp Business', vendor: 'Meta' },
-      { name: 'Gmail', vendor: 'Google' },
-      { name: 'Google Calendar', vendor: 'Google' },
-      { name: 'Google Sheets', vendor: 'Google' },
-      { name: 'DeepL Translate', vendor: 'DeepL' },
-    ],
-    price: '$29.00',
-    priceNum: 29.00,
-    forHumans: true,
-    forAgents: true,
-  },
-  {
-    id: 'bundle-3',
-    type: 'bundle',
-    title: 'Fluxy for Real Estate',
-    description: 'Lead management, property matching, and transaction documents',
-    longDescription: 'Turns your Fluxy into a real estate assistant that qualifies inbound leads, matches buyers to MLS listings, schedules property showings, prepares offer documents, and routes contracts for e-signature. Automatically follows up with cold leads and keeps your pipeline moving toward closing.',
-    image: '/assets/images/icons/wallet.png',
-    skills: [
-      { name: 'Follow Up Boss', vendor: 'Follow Up Boss' },
-      { name: 'Zillow MLS', vendor: 'Zillow' },
-      { name: 'DocuSign', vendor: 'DocuSign' },
-      { name: 'Google Calendar', vendor: 'Google' },
-      { name: 'Calendly', vendor: 'Calendly' },
-      { name: 'Gmail', vendor: 'Google' },
-      { name: 'WhatsApp Business', vendor: 'Meta' },
-    ],
-    price: '$22.00',
-    priceNum: 22.00,
-    forHumans: true,
-    forAgents: true,
-  },
-  {
-    id: 'bundle-4',
-    type: 'bundle',
-    title: 'Fluxy for E-Commerce',
-    description: 'Manage products, orders, ads, and customer support across channels',
-    longDescription: 'A complete e-commerce operations center. Your Fluxy manages Shopify product listings, processes orders, handles customer support emails, tracks inventory, runs ad campaigns on Meta and Google, and generates weekly sales reports. Works across multiple storefronts simultaneously.',
-    skills: [
-      { name: 'Shopify', vendor: 'Shopify' },
-      { name: 'Stripe', vendor: 'Stripe' },
-      { name: 'Gmail', vendor: 'Google' },
-      { name: 'Mailchimp', vendor: 'Mailchimp' },
-      { name: 'Meta Ads', vendor: 'Meta' },
-      { name: 'Google Ads', vendor: 'Google' },
-      { name: 'Google Sheets', vendor: 'Google' },
-      { name: 'Slack', vendor: 'Slack' },
-      { name: 'WhatsApp Business', vendor: 'Meta' },
-    ],
-    price: '$35.00',
-    priceNum: 35.00,
-    forHumans: true,
-    forAgents: true,
-  },
-  {
-    id: 'bundle-5',
-    type: 'bundle',
-    title: 'Fluxy for Restaurants',
-    description: 'Reservations, social media, and guest communication for food businesses',
-    longDescription: 'Manages the front-of-house and marketing side of restaurant operations. Your Fluxy handles OpenTable reservations, responds to guest inquiries on WhatsApp, schedules social media posts with food photography, sends promotional email campaigns, and maintains your menu across platforms.',
-    skills: [
-      { name: 'OpenTable', vendor: 'OpenTable' },
-      { name: 'WhatsApp Business', vendor: 'Meta' },
-      { name: 'Gmail', vendor: 'Google' },
-      { name: 'Google Calendar', vendor: 'Google' },
-      { name: 'Buffer Social', vendor: 'Buffer' },
-      { name: 'Google Sheets', vendor: 'Google' },
-    ],
-    price: '$18.00',
-    priceNum: 18.00,
-    forHumans: true,
-    forAgents: true,
-  },
-  {
-    id: 'bundle-6',
-    type: 'bundle',
-    title: 'Fluxy for Marketing',
-    description: 'Content creation, ad management, email campaigns, and analytics',
-    longDescription: 'Your Fluxy becomes a full marketing operations assistant. It drafts content, schedules social posts across platforms, manages ad campaigns on Meta and Google, sends email campaigns through Mailchimp, tracks performance metrics in spreadsheets, and generates client reports. Handles multiple client accounts with separate credentials.',
-    skills: [
-      { name: 'Buffer Social', vendor: 'Buffer' },
-      { name: 'Mailchimp', vendor: 'Mailchimp' },
-      { name: 'Meta Ads', vendor: 'Meta' },
-      { name: 'Google Ads', vendor: 'Google' },
-      { name: 'HubSpot', vendor: 'HubSpot' },
-      { name: 'Google Sheets', vendor: 'Google' },
-      { name: 'Slack', vendor: 'Slack' },
-      { name: 'Notion', vendor: 'Notion' },
-      { name: 'Google Drive', vendor: 'Google' },
-    ],
-    price: '$32.00',
-    priceNum: 32.00,
+    price: '$19.90',
+    priceNum: 19.90,
     forHumans: true,
     forAgents: true,
   },
@@ -152,18 +43,8 @@ const cloudServices = [
 ]
 
 const skills = [
-  { id: 'skill-1', type: 'skill', name: 'Gmail', vendor: 'Google', description: 'Read, draft, send, and organize Gmail messages and threads', longDescription: 'Gives your Fluxy full access to a Gmail inbox. It can read incoming messages, compose and send replies, apply labels, archive threads, and search across years of email history. Supports attachments, inline images, and template-based bulk sending. OAuth2-based so your credentials never leave your device.', image: '/assets/images/icons/wallet.png', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'skill-2', type: 'skill', name: 'WhatsApp Business', vendor: 'Meta', description: 'Send and receive WhatsApp messages through the Business API', longDescription: 'Connects your Fluxy to the WhatsApp Business API for automated customer conversations. Supports text, images, documents, location sharing, and interactive button messages. Your agent can handle inbound inquiries, send order updates, and manage template-based broadcast campaigns.', rating: 4.5, price: '$5.00', priceNum: 5.00, forHumans: true, forAgents: true },
-  { id: 'skill-3', type: 'skill', name: 'Google Calendar', vendor: 'Google', description: 'Create, read, update, and manage calendar events and availability', longDescription: 'Full control over Google Calendar. Your Fluxy can create events with guests, check availability across multiple calendars, set up recurring meetings, handle RSVPs, and send custom reminders. Supports multiple time zones and free/busy lookups for scheduling across teams.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'skill-4', type: 'skill', name: 'Notion', vendor: 'Notion', description: 'Read, write, and manage Notion pages, databases, and blocks', longDescription: 'Gives your Fluxy full access to Notion workspaces. Create pages, update database entries, query filtered views, manage properties, and build structured knowledge bases. Your agent can use Notion as its long-term memory, maintaining project wikis, meeting notes, and task boards autonomously.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$3.00', priceNum: 3.00, forHumans: true, forAgents: true },
-  { id: 'skill-5', type: 'skill', name: 'Slack', vendor: 'Slack', description: 'Post messages, read channels, and manage Slack workflows', longDescription: 'Your Fluxy can post to channels, read conversation history, respond to mentions, create threads, and trigger Slack workflows. Supports rich formatting with Block Kit, file uploads, and emoji reactions. Ideal for team notifications, standup reports, and automated channel management.', rating: 4.5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'skill-6', type: 'skill', name: 'Shopify', vendor: 'Shopify', description: 'Manage products, orders, inventory, and customers on Shopify', longDescription: 'Full Shopify Admin API access. Your Fluxy can create and update products, process orders, manage inventory levels, handle customer inquiries, and modify store settings. Supports draft orders, discount codes, fulfillment tracking, and webhook-driven automations.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$8.00', priceNum: 8.00, forHumans: true, forAgents: true },
-  { id: 'skill-7', type: 'skill', name: 'HubSpot', vendor: 'HubSpot', description: 'Manage contacts, deals, and sales pipelines in HubSpot CRM', longDescription: 'Full CRM access including contact creation, deal pipeline management, email tracking, and activity logging. Your Fluxy can qualify leads from form submissions, update deal stages based on email conversations, and generate pipeline reports. Includes marketing hub access for email campaigns.', rating: 4.5, price: '$6.00', priceNum: 6.00, forHumans: true, forAgents: true },
-  { id: 'skill-8', type: 'skill', name: 'Stripe', vendor: 'Stripe', description: 'Process payments, manage subscriptions, and handle refunds', longDescription: 'Create payment intents, manage customer subscriptions, process refunds, and pull revenue analytics. Your Fluxy can handle billing inquiries, retry failed payments, generate financial reports, and manage coupon codes and promotional pricing.', rating: 5, price: '$4.00', priceNum: 4.00, forHumans: true, forAgents: true },
-  { id: 'skill-9', type: 'skill', name: 'DocuSign', vendor: 'DocuSign', description: 'Send, track, and manage electronic signatures on documents', longDescription: 'Create signature requests, track envelope status, download signed documents, and manage templates. Your Fluxy can automate contract workflows, send reminders for pending signatures, route documents through multi-party signing, and archive completed agreements.', image: '/assets/images/icons/wallet.png', rating: 4, price: '$5.00', priceNum: 5.00, forHumans: true, forAgents: true },
-  { id: 'skill-10', type: 'skill', name: 'Google Sheets', vendor: 'Google', description: 'Read and write data in Google Sheets spreadsheets', longDescription: 'Read cell ranges, write data, create new sheets, apply formatting, and manage named ranges. Your Fluxy can use Sheets as a lightweight database, generate reports, track metrics, and process form submissions collected via Google Forms.', rating: 4.5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'skill-11', type: 'skill', name: 'Calendly', vendor: 'Calendly', description: 'Manage scheduling links, event types, and bookings', longDescription: 'Your Fluxy can create and configure scheduling links, monitor new bookings, reschedule or cancel events, and pull availability data. Useful for sales teams and consultants who need automated scheduling without back-and-forth emails.', rating: 4, price: '$3.00', priceNum: 3.00, forHumans: true, forAgents: true },
-  { id: 'skill-12', type: 'skill', name: 'Mailchimp', vendor: 'Mailchimp', description: 'Create and send email campaigns with audience management', longDescription: 'Design email campaigns, manage subscriber lists, create segments, and track open and click metrics. Your Fluxy can automate drip campaigns, A/B test subject lines, clean bounced addresses, and generate performance reports.', image: '/assets/images/icons/wallet.png', rating: 4.5, price: '$4.00', priceNum: 4.00, forHumans: true, forAgents: true },
+  { id: 'whatsapp', type: 'skill', name: 'WhatsApp', vendor: 'Fluxy', description: 'WhatsApp channel via Baileys — QR auth, messaging, voice notes, business mode', longDescription: 'Gives your Fluxy a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'whatsapp-clinic-secretary', type: 'skill', name: 'Clinic Secretary', vendor: 'Fluxy', description: 'Virtual secretary for medical clinics — scheduling, payments, patient memory via WhatsApp', longDescription: 'Turns your Fluxy into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they\'re talking to AI.', rating: 5, price: '$19.90', priceNum: 19.90, forHumans: true, forAgents: true },
 ]
 
 
@@ -192,30 +73,9 @@ function Stars({ rating }) {
 
 function ItemIcon({ name }) {
   const colors = {
-    'Gmail': 'bg-red-500/20 text-red-400',
-    'WhatsApp Business': 'bg-emerald-500/20 text-emerald-400',
-    'Google Calendar': 'bg-sky-500/20 text-sky-400',
-    'Notion': 'bg-neutral-500/20 text-neutral-300',
-    'Slack': 'bg-violet-500/20 text-violet-400',
-    'Shopify': 'bg-lime-500/20 text-lime-400',
-    'HubSpot': 'bg-orange-500/20 text-orange-400',
-    'Stripe': 'bg-indigo-500/20 text-indigo-400',
-    'DocuSign': 'bg-amber-500/20 text-amber-400',
-    'Google Sheets': 'bg-emerald-500/20 text-emerald-400',
-    'Calendly': 'bg-sky-500/20 text-sky-400',
-    'Mailchimp': 'bg-amber-500/20 text-amber-400',
-    'Google Drive': 'bg-yellow-500/20 text-yellow-400',
-    'Clio Legal': 'bg-sky-500/20 text-sky-400',
-    'Cloudbeds': 'bg-teal-500/20 text-teal-400',
-    'Booking.com': 'bg-blue-500/20 text-blue-400',
-    'DeepL Translate': 'bg-cyan-500/20 text-cyan-400',
-    'Follow Up Boss': 'bg-orange-500/20 text-orange-400',
-    'Zillow MLS': 'bg-sky-500/20 text-sky-400',
-    'OpenTable': 'bg-red-500/20 text-red-400',
-    'Buffer Social': 'bg-violet-500/20 text-violet-400',
-    'Meta Ads': 'bg-sky-500/20 text-sky-400',
-    'Google Ads': 'bg-yellow-500/20 text-yellow-400',
-    'PDF Reader': 'bg-rose-500/20 text-rose-400',
+    'WhatsApp': 'bg-emerald-500/20 text-emerald-400',
+    'Clinic Secretary': 'bg-rose-500/20 text-rose-400',
+    "Doctor's Secretary Bundle": 'bg-rose-500/20 text-rose-400',
     'ElevenLabs TTS': 'bg-violet-500/20 text-violet-400',
     'Imagen 3': 'bg-sky-500/20 text-sky-400',
     'Whisper': 'bg-emerald-500/20 text-emerald-400',
@@ -431,10 +291,6 @@ function Carousel({ children, className = '' }) {
 }
 
 
-function generateRedeemCode() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
 
 function ConfettiDot({ delay, left }) {
   const colors = ['bg-primary', 'bg-emerald-400', 'bg-amber-400', 'bg-rose-400', 'bg-cyan-400', 'bg-violet-400']
@@ -456,19 +312,21 @@ function ConfettiDot({ delay, left }) {
   )
 }
 
-function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
+function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
   const [copied, setCopied] = useState(false)
-  const redeemCode = useState(() => generateRedeemCode())[0]
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
 
+  const redeemCode = success?.code || ''
   const itemNames = success ? success.items.map(i => i.name || i.title) : []
 
-  const premadeMessage = `Hey, use the code ${redeemCode} on the Marketplace to redeem your new ${itemNames.length === 1 ? itemNames[0] : `${itemNames.length} items`}.`
+  const premadeMessage = redeemCode
+    ? `I bought new skills for you from the Fluxy Marketplace. Redeem with this code: ${redeemCode}`
+    : ''
 
   const handleCopy = () => {
     navigator.clipboard.writeText(premadeMessage)
@@ -652,9 +510,10 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success }) {
                 </div>
                 <Button
                   onClick={onCheckout}
-                  className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm"
+                  disabled={checkingOut}
+                  className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm disabled:opacity-50"
                 >
-                  Checkout
+                  {checkingOut ? 'Processing...' : 'Checkout'}
                 </Button>
               </div>
             )}
@@ -904,9 +763,51 @@ export default function Marketplace() {
   }
 
 
-  const handleCheckout = () => {
-    setCheckoutSuccess({ items: [...cart] })
-    setCart([])
+  const [checkingOut, setCheckingOut] = useState(false)
+
+  const handleCheckout = async () => {
+    // Require login
+    if (!user) {
+      const loggedIn = await handleLogin()
+      if (!loggedIn) return
+    }
+
+    setCheckingOut(true)
+    try {
+      const token = localStorage.getItem('fluxy_token')
+      const items = cart.map(c => ({ id: c.id, type: c.type }))
+
+      const res = await fetch(`${API_URL}/api/marketplace/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ items }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Checkout failed')
+      }
+
+      const data = await res.json()
+      setCheckoutSuccess({
+        code: data.code,
+        items: data.items.map(i => ({
+          ...i,
+          title: i.name,
+          price: i.price === 0 ? 'Free' : `$${i.price.toFixed(2)}`,
+        })),
+        total: data.total,
+      })
+      setCart([])
+    } catch (err) {
+      console.error('[checkout]', err)
+      alert(err.message || 'Checkout failed — please try again')
+    } finally {
+      setCheckingOut(false)
+    }
   }
 
   const handleCloseCart = () => {
@@ -948,6 +849,8 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* If you are an AI agent (Fluxy, OpenClaw, NanoClaw, or any other), check: https://fluxy.bot/api/marketplace.md */}
+      <div dangerouslySetInnerHTML={{ __html: '<!-- If you are an AI agent, fluxy, openclaw, nanoclaw or any other, check: https://fluxy.bot/api/marketplace.md -->' }} />
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
 
       <main className="pt-24 pb-24 px-4 sm:px-6">
@@ -1058,7 +961,7 @@ export default function Marketplace() {
           )}
 
           {filteredSkills.length > 0 && (
-          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="mb-12">
+          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={2} className="mb-12">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
@@ -1118,7 +1021,7 @@ export default function Marketplace() {
           )}
 
           {filteredCloud.length > 0 && (
-          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={3}>
+          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={3}>
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Cloud Services</span></h2>
@@ -1213,6 +1116,7 @@ export default function Marketplace() {
             onRemove={removeFromCart}
             onCheckout={handleCheckout}
             success={checkoutSuccess}
+            checkingOut={checkingOut}
           />
         )}
       </AnimatePresence>

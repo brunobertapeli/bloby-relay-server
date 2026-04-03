@@ -1,0 +1,41 @@
+{
+  "skills": [
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp",
+      "version": "1.0.0",
+      "vendor": "Fluxy",
+      "description": "WhatsApp channel via Baileys — QR auth, messaging, voice transcription, channel and business modes",
+      "longDescription": "Gives your Fluxy a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.",
+      "depends": [],
+      "price": 0,
+      "file": "whatsapp-1.0.0.tar.gz",
+      "sha256": "8b18d633a8239c58dceaae08a8b104d9e0e8132059466b433c435b356b1a3958",
+      "tags": ["whatsapp", "channel", "messaging"]
+    },
+    {
+      "id": "whatsapp-clinic-secretary",
+      "name": "Clinic Secretary",
+      "version": "1.0.0",
+      "vendor": "Fluxy",
+      "description": "Virtual secretary for medical clinics — scheduling, payments, patient memory, follow-ups via WhatsApp",
+      "longDescription": "Turns your Fluxy into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they're talking to AI.",
+      "depends": ["whatsapp"],
+      "price": 19.90,
+      "file": "whatsapp-clinic-secretary-1.0.0.tar.gz",
+      "sha256": "0abd393d6668f34fce2b7c24051fa398df0d1e7c0fa60f1e3df6f9eacba63191",
+      "tags": ["whatsapp", "healthcare", "commerce", "scheduling"]
+    }
+  ],
+  "bundles": [
+    {
+      "id": "doctors-secretary-bundle",
+      "name": "Doctor's Secretary Bundle",
+      "description": "WhatsApp channel + virtual clinic secretary in one package",
+      "longDescription": "Everything your Fluxy needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Fluxy handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
+      "skills": ["whatsapp", "whatsapp-clinic-secretary"],
+      "price": 19.90,
+      "tags": ["whatsapp", "healthcare", "bundle"]
+    }
+  ]
+}
