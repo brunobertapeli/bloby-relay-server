@@ -1,7 +1,7 @@
 {
-  "name": "fluxy-relay",
+  "name": "bloby-relay",
   "version": "1.0.0",
-  "description": "Fluxy relay server — stable URL routing for self-hosted bots",
+  "description": "Bloby relay server — stable URL routing for self-hosted bots",
   "type": "module",
   "main": "server.js",
   "engines": {

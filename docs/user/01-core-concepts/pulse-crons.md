@@ -4,11 +4,11 @@ title: Pulse & Scheduled Tasks
 
 # Pulse & Scheduled Tasks
 
-Fluxy can wake up on its own — no message from you needed.
+Bloby can wake up on its own — no message from you needed.
 
 ## Pulse
 
-Pulse is a periodic wake-up. Fluxy checks in at regular intervals, reviews its memory, and can take proactive actions.
+Pulse is a periodic wake-up. Bloby checks in at regular intervals, reviews its memory, and can take proactive actions.
 
 Configure it in `workspace/PULSE.json`:
 
@@ -20,7 +20,7 @@ Configure it in `workspace/PULSE.json`:
 }
 ```
 
-- **intervalMinutes** — How often Fluxy wakes up (in minutes)
+- **intervalMinutes** — How often Bloby wakes up (in minutes)
 - **quietHours** — No wake-ups during this window (respects your sleep)
 
 ## Scheduled tasks (Crons)
@@ -45,7 +45,7 @@ For specific scheduled actions, use `workspace/CRONS.json`:
 
 ## What happens when they fire
 
-1. Fluxy wakes up and reads its memory files
+1. Bloby wakes up and reads its memory files
 2. Processes the task or pulse check
 3. If it has something to tell you, it sends a push notification
 4. Goes back to sleep until the next trigger
@@ -56,4 +56,4 @@ For specific scheduled actions, use `workspace/CRONS.json`:
 - *"Every Friday at 5pm, generate a weekly report"*
 - *"Every hour, check if any API endpoints are down"*
 
-You can edit these files directly, or ask Fluxy to set up crons for you through the chat.
+You can edit these files directly, or ask Bloby to set up crons for you through the chat.

@@ -20,7 +20,7 @@ function getConfig() {
   return {
     CALLBACK_BASE: process.env.CALLBACK_BASE_URL || `https://api.${process.env.RELAY_DOMAIN}`,
     // Stripe redirects must go to the canonical domain, not the Railway URL
-    FRONTEND_URL: process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'fluxy.bot'}`,
+    FRONTEND_URL: process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'bloby.bot'}`,
     PRICE_IDS: {
       starter: process.env.STRIPE_STARTER_PRICE_ID,
       pro: process.env.STRIPE_PRO_PRICE_ID,
@@ -46,22 +46,22 @@ const OnrampSessionResource = Stripe.StripeResource.extend({
 // ─── Create Crypto Onramp Session (Fund Bot wallet) ────────────────────────
 router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
   try {
-    const { fluxyId, amount } = req.body;
-    if (!fluxyId || !amount || amount <= 0) {
-      return res.status(400).json({ error: 'Missing fluxyId or valid amount' });
+    const { blobyId, amount } = req.body;
+    if (!blobyId || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'Missing blobyId or valid amount' });
     }
 
     const accountId = new ObjectId(req.account.id);
-    const fluxy = await getUsers().findOne({
-      _id: new ObjectId(fluxyId),
+    const bloby = await getUsers().findOne({
+      _id: new ObjectId(blobyId),
       accountId,
     });
 
-    if (!fluxy) {
-      return res.status(404).json({ error: 'Fluxy not found' });
+    if (!bloby) {
+      return res.status(404).json({ error: 'Bloby not found' });
     }
-    if (!fluxy.walletAddress) {
-      return res.status(400).json({ error: 'Fluxy has no wallet address' });
+    if (!bloby.walletAddress) {
+      return res.status(400).json({ error: 'Bloby has no wallet address' });
     }
 
     const stripe = getStripeOnramp();
@@ -71,7 +71,7 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
         destination_exchange_amount: String(amount),
         destination_network: 'base',
       },
-      wallet_addresses: { ethereum: fluxy.walletAddress },
+      wallet_addresses: { ethereum: bloby.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
     });

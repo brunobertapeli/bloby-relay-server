@@ -6,13 +6,13 @@ title: "Agent Autonomy"
 
 ### 7.1 The Self-Evolving Workspace
 
-Fluxy's workspace is designed from the ground up for agent autonomy. The agent has unrestricted write access to the `workspace/` directory, which contains both the user-facing application (frontend in `client/`, backend in `backend/`) and the agent's own memory and configuration files.
+Bloby's workspace is designed from the ground up for agent autonomy. The agent has unrestricted write access to the `workspace/` directory, which contains both the user-facing application (frontend in `client/`, backend in `backend/`) and the agent's own memory and configuration files.
 
 The system prompt establishes this concept (line 248-249):
 
 > "Your working directory is the `workspace/` folder. This is your full-stack workspace."
 
-The agent operates with `permissionMode: 'bypassPermissions'` (line 197 of `supervisor/fluxy-agent.ts`), meaning it never needs human approval for file operations or shell commands. This is the foundation of autonomous behavior.
+The agent operates with `permissionMode: 'bypassPermissions'` (line 197 of `supervisor/bloby-agent.ts`), meaning it never needs human approval for file operations or shell commands. This is the foundation of autonomous behavior.
 
 ### 7.2 Dashboard Code Modification
 
@@ -20,7 +20,7 @@ The agent can modify the React frontend in `workspace/client/src/`. Changes are 
 
 > "NEVER run `npm run build`, `vite build`, or any build commands. Vite HMR handles frontend changes automatically."
 
-The supervisor starts a Vite dev server via `startViteDevServers()` (line 105 of `supervisor/index.ts`) and proxies all non-API, non-Fluxy requests to it (lines 340-354). This means the agent can add a new page, modify a component, or create an entirely new module, and the user sees it live in their browser without any explicit build step.
+The supervisor starts a Vite dev server via `startViteDevServers()` (line 105 of `supervisor/index.ts`) and proxies all non-API, non-Bloby requests to it (lines 340-354). This means the agent can add a new page, modify a component, or create an entirely new module, and the user sees it live in their browser without any explicit build step.
 
 ### 7.3 Backend Code Modification
 
@@ -63,11 +63,11 @@ The scheduler (`supervisor/scheduler.ts`) enables the agent to operate without a
 
 **Cron** (lines 237-273): Scheduled tasks defined in `CRONS.json`. The scheduler uses `cron-parser` to evaluate cron expressions against the system clock every 60 seconds (line 298). When a cron matches, it calls `triggerAgent()` with a `<CRON>id</CRON>` prompt. If a `tasks/{id}.md` file exists, its content is appended as `<CRON_TASK_DETAIL>`.
 
-The `triggerAgent()` function (line 120) creates a conversation in the database, invokes `startFluxyAgentQuery()`, and handles the response:
+The `triggerAgent()` function (line 120) creates a conversation in the database, invokes `startBlobyAgentQuery()`, and handles the response:
 
 1. Extracts `<Message>` blocks from the agent's response using regex (lines 165-166).
 2. Saves messages to the user's current conversation in the database.
-3. Broadcasts them to all connected WebSocket clients via `broadcastFluxy('chat:sync', ...)` (line 188).
+3. Broadcasts them to all connected WebSocket clients via `broadcastBloby('chat:sync', ...)` (line 188).
 4. Sends push notifications via the worker's `/api/push/send` endpoint (lines 194-203).
 5. If file tools were used, restarts the backend (lines 208-211).
 
@@ -80,7 +80,7 @@ The `triggerAgent()` function (line 120) creates a conversation in the database,
 The agent can trigger its own update by creating a `.update` file in the workspace (from the system prompt, lines 158-160):
 
 ```
-touch ~/.fluxy/workspace/.update
+touch ~/.bloby/workspace/.update
 ```
 
 The workspace watcher detects this file (lines 768-777 of `supervisor/index.ts`), deletes it, and either defers the update (if an agent turn is active) or runs it immediately via `runDeferredUpdate()` (lines 683-711).

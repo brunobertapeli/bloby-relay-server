@@ -75,10 +75,10 @@ export async function launchInstance({ instanceId, plan, region, callbackUrl }) 
     TagSpecifications: [{
       ResourceType: 'instance',
       Tags: [
-        { Key: 'Name', Value: `fluxy-${instanceId}` },
-        { Key: 'fluxy:instanceId', Value: instanceId },
-        { Key: 'fluxy:plan', Value: plan },
-        { Key: 'fluxy:region', Value: region },
+        { Key: 'Name', Value: `bloby-${instanceId}` },
+        { Key: 'bloby:instanceId', Value: instanceId },
+        { Key: 'bloby:plan', Value: plan },
+        { Key: 'bloby:region', Value: region },
       ],
     }],
   });

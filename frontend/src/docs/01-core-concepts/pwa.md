@@ -4,7 +4,7 @@ title: PWA & Mobile
 
 # PWA & Mobile
 
-Your Fluxy workspace is a Progressive Web App. Install it on your phone or tablet and use it like a native app.
+Your Bloby workspace is a Progressive Web App. Install it on your phone or tablet and use it like a native app.
 
 ## Installing the PWA
 
@@ -21,9 +21,9 @@ Your Fluxy workspace is a Progressive Web App. Install it on your phone or table
 ## Push notifications
 
 Once installed as a PWA, you'll receive push notifications when:
-- Fluxy completes a scheduled task and has something to tell you
+- Bloby completes a scheduled task and has something to tell you
 - A pulse check finds something noteworthy
-- Any event that triggers a message from Fluxy
+- Any event that triggers a message from Bloby
 
 Notifications work even when the app isn't open.
 
@@ -33,4 +33,4 @@ The chat bubble is fully responsive. On mobile it goes full-screen when opened. 
 
 ## Accessing from anywhere
 
-To use Fluxy on your phone outside your home network, you need a tunnel (Quick Tunnel or Named Tunnel). See the **Tunnels & Remote Access** section.
+To use Bloby on your phone outside your home network, you need a tunnel (Quick Tunnel or Named Tunnel). See the **Tunnels & Remote Access** section.

@@ -18,5 +18,5 @@ This aligns funding with the balance display, which already reads from Tempo cha
 ## Architecture
 - **Backend**: `POST /api/stripe/onramp-session` creates a Stripe Crypto Onramp session using `OnrampSessionResource` (custom Stripe resource, since the SDK doesn't have built-in support yet)
 - **Frontend**: `FundWalletModal` in `Dashboard.jsx` dynamically imports `@stripe/crypto`, mounts the onramp widget with dark theme, and listens for `fulfillment_complete`
-- Wallet address is pre-filled and locked from the Fluxy's stored `walletAddress`
+- Wallet address is pre-filled and locked from the Bloby's stored `walletAddress`
 - USDC is delivered directly to the bot's wallet on Base (later Tempo)

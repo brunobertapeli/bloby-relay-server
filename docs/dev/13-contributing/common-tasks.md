@@ -22,10 +22,10 @@ title: "Common Tasks"
 
 ### Adding a New Chat Feature
 
-1. Edit `supervisor/chat/fluxy-main.tsx` for top-level chat behavior
+1. Edit `supervisor/chat/bloby-main.tsx` for top-level chat behavior
 2. Add components in `supervisor/chat/src/components/`
 3. If the feature needs to persist data, use the WebSocket sidecar channel (not HTTP POST from the iframe)
-4. Rebuild: `npm run build:fluxy`
+4. Rebuild: `npm run build:bloby`
 5. Restart the dev server and verify the feature works in the chat iframe
 
 ### Adding a New Skill
@@ -54,7 +54,7 @@ workspace/skills/my-skill/
 
 ### Modifying the System Prompt
 
-1. Edit `worker/prompts/fluxy-system-prompt.txt`
+1. Edit `worker/prompts/bloby-system-prompt.txt`
 2. Use `$BOT` for the agent's name and `$HUMAN` for the user's name (substituted at runtime)
 3. The prompt is read fresh on every agent turn -- no restart needed
 4. Test by sending a chat message and observing the agent's behavior

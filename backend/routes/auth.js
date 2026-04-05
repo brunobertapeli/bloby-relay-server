@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { getDb } from '../db.js';
+import { authGoogleLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.post('/auth/google', async (req, res) => {
+router.post('/auth/google', authGoogleLimiter, async (req, res) => {
   try {
     const { accessToken } = req.body;
     if (!accessToken) return res.status(400).json({ error: 'Missing access token' });

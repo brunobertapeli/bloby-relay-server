@@ -6,7 +6,7 @@ title: "Agent Tools"
 
 ### 4.1 Built-in Claude Agent SDK Tools
 
-When the agent runs through the Claude Agent SDK path, it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Fluxy's codebase). The agent can:
+When the agent runs through the Claude Agent SDK path, it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Bloby's codebase). The agent can:
 
 - **Read** -- Read file contents from disk
 - **Write** -- Write/create files
@@ -15,14 +15,14 @@ When the agent runs through the Claude Agent SDK path, it has access to the full
 - **Glob** -- Find files by pattern
 - **Grep** -- Search file contents
 
-The system prompt instructs the agent on how to use these tools in context (lines 206-229 of `fluxy-system-prompt.txt`):
+The system prompt instructs the agent on how to use these tools in context (lines 206-229 of `bloby-system-prompt.txt`):
 
 > "Always read code before changing it. Understand what exists."
 > "Run independent tool calls in parallel. Don't serialize what can run concurrently."
 
 ### 4.2 File Tool Tracking
 
-The agent system tracks which tools were used during a query. In `startFluxyAgentQuery()`, a `usedTools` set accumulates tool names (lines 148, 232-234):
+The agent system tracks which tools were used during a query. In `startBlobyAgentQuery()`, a `usedTools` set accumulates tool names (lines 148, 232-234):
 
 ```ts
 const usedTools = new Set<string>();
@@ -45,7 +45,7 @@ This flag drives the auto-restart behavior: if the agent wrote or edited files, 
 
 ### 4.3 Skill Plugins
 
-The agent auto-discovers local skill plugins in `workspace/skills/` (lines 162-171 of `supervisor/fluxy-agent.ts`):
+The agent auto-discovers local skill plugins in `workspace/skills/` (lines 162-171 of `supervisor/bloby-agent.ts`):
 
 ```ts
 const skillsDir = path.join(PKG_DIR, 'workspace', 'skills');

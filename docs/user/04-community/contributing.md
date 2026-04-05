@@ -4,13 +4,13 @@ title: Contributing
 
 # Contributing
 
-Fluxy is open source. Contributions are welcome.
+Bloby is open source. Contributions are welcome.
 
 ## Getting started
 
 ```bash
-git clone https://github.com/fluxy-ai/fluxy.git
-cd fluxy && npm install
+git clone https://github.com/bloby-ai/bloby.git
+cd bloby && npm install
 npm run dev
 ```
 
@@ -23,11 +23,11 @@ npm run dev
 
 ## Architecture overview
 
-Fluxy has a process-based architecture:
+Bloby has a process-based architecture:
 
 - **Supervisor** — The main process. Routes HTTP requests, manages child processes, runs the scheduler
 - **Worker** — Express API server. Handles auth, conversations, settings, database
-- **Workspace backend** — Your custom Express server that Fluxy builds
+- **Workspace backend** — Your custom Express server that Bloby builds
 - **Vite** — Development server for the dashboard with hot-reload
 - **Cloudflared** — Tunnel process for remote access
 

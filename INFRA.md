@@ -1,13 +1,13 @@
-# Fluxy Hosted Infrastructure
+# Bloby Hosted Infrastructure
 
-Auto-provisioning system that spins EC2 instances with Fluxy pre-installed from a golden AMI.
+Auto-provisioning system that spins EC2 instances with Bloby pre-installed from a golden AMI.
 
 ---
 
 ## Architecture
 
 ```
-User on www.fluxy.bot
+User on www.bloby.bot
       │
       ├─ 1. Picks plan (Starter/Pro) + region (NA/EU/BR)
       ├─ 2. Google login
@@ -25,15 +25,15 @@ EC2 Instance boots (golden AMI)
       │
       ├─ 7. cloud-init runs /home/ec2-user/provision.sh
       ├─ 8. provision.sh calls POST /api/instances/callback {status: "initializing"}
-      ├─ 9. Runs: fluxy init --hosted
-      ├─ 10. Fluxy starts, tunnel comes up
+      ├─ 9. Runs: bloby init --hosted
+      ├─ 10. Bloby starts, tunnel comes up
       ├─ 11. provision.sh calls POST /api/instances/callback {status: "ready", tunnelUrl: "..."}
       │
       ▼
 Frontend polls GET /api/instances/:id/status
       │
       ├─ Shows progress: launching → booting → initializing → ready
-      └─ Shows tunnel URL → user clicks → opens Fluxy onboarding wizard
+      └─ Shows tunnel URL → user clicks → opens Bloby onboarding wizard
 ```
 
 ---
@@ -44,18 +44,18 @@ Base: **Amazon Linux 2023** on **ARM64 (Graviton)**
 
 Pre-installed:
 - Node.js 22.22.0 (system-wide via nodesource)
-- Fluxy v0.7.8 at `~/.fluxy/` (via `curl -fsSL https://fluxy.bot/install | sh`)
+- Bloby v0.7.8 at `~/.bloby/` (via `curl -fsSL https://bloby.bot/install | sh`)
   - All npm dependencies (`node_modules/`)
-  - Pre-built chat UI (`dist-fluxy/`)
+  - Pre-built chat UI (`dist-bloby/`)
   - cloudflared binary (`bin/cloudflared`)
   - Bundled Node 22 at `tools/node/`
   - Fresh workspace template (no user data)
 - Tailscale v1.94.2 (installed, daemon enabled, needs `tailscale up` with auth key)
 - jq v1.7.1
 
-NOT included (created at runtime by `fluxy init`):
-- `~/.fluxy/config.json`
-- `~/.fluxy/memory.db`
+NOT included (created at runtime by `bloby init`):
+- `~/.bloby/config.json`
+- `~/.bloby/memory.db`
 - `~/.claude/` (user authenticates via onboarding wizard)
 
 ### AMI IDs
@@ -69,16 +69,16 @@ NOT included (created at runtime by `fluxy init`):
 ### How to re-bake the AMI
 
 1. SSH into the base instance: `ssh aws1`
-2. Make changes (update fluxy, install packages, etc.)
+2. Make changes (update bloby, install packages, etc.)
 3. Clean user state:
    ```bash
-   sudo systemctl stop fluxy
-   sudo systemctl disable fluxy
-   sudo rm -f /etc/systemd/system/fluxy.service
+   sudo systemctl stop bloby
+   sudo systemctl disable bloby
+   sudo rm -f /etc/systemd/system/bloby.service
    sudo systemctl daemon-reload
    rm -rf ~/.claude ~/.codex
-   rm -f ~/.fluxy/config.json ~/.fluxy/memory.db*  ~/.fluxy/VERSION
-   rm -f ~/.fluxy/workspace/app.db*
+   rm -f ~/.bloby/config.json ~/.bloby/memory.db*  ~/.bloby/VERSION
+   rm -f ~/.bloby/workspace/app.db*
    sudo cloud-init clean --logs
    rm -f ~/.bash_history
    ```
@@ -86,14 +86,14 @@ NOT included (created at runtime by `fluxy init`):
    ```bash
    aws ec2 create-image \
      --instance-id i-00747b6e362e3b7bc \
-     --name "fluxy-golden-vX" \
+     --name "bloby-golden-vX" \
      --no-reboot --region us-east-1
    ```
 5. Wait for it: `aws ec2 wait image-available --image-ids ami-xxx --region us-east-1`
 6. Copy to other regions:
    ```bash
-   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region eu-central-1 --name "fluxy-golden-vX"
-   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region sa-east-1 --name "fluxy-golden-vX"
+   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region eu-central-1 --name "bloby-golden-vX"
+   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region sa-east-1 --name "bloby-golden-vX"
    ```
 7. Update AMI IDs in `backend/.env` and `backend/lib/aws.js`
 8. Deregister old AMIs (AWS Console or `aws ec2 deregister-image`)
@@ -129,7 +129,7 @@ NOT included (created at runtime by `fluxy init`):
 
 ## Security Groups
 
-All named `fluxy-instances-SG`. Rules: outbound all, inbound SSH (port 22) only.
+All named `bloby-instances-SG`. Rules: outbound all, inbound SSH (port 22) only.
 
 | Region | Security Group ID | VPC |
 |--------|-------------------|-----|
@@ -143,7 +143,7 @@ No inbound HTTP needed — Cloudflare tunnel handles public access from inside t
 
 ## IAM
 
-**User:** `fluxy-bckend` (`arn:aws:iam::270613081471:user/fluxy-bckend`)
+**User:** `bloby-bckend` (`arn:aws:iam::270613081471:user/bloby-bckend`)
 
 **Required permissions:**
 ```json
@@ -177,25 +177,25 @@ No inbound HTTP needed — Cloudflare tunnel handles public access from inside t
 
 Located at `/home/ec2-user/provision.sh` on the AMI.
 
-**Triggered by:** cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-fluxy.cfg`)
+**Triggered by:** cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-bloby.cfg`)
 
 **Reads from EC2 user-data (JSON):**
 ```json
 {
   "instanceId": "internal-db-id",
-  "callbackUrl": "https://api.fluxy.bot/api/instances/callback"
+  "callbackUrl": "https://api.bloby.bot/api/instances/callback"
 }
 ```
 
 **What it does:**
 1. Fetches user-data from IMDS (v2)
 2. POSTs `{status: "initializing"}` to callback
-3. Updates fluxy to latest via `npm pack fluxy-bot` + extract over `~/.fluxy/`
-4. Runs `fluxy init --hosted`
+3. Updates bloby to latest via `npm pack bloby-bot` + extract over `~/.bloby/`
+4. Runs `bloby init --hosted`
 4. Parses `__HOSTED_READY__` JSON output
 5. POSTs `{status: "ready", tunnelUrl: "..."}` to callback
 
-**Logs:** `/var/log/fluxy-provision.log`
+**Logs:** `/var/log/bloby-provision.log`
 
 ---
 
@@ -228,8 +228,8 @@ launching → booting → initializing → ready
 
 - **launching** — DB record created, EC2 API call in progress
 - **booting** — EC2 instance launched, waiting for cloud-init
-- **initializing** — provision.sh running, fluxy init in progress
-- **ready** — Fluxy is up, tunnel URL available
+- **initializing** — provision.sh running, bloby init in progress
+- **ready** — Bloby is up, tunnel URL available
 - **restarting** — EC2 stop+start in progress (polls until running, waits 15s for services, then → ready)
 - **failed** — Something went wrong
 
@@ -265,9 +265,9 @@ Steps: **plan → region → login → payment → provisioning → ready → da
 
 The provisioning screen polls `GET /api/instances/:id/status` every 3 seconds and maps the status to a visual step indicator:
 - Step 0: Spinning up your instance... (`launching`)
-- Step 1: Installing Fluxy... (`booting`)
-- Step 2: Initializing Fluxy... (`initializing`)
-- Step 3: Your Fluxy is ready! (`ready`)
+- Step 1: Installing Bloby... (`booting`)
+- Step 2: Initializing Bloby... (`initializing`)
+- Step 3: Your Bloby is ready! (`ready`)
 
 On `ready`, displays the tunnel URL with a copy button and link.
 

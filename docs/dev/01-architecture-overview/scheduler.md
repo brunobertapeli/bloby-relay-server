@@ -52,13 +52,13 @@ triggerAgent(prompt, label)          scheduler.ts:120
   |
   +-- Get or create conversation     (workerApi)
   +-- Fetch bot name for push title  (workerApi)
-  +-- startFluxyAgentQuery(...)
+  +-- startBlobyAgentQuery(...)
   |
   v
 On bot:done:
   +-- Extract <Message>...</Message> blocks from response
   +-- Save each message to DB
-  +-- broadcastFluxy('chat:sync', ...) to all connected clients
+  +-- broadcastBloby('chat:sync', ...) to all connected clients
   +-- POST /api/push/send for each message (push notification)
   +-- If usedFileTools: restartBackend()
 ```

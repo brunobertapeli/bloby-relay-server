@@ -59,4 +59,4 @@ A typical API request follows this path:
 
 - **VAPID key persistence**: The VAPID keypair is generated once and stored
   in the settings table. It persists across restarts. The `mailto:` contact
-  for VAPID is hardcoded to `push@fluxy.bot`.
+  for VAPID is hardcoded to `push@bloby.bot`.

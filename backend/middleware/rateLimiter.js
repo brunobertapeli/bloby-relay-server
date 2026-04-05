@@ -82,3 +82,39 @@ export const marketplaceRedeemLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many redeem attempts — try again later' },
 });
+
+/** Google auth — 10 per IP per 15 minutes */
+export const authGoogleLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts — try again later' },
+});
+
+/** Instance provisioning callback — 20 per IP per minute */
+export const instanceCallbackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many callback requests — try again later' },
+});
+
+/** Claim status polling — 30 per IP per minute */
+export const claimStatusLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many status checks — try again later' },
+});
+
+/** Claim blobies list — 15 per IP per minute */
+export const claimBlobiesLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — try again later' },
+});

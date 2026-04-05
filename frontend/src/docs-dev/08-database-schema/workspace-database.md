@@ -17,7 +17,7 @@ db.pragma('journal_mode = WAL');
 - **Purpose:** Reserved for workspace-scoped data that is local to the deployed
   package rather than the user's home directory. The workspace backend currently
   serves only a health check endpoint (`/health`).
-- **Separation rationale:** The primary `memory.db` lives in `~/.fluxy/` and
+- **Separation rationale:** The primary `memory.db` lives in `~/.bloby/` and
   persists across package updates/reinstalls. The workspace `app.db` lives
   inside the package directory and may be recreated on redeploy.
 
@@ -25,7 +25,7 @@ db.pragma('journal_mode = WAL');
 
 | Aspect | Primary (memory.db) | Workspace (app.db) |
 |---|---|---|
-| Path | `~/.fluxy/memory.db` | `<pkg>/workspace/app.db` |
+| Path | `~/.bloby/memory.db` | `<pkg>/workspace/app.db` |
 | Journal mode | WAL | WAL |
 | Foreign keys | ON | Not explicitly set (SQLite default: OFF) |
 | Schema | 6 tables + indexes | None (empty) |

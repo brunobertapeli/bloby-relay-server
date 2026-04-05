@@ -445,7 +445,7 @@ Validates a device token, returning the device only if it has not expired.
   WHERE token = ? AND expires_at > datetime('now')
   ```
 
-- **Called by:** Login handlers, when checking the `fluxy_device` cookie.
+- **Called by:** Login handlers, when checking the `bloby_device` cookie.
 
 #### `updateDeviceLastSeen(token: string): void`
 

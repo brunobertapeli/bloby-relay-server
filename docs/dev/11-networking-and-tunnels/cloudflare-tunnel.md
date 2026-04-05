@@ -8,10 +8,10 @@ All tunnel logic lives in `supervisor/tunnel.ts`.
 
 ### 3.1 Binary Auto-Download
 
-Before starting a tunnel, Fluxy ensures the `cloudflared` binary is available. The `findBinary()` function checks two locations:
+Before starting a tunnel, Bloby ensures the `cloudflared` binary is available. The `findBinary()` function checks two locations:
 
 1. **System-wide install** -- runs `which cloudflared` (or `where cloudflared` on Windows). If found, returns `'cloudflared'` (uses the PATH).
-2. **Local install** -- checks `paths.cloudflared` (resolved by `shared/paths.ts` to `~/.fluxy/bin/cloudflared` or `cloudflared.exe` on Windows). Validates the file size is at least 10 MB (`MIN_CF_SIZE = 10 * 1024 * 1024`) to reject truncated downloads. If the file exists but is too small, it is deleted.
+2. **Local install** -- checks `paths.cloudflared` (resolved by `shared/paths.ts` to `~/.bloby/bin/cloudflared` or `cloudflared.exe` on Windows). Validates the file size is at least 10 MB (`MIN_CF_SIZE = 10 * 1024 * 1024`) to reject truncated downloads. If the file exists but is too small, it is deleted.
 
 If neither location yields a valid binary, `installCloudflared()` downloads the latest release from GitHub. Platform and architecture detection:
 
@@ -40,7 +40,7 @@ The `startTunnel(port)` function:
 
 The child process is spawned with `windowsHide: true` to prevent a console window on Windows, and `stdin` is set to `'ignore'`.
 
-Quick tunnel URLs are ephemeral -- they change every time the tunnel restarts. This is why the Fluxy Relay exists: it provides a stable domain that re-maps to the new ephemeral URL.
+Quick tunnel URLs are ephemeral -- they change every time the tunnel restarts. This is why the Bloby Relay exists: it provides a stable domain that re-maps to the new ephemeral URL.
 
 ### 3.3 Named Tunnel Mode
 

@@ -14,9 +14,9 @@ title: "High-Level Architecture"
 |  |   reverse proxy  |  auth middleware  |  file server        |  |
 |  |                                                            |  |
 |  |   +------------------+    +----------------------------+   |  |
-|  |   |   SCHEDULER      |    |   FLUXY AGENT              |   |  |
+|  |   |   SCHEDULER      |    |   BLOBY AGENT              |   |  |
 |  |   |   (in-process)   |    |   (in-process)             |   |  |
-|  |   |   scheduler.ts   |    |   fluxy-agent.ts           |   |  |
+|  |   |   scheduler.ts   |    |   bloby-agent.ts           |   |  |
 |  |   |   60s tick loop  |    |   Claude Agent SDK         |   |  |
 |  |   |   PULSE + CRON   |    |   query() with tools       |   |  |
 |  |   +------------------+    +----------------------------+   |  |
@@ -46,8 +46,8 @@ title: "High-Level Architecture"
                                     |                       |
                                     v                       v
                           +----------------+     +-------------------+
-                          | FLUXY RELAY    |     | DIRECT ACCESS     |
-                          | api.fluxy.bot  |     | *.trycloudflare   |
+                          | BLOBY RELAY    |     | DIRECT ACCESS     |
+                          | api.bloby.bot  |     | *.trycloudflare   |
                           | (optional)     |     | or user's domain  |
                           +----------------+     +-------------------+
                                     |
@@ -69,6 +69,6 @@ All ports are derived from the configured base port (default `3000`):
 | Vite Dev   | `base + 2`   | 3002    | `supervisor/vite-dev.ts:startViteDevServers()` |
 | Backend    | `base + 4`   | 3004    | `supervisor/backend.ts:getBackendPort()`       |
 
-The base port is read from `~/.fluxy/config.json` via `shared/config.ts:loadConfig()`.
+The base port is read from `~/.bloby/config.json` via `shared/config.ts:loadConfig()`.
 
 ---

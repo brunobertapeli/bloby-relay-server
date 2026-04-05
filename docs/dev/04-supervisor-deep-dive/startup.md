@@ -4,7 +4,7 @@ title: "Startup Sequence"
 
 The exact order of operations when `startSupervisor()` is called (line 94):
 
-1. **Load configuration** (line 95): Read `~/.fluxy/config.json` via `loadConfig()`.
+1. **Load configuration** (line 95): Read `~/.bloby/config.json` via `loadConfig()`.
 
 2. **Calculate child ports** (lines 96-97): `workerPort = config.port + 1`,
    `backendPort = config.port + 4`.
@@ -25,7 +25,7 @@ The exact order of operations when `startSupervisor()` is called (line 94):
 7. **Attach HTTP request handler** (line 218): `server.on('request', ...)` -- the
    main routing logic.
 
-8. **Create Fluxy WebSocket server** (line 357): `new WebSocketServer({ noServer: true })`.
+8. **Create Bloby WebSocket server** (line 357): `new WebSocketServer({ noServer: true })`.
 
 9. **Attach upgrade handler** (line 634): `server.on('upgrade', ...)` for
    dispatching WebSocket upgrades.

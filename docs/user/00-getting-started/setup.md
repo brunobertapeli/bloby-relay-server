@@ -1,20 +1,20 @@
 ---
-title: Setup (fluxy init)
+title: Setup (bloby init)
 ---
 
-# Setup (fluxy init)
+# Setup (bloby init)
 
 After installing, run:
 
 ```bash
-fluxy init
+bloby init
 ```
 
-This is the one-time setup that gets Fluxy running. Here's what happens step by step.
+This is the one-time setup that gets Bloby running. Here's what happens step by step.
 
 ## 1. Tunnel mode
 
-You'll be asked how you want to access Fluxy remotely. Use the arrow keys to pick one:
+You'll be asked how you want to access Bloby remotely. Use the arrow keys to pick one:
 
 | Mode | What it does |
 |------|-------------|
@@ -26,7 +26,7 @@ Most people should start with **Quick Tunnel**. You can change it later.
 
 ## 2. What happens next
 
-After you pick a tunnel mode, Fluxy runs through these steps automatically:
+After you pick a tunnel mode, Bloby runs through these steps automatically:
 
 1. Creates your config file
 2. Downloads the Cloudflare tunnel binary (if using a tunnel)
@@ -34,7 +34,7 @@ After you pick a tunnel mode, Fluxy runs through these steps automatically:
 4. Connects the tunnel
 5. Verifies the connection
 6. Sets up the dashboard
-7. Installs the daemon (macOS/Linux) so Fluxy starts automatically
+7. Installs the daemon (macOS/Linux) so Bloby starts automatically
 
 ## 3. Named tunnel setup
 
@@ -43,7 +43,7 @@ If you chose **Named Tunnel**, you'll go through an extra setup:
 1. Log in to your Cloudflare account (opens a browser)
 2. A tunnel is created and linked to your account
 3. You'll see DNS instructions — add a CNAME record pointing to your tunnel
-4. Once DNS propagates, your domain points to Fluxy
+4. Once DNS propagates, your domain points to Bloby
 
 ## 4. Done
 

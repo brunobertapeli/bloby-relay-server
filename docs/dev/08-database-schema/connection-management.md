@@ -22,12 +22,12 @@ Key connection details:
 
 | Setting | Value | Purpose |
 |---|---|---|
-| **File path** | `path.join(os.homedir(), '.fluxy', 'memory.db')` | User-home directory, platform-independent |
+| **File path** | `path.join(os.homedir(), '.bloby', 'memory.db')` | User-home directory, platform-independent |
 | **Journal mode** | `WAL` (Write-Ahead Logging) | Enables concurrent reads during writes |
 | **Foreign keys** | `ON` | Enforces referential integrity (e.g., message -> conversation cascade deletes) |
 | **Busy timeout** | Not explicitly set (better-sqlite3 default: 5000ms) | Time to wait when the database is locked |
 
-The `DATA_DIR` (`~/.fluxy/`) is created recursively if it does not exist before
+The `DATA_DIR` (`~/.bloby/`) is created recursively if it does not exist before
 opening the database. The `better-sqlite3` driver creates the database file
 automatically on first open.
 

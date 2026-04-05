@@ -20,7 +20,7 @@ Express v5 is used in the **worker** process, not in the supervisor. Key v5 feat
 | ------------------ | --------- |
 | **better-sqlite3** | ^12.6.2   |
 
-Database file: `~/.fluxy/memory.db`
+Database file: `~/.bloby/memory.db`
 
 **Pragmas set at initialization:**
 
@@ -56,7 +56,7 @@ VAPID key-pair based push notifications. Subscriptions are stored in the `push_s
 | ---------- | --------- |
 | **ws**     | ^8.19.0   |
 
-Used in `noServer` mode -- the supervisor's `http.Server` handles the `upgrade` event and routes `/fluxy/ws` connections to the `WebSocketServer`. All other upgrade requests pass through to Vite's HMR WebSocket handler.
+Used in `noServer` mode -- the supervisor's `http.Server` handles the `upgrade` event and routes `/bloby/ws` connections to the `WebSocketServer`. All other upgrade requests pass through to Vite's HMR WebSocket handler.
 
 The WebSocket protocol supports:
 

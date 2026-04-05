@@ -13,15 +13,15 @@ Two independent Vite configurations:
 | Config                    | Root               | Output         | Base    | Entry points              |
 | ------------------------- | ------------------ | -------------- | ------- | ------------------------- |
 | `vite.config.ts`          | `workspace/client` | `dist/`        | `/`     | `src/main.tsx`            |
-| `vite.fluxy.config.ts`    | `supervisor/chat`  | `dist-fluxy/`  | `/fluxy/` | `fluxy.html`, `onboard.html` |
+| `vite.bloby.config.ts`    | `supervisor/chat`  | `dist-bloby/`  | `/bloby/` | `bloby.html`, `onboard.html` |
 
 The `build` script runs both sequentially:
 
 ```
-vite build && vite build --config vite.fluxy.config.ts
+vite build && vite build --config vite.bloby.config.ts
 ```
 
-In development, only the dashboard Vite server runs as a dev server (with HMR attached to the supervisor's HTTP server). The Fluxy chat UI is pre-built and served as static files.
+In development, only the dashboard Vite server runs as a dev server (with HMR attached to the supervisor's HTTP server). The Bloby chat UI is pre-built and served as static files.
 
 ### Dev Server Proxy Configuration
 

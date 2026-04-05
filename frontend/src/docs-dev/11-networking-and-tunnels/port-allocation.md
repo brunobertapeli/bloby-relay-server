@@ -31,7 +31,7 @@ const backendPort = getBackendPort(config.port);  // 3004
 
 ### Configuring the base port
 
-The base port is stored in `~/.fluxy/config.json` (the path resolved by `shared/paths.ts`). The config file is loaded by `loadConfig()` and written by `saveConfig()` in `shared/config.ts`. The default value in the `DEFAULTS` constant is `3000`:
+The base port is stored in `~/.bloby/config.json` (the path resolved by `shared/paths.ts`). The config file is loaded by `loadConfig()` and written by `saveConfig()` in `shared/config.ts`. The default value in the `DEFAULTS` constant is `3000`:
 
 ```ts
 const DEFAULTS: BotConfig = {

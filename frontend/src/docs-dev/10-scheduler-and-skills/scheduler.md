@@ -13,14 +13,14 @@ The scheduler is an in-process `setInterval` loop that runs inside the superviso
 1. **Pulse** -- a simple interval-based heartbeat that wakes the agent periodically.
 2. **Crons** -- standard cron-expression jobs that trigger the agent at precise times.
 
-Both systems ultimately call the same internal function, `triggerAgent()`, which invokes the Claude Agent SDK via `startFluxyAgentQuery()` (defined in `supervisor/fluxy-agent.ts`). The agent receives a synthetic prompt -- either `<PULSE/>` or `<CRON>{id}</CRON>` -- that tells it which scheduled event woke it up.
+Both systems ultimately call the same internal function, `triggerAgent()`, which invokes the Claude Agent SDK via `startBlobyAgentQuery()` (defined in `supervisor/bloby-agent.ts`). The agent receives a synthetic prompt -- either `<PULSE/>` or `<CRON>{id}</CRON>` -- that tells it which scheduled event woke it up.
 
 The scheduler is started by the supervisor during boot and stopped on shutdown:
 
 ```typescript
 // supervisor/index.ts -- startup
 startScheduler({
-    broadcastFluxy,
+    broadcastBloby,
     workerApi,
     restartBackend: async () => {
         resetBackendRestarts();
@@ -38,7 +38,7 @@ The `SchedulerOpts` interface defines the four dependencies injected from the su
 
 | Option           | Type                                     | Purpose                                                       |
 | ---------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `broadcastFluxy` | `(type: string, data: any) => void`      | Sends a WebSocket message to all connected Fluxy chat clients |
+| `broadcastBloby` | `(type: string, data: any) => void`      | Sends a WebSocket message to all connected Bloby chat clients |
 | `workerApi`      | `(path, method?, body?) => Promise<any>` | Calls the worker HTTP API (conversations, push, onboard)      |
 | `restartBackend` | `() => void`                             | Restarts the workspace backend after file-tool mutations      |
 | `getModel`       | `() => string`                           | Returns the currently configured AI model identifier          |
@@ -120,7 +120,7 @@ This:
 1. Creates a conversation ID in the form `pulse-{timestamp}`.
 2. Retrieves (or creates) the user's current DB conversation via `workerApi('/api/context/current')`.
 3. Fetches the bot name from `workerApi('/api/onboard/status')`.
-4. Calls `startFluxyAgentQuery()` with prompt `<PULSE/>` and the current model.
+4. Calls `startBlobyAgentQuery()` with prompt `<PULSE/>` and the current model.
 5. The agent's system prompt already contains the full contents of `PULSE.json`, `CRONS.json`, `MYSELF.md`, `MYHUMAN.md`, and `MEMORY.md` -- so the agent has full context about why it was woken and what it knows about its user.
 
 The agent can then decide what to do: check in with the user, summarize recent activity, run maintenance, etc. The agent communicates back through `<Message>` blocks in its response (see Section 1.5).
@@ -342,10 +342,10 @@ For each extracted message, three things happen in parallel:
 
 1. **Database persistence** -- The message is saved to the user's conversation in the DB via `workerApi('/api/conversations/{id}/messages', 'POST', ...)` with `role: 'assistant'`.
 
-2. **WebSocket broadcast** -- The message is broadcast to all connected Fluxy chat clients as a `chat:sync` event:
+2. **WebSocket broadcast** -- The message is broadcast to all connected Bloby chat clients as a `chat:sync` event:
 
     ```typescript
-    broadcastFluxy('chat:sync', {
+    broadcastBloby('chat:sync', {
         conversationId: dbConvId,
         message: {
             role: 'assistant',
@@ -363,12 +363,12 @@ For each extracted message, three things happen in parallel:
     {
       title: titleMatch?.[1] || botName,  // from <Message title="..."> or agent name
       body: messageContent.slice(0, 200), // first 200 chars
-      tag: `fluxy-{label}`,              // e.g. "fluxy-pulse" or "fluxy-morning-standup"
+      tag: `bloby-{label}`,              // e.g. "bloby-pulse" or "bloby-morning-standup"
       url: '/',
     }
     ```
 
-    The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Fluxy chat.
+    The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Bloby chat.
 
 #### Backend Restart After File Mutations
 

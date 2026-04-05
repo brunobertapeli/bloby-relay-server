@@ -1,18 +1,18 @@
 #!/bin/sh
 set -e
 
-# ─── Fluxy Installer ────────────────────────────────────────────────────────
-# curl -fsSL https://fluxy.bot/install | sh
+# ─── Bloby Installer ────────────────────────────────────────────────────────
+# curl -fsSL https://bloby.bot/install | sh
 #
-# Downloads Node.js + Fluxy into ~/.fluxy — no system dependencies needed.
+# Downloads Node.js + Bloby into ~/.bloby — no system dependencies needed.
 # ─────────────────────────────────────────────────────────────────────────────
 
 MIN_NODE_MAJOR=18
 NODE_VERSION="22.14.0"
-FLUXY_HOME="$HOME/.fluxy"
-TOOLS_DIR="$FLUXY_HOME/tools"
+BLOBY_HOME="$HOME/.bloby"
+TOOLS_DIR="$BLOBY_HOME/tools"
 NODE_DIR="$TOOLS_DIR/node"
-BIN_DIR="$FLUXY_HOME/bin"
+BIN_DIR="$BLOBY_HOME/bin"
 USE_SYSTEM_NODE=false
 
 # Brand colors: #32A5F7 (blue) and #DB36A3 (pink) via 256-color approximation
@@ -125,9 +125,9 @@ install_node() {
   printf "  ${BLUE}✔${RESET}  Node.js v${NODE_VERSION} installed\n"
 }
 
-# ─── Install Fluxy ────────────────────────────────────────────────────────
+# ─── Install Bloby ────────────────────────────────────────────────────────
 
-install_fluxy() {
+install_bloby() {
   if [ "$USE_SYSTEM_NODE" = true ]; then
     NPM="npm"
     NODE="node"
@@ -139,14 +139,14 @@ install_fluxy() {
   fi
 
   # Fetch version + tarball URL from npm registry
-  NPM_VERSION=$("$NPM" view fluxy-bot version 2>/dev/null || echo "")
+  NPM_VERSION=$("$NPM" view bloby-bot version 2>/dev/null || echo "")
   if [ -n "$NPM_VERSION" ]; then
-    printf "  ${DIM}Latest npm version: fluxy-bot@${NPM_VERSION}${RESET}\n"
+    printf "  ${DIM}Latest npm version: bloby-bot@${NPM_VERSION}${RESET}\n"
   fi
 
-  printf "  ${BLUE}↓${RESET}  Installing fluxy...\n"
+  printf "  ${BLUE}↓${RESET}  Installing bloby...\n"
 
-  TARBALL_URL=$("$NPM" view fluxy-bot dist.tarball 2>/dev/null)
+  TARBALL_URL=$("$NPM" view bloby-bot dist.tarball 2>/dev/null)
   if [ -z "$TARBALL_URL" ]; then
     printf "  ${RED}✗${RESET}  Failed to fetch package info from npm\n"
     exit 1
@@ -155,12 +155,12 @@ install_fluxy() {
   # Download and extract tarball
   TMPDIR=$(mktemp -d)
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$TMPDIR/fluxy.tgz" "$TARBALL_URL"
+    curl -fsSL -o "$TMPDIR/bloby.tgz" "$TARBALL_URL"
   elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$TMPDIR/fluxy.tgz" "$TARBALL_URL"
+    wget -qO "$TMPDIR/bloby.tgz" "$TARBALL_URL"
   fi
 
-  tar xzf "$TMPDIR/fluxy.tgz" -C "$TMPDIR"
+  tar xzf "$TMPDIR/bloby.tgz" -C "$TMPDIR"
   EXTRACTED="$TMPDIR/package"
 
   if [ ! -d "$EXTRACTED" ]; then
@@ -171,26 +171,26 @@ install_fluxy() {
 
   # Copy code directories (always safe to overwrite)
   for dir in bin supervisor worker shared scripts; do
-    [ -d "$EXTRACTED/$dir" ] && cp -r "$EXTRACTED/$dir" "$FLUXY_HOME/"
+    [ -d "$EXTRACTED/$dir" ] && cp -r "$EXTRACTED/$dir" "$BLOBY_HOME/"
   done
 
   # Copy workspace template only on first install (preserves user files)
-  if [ ! -d "$FLUXY_HOME/workspace" ]; then
-    [ -d "$EXTRACTED/workspace" ] && cp -r "$EXTRACTED/workspace" "$FLUXY_HOME/"
+  if [ ! -d "$BLOBY_HOME/workspace" ]; then
+    [ -d "$EXTRACTED/workspace" ] && cp -r "$EXTRACTED/workspace" "$BLOBY_HOME/"
   fi
 
   # Copy code files (never touches config.json, memory.db, etc.)
-  for f in package.json vite.config.ts vite.fluxy.config.ts tsconfig.json postcss.config.js components.json; do
-    [ -f "$EXTRACTED/$f" ] && cp "$EXTRACTED/$f" "$FLUXY_HOME/"
+  for f in package.json vite.config.ts vite.bloby.config.ts tsconfig.json postcss.config.js components.json; do
+    [ -f "$EXTRACTED/$f" ] && cp "$EXTRACTED/$f" "$BLOBY_HOME/"
   done
 
   # Copy pre-built UI from tarball, or build from source
-  if [ -d "$EXTRACTED/dist-fluxy" ]; then
-    rm -rf "$FLUXY_HOME/dist-fluxy"
-    cp -r "$EXTRACTED/dist-fluxy" "$FLUXY_HOME/"
-  elif [ ! -f "$FLUXY_HOME/dist-fluxy/onboard.html" ]; then
+  if [ -d "$EXTRACTED/dist-bloby" ]; then
+    rm -rf "$BLOBY_HOME/dist-bloby"
+    cp -r "$EXTRACTED/dist-bloby" "$BLOBY_HOME/"
+  elif [ ! -f "$BLOBY_HOME/dist-bloby/onboard.html" ]; then
     printf "  ${BLUE}↓${RESET}  Building chat interface...\n"
-    if (cd "$FLUXY_HOME" && "$NPM" run build:fluxy 2>/dev/null); then
+    if (cd "$BLOBY_HOME" && "$NPM" run build:bloby 2>/dev/null); then
       printf "  ${BLUE}✔${RESET}  Chat interface built\n"
     else
       printf "  ${YELLOW}!${RESET}  Chat build skipped — will build on first start\n"
@@ -199,25 +199,25 @@ install_fluxy() {
 
   rm -rf "$TMPDIR"
 
-  # Install dependencies inside ~/.fluxy/
+  # Install dependencies inside ~/.bloby/
   printf "  ${BLUE}↓${RESET}  Installing dependencies...\n"
-  (cd "$FLUXY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
+  (cd "$BLOBY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
 
   # Install workspace dependencies (rebuilds native modules for this platform)
-  if [ -f "$FLUXY_HOME/workspace/package.json" ]; then
+  if [ -f "$BLOBY_HOME/workspace/package.json" ]; then
     printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
-    (cd "$FLUXY_HOME/workspace" && "$NPM" install --omit=dev 2>/dev/null)
+    (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev 2>/dev/null)
   fi
 
   # Verify
-  if [ ! -f "$FLUXY_HOME/bin/cli.js" ]; then
+  if [ ! -f "$BLOBY_HOME/bin/cli.js" ]; then
     printf "  ${RED}✗${RESET}  Installation failed\n"
     exit 1
   fi
 
-  VERSION=$("$NODE" -e "const p=JSON.parse(require('fs').readFileSync('$FLUXY_HOME/package.json','utf8'));console.log(p.version)" 2>/dev/null || echo "unknown")
+  VERSION=$("$NODE" -e "const p=JSON.parse(require('fs').readFileSync('$BLOBY_HOME/package.json','utf8'));console.log(p.version)" 2>/dev/null || echo "unknown")
 
-  printf "  ${BLUE}✔${RESET}  Fluxy v${VERSION} installed\n"
+  printf "  ${BLUE}✔${RESET}  Bloby v${VERSION} installed\n"
 }
 
 # ─── Create wrapper script ──────────────────────────────────────────────────
@@ -226,33 +226,33 @@ create_wrapper() {
   mkdir -p "$BIN_DIR"
 
   # Remove any existing wrapper/symlink
-  rm -f "$BIN_DIR/fluxy"
+  rm -f "$BIN_DIR/bloby"
 
   if [ "$USE_SYSTEM_NODE" = true ]; then
-    cat > "$BIN_DIR/fluxy" << 'WRAPPER'
+    cat > "$BIN_DIR/bloby" << 'WRAPPER'
 #!/bin/sh
-CLI="$HOME/.fluxy/bin/cli.js"
+CLI="$HOME/.bloby/bin/cli.js"
 exec node "$CLI" "$@"
 WRAPPER
   else
-    cat > "$BIN_DIR/fluxy" << 'WRAPPER'
+    cat > "$BIN_DIR/bloby" << 'WRAPPER'
 #!/bin/sh
-FLUXY_HOME="$HOME/.fluxy"
-NODE="$FLUXY_HOME/tools/node/bin/node"
-CLI="$FLUXY_HOME/bin/cli.js"
+BLOBY_HOME="$HOME/.bloby"
+NODE="$BLOBY_HOME/tools/node/bin/node"
+CLI="$BLOBY_HOME/bin/cli.js"
 exec "$NODE" "$CLI" "$@"
 WRAPPER
   fi
 
-  chmod +x "$BIN_DIR/fluxy"
-  printf "  ${BLUE}✔${RESET}  Created ${DIM}~/.fluxy/bin/fluxy${RESET}\n"
+  chmod +x "$BIN_DIR/bloby"
+  printf "  ${BLUE}✔${RESET}  Created ${DIM}~/.bloby/bin/bloby${RESET}\n"
 }
 
 # ─── Add to PATH ────────────────────────────────────────────────────────────
 
 setup_path() {
   SHELL_NAME=$(basename "$SHELL" 2>/dev/null || echo "sh")
-  EXPORT_LINE='export PATH="$HOME/.fluxy/bin:$PATH"'
+  EXPORT_LINE='export PATH="$HOME/.bloby/bin:$PATH"'
   ALREADY_IN_PATH=false
 
   case ":$PATH:" in
@@ -276,8 +276,8 @@ setup_path() {
       ;;
     fish)
       mkdir -p "$HOME/.config/fish"
-      if ! grep -q "fluxy/bin" "$HOME/.config/fish/config.fish" 2>/dev/null; then
-        echo 'set -gx PATH "$HOME/.fluxy/bin" $PATH' >> "$HOME/.config/fish/config.fish"
+      if ! grep -q "bloby/bin" "$HOME/.config/fish/config.fish" 2>/dev/null; then
+        echo 'set -gx PATH "$HOME/.bloby/bin" $PATH' >> "$HOME/.config/fish/config.fish"
       fi
       printf "  ${BLUE}✔${RESET}  Added to PATH ${DIM}(~/.config/fish/config.fish)${RESET}\n"
       return 0
@@ -286,8 +286,8 @@ setup_path() {
   esac
 
   if [ -n "$PROFILE" ]; then
-    if ! grep -q "fluxy/bin" "$PROFILE" 2>/dev/null; then
-      printf "\n# Fluxy\n%s\n" "$EXPORT_LINE" >> "$PROFILE"
+    if ! grep -q "bloby/bin" "$PROFILE" 2>/dev/null; then
+      printf "\n# Bloby\n%s\n" "$EXPORT_LINE" >> "$PROFILE"
     fi
     printf "  ${BLUE}✔${RESET}  Added to PATH ${DIM}(${PROFILE})${RESET}\n"
   fi
@@ -297,26 +297,26 @@ setup_path() {
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
-mkdir -p "$FLUXY_HOME"
+mkdir -p "$BLOBY_HOME"
 
 detect_platform
 check_system_node || install_node
-install_fluxy
+install_bloby
 create_wrapper
 setup_path
 
 printf "\n"
-printf "  ${PINK}${BOLD}✔  Fluxy is ready!${RESET}\n"
+printf "  ${PINK}${BOLD}✔  Bloby is ready!${RESET}\n"
 printf "\n"
 printf "  ${DIM}─────────────────────────────${RESET}\n"
 printf "  ${BOLD}Get started:${RESET}\n"
 printf "\n"
-printf "    ${BLUE}fluxy init${RESET}      Set up your bot\n"
-printf "    ${BLUE}fluxy start${RESET}     Start your bot\n"
-printf "    ${BLUE}fluxy status${RESET}    Check if it's running\n"
+printf "    ${BLUE}bloby init${RESET}      Set up your bot\n"
+printf "    ${BLUE}bloby start${RESET}     Start your bot\n"
+printf "    ${BLUE}bloby status${RESET}    Check if it's running\n"
 printf "\n"
-printf "  ${PINK}>${RESET} Run ${BLUE}fluxy init${RESET} to begin.\n"
-printf "  ${DIM}(Open a new terminal if 'fluxy' isn't found yet)${RESET}\n"
+printf "  ${PINK}>${RESET} Run ${BLUE}bloby init${RESET} to begin.\n"
+printf "  ${DIM}(Open a new terminal if 'bloby' isn't found yet)${RESET}\n"
 printf "\n"
-printf "  ${DIM}https://fluxy.bot${RESET}\n"
+printf "  ${DIM}https://bloby.bot${RESET}\n"
 printf "\n"

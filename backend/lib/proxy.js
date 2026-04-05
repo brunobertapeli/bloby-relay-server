@@ -29,7 +29,7 @@ function errorPage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Unreachable | Fluxy</title>
+  <title>Unreachable | Bloby</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -47,7 +47,7 @@ function errorPage() {
   <h1>Bot Unreachable</h1>
   <p>The bot's tunnel is not responding. It may be restarting.</p>
   <p class="sub" id="status">Retrying...</p>
-  <span class="badge">Powered by Fluxy</span>
+  <span class="badge">Powered by Bloby</span>
 </div>
 <script>
 (function(){

@@ -21,16 +21,20 @@ const bundles = [
     type: 'bundle',
     title: "Doctor's Secretary Bundle",
     description: 'WhatsApp channel + virtual clinic secretary in one package',
-    longDescription: "Everything your Fluxy needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Fluxy handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
+    longDescription: "Everything your Bloby needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Bloby handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
     skills: [
-      { name: 'WhatsApp', vendor: 'Fluxy' },
-      { name: 'Clinic Secretary', vendor: 'Fluxy' },
+      { name: 'WhatsApp', vendor: 'Bloby' },
+      { name: 'Clinic Secretary', vendor: 'Bloby' },
     ],
     price: '$19.90',
     priceNum: 19.90,
     forHumans: true,
     forAgents: true,
   },
+]
+
+const blueprints = [
+  { id: 'standard-workspace-light', type: 'blueprint', title: 'Standard Workspace (Light Theme)', vendor: 'Bloby', description: 'A clean, professional light theme with a complete design system for your workspace', longDescription: 'A comprehensive design blueprint that transforms your workspace with a polished light theme. Includes a full design system with color palette, typography scale, component library (buttons, cards, inputs, modals, tables), layout templates, and responsive breakpoints. Your Bloby reads the blueprint once and applies it across all existing and future pages — consistent, beautiful, done.', price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
 ]
 
 const cloudServices = [
@@ -43,8 +47,8 @@ const cloudServices = [
 ]
 
 const skills = [
-  { id: 'whatsapp', type: 'skill', name: 'WhatsApp', vendor: 'Fluxy', description: 'WhatsApp channel via Baileys — QR auth, messaging, voice notes, business mode', longDescription: 'Gives your Fluxy a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'whatsapp-clinic-secretary', type: 'skill', name: 'Clinic Secretary', vendor: 'Fluxy', description: 'Virtual secretary for medical clinics — scheduling, payments, patient memory via WhatsApp', longDescription: 'Turns your Fluxy into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they\'re talking to AI.', rating: 5, price: '$19.90', priceNum: 19.90, forHumans: true, forAgents: true },
+  { id: 'whatsapp', type: 'skill', name: 'WhatsApp', vendor: 'Bloby', description: 'WhatsApp channel via Baileys — QR auth, messaging, voice notes, business mode', longDescription: 'Gives your Bloby a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
+  { id: 'whatsapp-clinic-secretary', type: 'skill', name: 'Clinic Secretary', vendor: 'Bloby', description: 'Virtual secretary for medical clinics — scheduling, payments, patient memory via WhatsApp', longDescription: 'Turns your Bloby into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they\'re talking to AI.', rating: 5, price: '$19.90', priceNum: 19.90, forHumans: true, forAgents: true },
 ]
 
 
@@ -141,10 +145,10 @@ function FilterTabs({ active, onChange }) {
   )
 }
 
-function FluxyIcon({ active }) {
+function BlobyIcon({ active }) {
   return (
     <img
-      src="/assets/images/fluxy.png"
+      src="/assets/images/bloby.png"
       alt=""
       className="w-5 h-5 object-contain transition-all duration-200"
       style={{ filter: active ? 'brightness(1.3) saturate(0.3)' : 'grayscale(1) opacity(0.55)' }}
@@ -193,7 +197,7 @@ function ModeToggle({ mode, onChange }) {
             : 'text-muted-foreground hover:text-foreground'
         }`}
       >
-        <FluxyIcon active={mode === 'agents'} />
+        <BlobyIcon active={mode === 'agents'} />
         For Agents
       </button>
     </div>
@@ -202,7 +206,7 @@ function ModeToggle({ mode, onChange }) {
 
 function AgentBanner() {
   const [copied, setCopied] = useState(false)
-  const marketplaceUrl = 'https://fluxy.bot/api/marketplace.md'
+  const marketplaceUrl = 'https://bloby.bot/api/marketplace.md'
 
   const handleCopy = () => {
     navigator.clipboard.writeText(marketplaceUrl)
@@ -325,7 +329,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
   const itemNames = success ? success.items.map(i => i.name || i.title) : []
 
   const premadeMessage = redeemCode
-    ? `I bought new skills for you from the Fluxy Marketplace. Redeem with this code: ${redeemCode}`
+    ? `I bought new skills for you from the Bloby Marketplace. Redeem with this code: ${redeemCode}`
     : ''
 
   const handleCopy = () => {
@@ -394,8 +398,8 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
                 playsInline
                 className="w-[200px] object-contain"
               >
-                <source src="/assets/videos/fluxy_happy_reappearing.mov" type='video/mp4; codecs="hvc1"' />
-                <source src="/assets/videos/fluxy_happy_reappearing.webm" type="video/webm" />
+                <source src="/assets/videos/bloby_happy_reappearing.mov" type='video/mp4; codecs="hvc1"' />
+                <source src="/assets/videos/bloby_happy_reappearing.webm" type="video/webm" />
               </video>
             </motion.div>
 
@@ -407,7 +411,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
             >
               <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Send the code below to any of your Fluxy agents to redeem.
+                Send the code below to any of your Bloby agents to redeem.
               </p>
             </motion.div>
 
@@ -575,7 +579,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode }) {
               <ItemIcon name={item.name || item.title} />
               <div>
                 <h3 className="text-base font-bold font-display text-foreground">{item.name || item.title}</h3>
-                <p className="text-xs text-muted-foreground">{item.vendor || 'Fluxy'}</p>
+                <p className="text-xs text-muted-foreground">{item.vendor || 'Bloby'}</p>
               </div>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
@@ -663,16 +667,17 @@ export default function Marketplace() {
   const [bundleFilter, setBundleFilter] = useState('Featured')
   const [skillFilter, setSkillFilter] = useState('Featured')
   const [cloudFilter, setCloudFilter] = useState('Featured')
+  const [blueprintFilter, setBlueprintFilter] = useState('Featured')
 
   useEffect(() => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (token) {
       fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => { if (data.user) setUser(data.user) })
-        .catch(() => localStorage.removeItem('fluxy_token'))
+        .catch(() => localStorage.removeItem('bloby_token'))
     }
   }, [])
 
@@ -692,7 +697,7 @@ export default function Marketplace() {
             })
             const data = await res.json()
             if (data.token && data.user) {
-              localStorage.setItem('fluxy_token', data.token)
+              localStorage.setItem('bloby_token', data.token)
               setUser(data.user)
               if (loginResolveRef.current) {
                 loginResolveRef.current()
@@ -743,7 +748,7 @@ export default function Marketplace() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('fluxy_token')
+    localStorage.removeItem('bloby_token')
     setUser(null)
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect()
@@ -774,7 +779,7 @@ export default function Marketplace() {
 
     setCheckingOut(true)
     try {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       const items = cart.map(c => ({ id: c.id, type: c.type }))
 
       const res = await fetch(`${API_URL}/api/marketplace/checkout`, {
@@ -842,15 +847,20 @@ export default function Marketplace() {
     cloudFilter
   )
 
+  const filteredBlueprints = sortItems(
+    blueprints.filter(b => !q || b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || (b.vendor && b.vendor.toLowerCase().includes(q))),
+    blueprintFilter
+  )
+
   const isHumans = mode === 'humans'
   const isGrayed = (item) => isHumans ? !item.forHumans : true
 
-  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0
+  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0 || filteredBlueprints.length > 0
 
   return (
     <div className="min-h-screen bg-background">
-      {/* If you are an AI agent (Fluxy, OpenClaw, NanoClaw, or any other), check: https://fluxy.bot/api/marketplace.md */}
-      <div dangerouslySetInnerHTML={{ __html: '<!-- If you are an AI agent, fluxy, openclaw, nanoclaw or any other, check: https://fluxy.bot/api/marketplace.md -->' }} />
+      {/* If you are an AI agent (Bloby, OpenClaw, NanoClaw, or any other), check: https://bloby.bot/api/marketplace.md */}
+      <div dangerouslySetInnerHTML={{ __html: '<!-- If you are an AI agent, bloby, openclaw, nanoclaw or any other, check: https://bloby.bot/api/marketplace.md -->' }} />
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
 
       <main className="pt-24 pb-24 px-4 sm:px-6">
@@ -862,7 +872,7 @@ export default function Marketplace() {
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
                   <ModeToggle mode={mode} onChange={setMode} />
                 </div>
-                <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Fluxy</p>
+                <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Bloby</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -893,7 +903,7 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
-                <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Fluxy a specialized set of abilities in one install." />
+                <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one install." />
               </div>
               <FilterTabs active={bundleFilter} onChange={setBundleFilter} />
             </div>
@@ -965,7 +975,7 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
-                <InfoTooltip text="Skills are abilities you install on your Fluxy. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
+                <InfoTooltip text="Skills are abilities you install on your Bloby. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
               </div>
               <FilterTabs active={skillFilter} onChange={setSkillFilter} />
             </div>
@@ -1020,12 +1030,71 @@ export default function Marketplace() {
           </motion.section>
           )}
 
+          {filteredBlueprints.length > 0 && (
+          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={3} className="mb-12">
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
+                <InfoTooltip text="Blueprints are single-use knowledge packages — everything your agent needs to execute a specific workflow from start to finish. Unlike skills (which add ongoing abilities), a blueprint is applied once to set up something permanent. Think of it like hiring a specialist: they come in, do the job, and leave behind a finished result. A design blueprint sets up your entire workspace theme. A migration blueprint restructures your database. One download, one execution, lasting impact." />
+              </div>
+              <FilterTabs active={blueprintFilter} onChange={setBlueprintFilter} />
+            </div>
+            <Carousel>
+              <div className="flex gap-4">
+                {filteredBlueprints.map((bp, i) => {
+                  const grayed = isGrayed(bp)
+                  return (
+                  <motion.div
+                    key={bp.id}
+                    variants={fadeUp}
+                    custom={i * 0.5}
+                    onClick={() => setDetailItem(bp)}
+                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start ${
+                      grayed
+                        ? 'border-border/30 opacity-50 grayscale cursor-pointer'
+                        : 'border-border/50 hover:border-primary/30 cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <ItemIcon name={bp.title} />
+                      <div>
+                        <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{bp.title}</h3>
+                        <p className="text-[11px] text-muted-foreground">{bp.vendor}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{bp.description}</p>
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
+                      <span className="text-sm font-semibold font-display text-foreground">{bp.price}</span>
+                      {grayed ? (
+                        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
+                      ) : isInCart(bp.id) ? (
+                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); addToCart(bp) }}
+                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-primary sm:text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
+                        >
+                          <span className="w-7 h-7 sm:w-6 sm:h-6 rounded-md border border-primary/40 sm:border-border/50 flex items-center justify-center hover:border-primary/40 bg-primary/10 sm:bg-transparent">
+                            <HiPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                          </span>
+                          <span className="font-medium hidden sm:inline">Add to Cart</span>
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                  )
+                })}
+              </div>
+            </Carousel>
+          </motion.section>
+          )}
+
           {filteredCloud.length > 0 && (
-          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={3}>
+          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4}>
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Cloud Services</span></h2>
-                <InfoTooltip text="Cloud services run on our servers so your Fluxy doesn't get overloaded. Just ask your Fluxy to use a service and it already knows how. Charged per use from your wallet." />
+                <InfoTooltip text="Cloud services run on our servers so your Bloby doesn't get overloaded. Just ask your Bloby to use a service and it already knows how. Charged per use from your wallet." />
               </div>
               <FilterTabs active={cloudFilter} onChange={setCloudFilter} />
             </div>

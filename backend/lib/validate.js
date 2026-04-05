@@ -42,11 +42,11 @@ export function validateTier(tier) {
 /**
  * Build the full relay URL for a username + tier.
  *
- *   premium → https://fluxy.bot/bruno
- *   at      → https://my.fluxy.bot/bruno
+ *   premium → https://bloby.bot/bruno
+ *   at      → https://my.bloby.bot/bruno
  */
 export function buildRelayUrl(username, tier) {
-  const domain = process.env.RELAY_DOMAIN || 'fluxy.bot';
+  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
   const config = TIERS[tier];
   if (config.prefix) {
     return `https://${config.prefix}.${domain}/${username}`;
@@ -57,11 +57,11 @@ export function buildRelayUrl(username, tier) {
 /**
  * Build the internal subdomain URL for proxying.
  *
- *   premium → https://bruno.fluxy.bot
- *   at      → https://bruno.my.fluxy.bot
+ *   premium → https://bruno.bloby.bot
+ *   at      → https://bruno.my.bloby.bot
  */
 export function buildSubdomainUrl(username, tier) {
-  const domain = process.env.RELAY_DOMAIN || 'fluxy.bot';
+  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
   const config = TIERS[tier];
   if (config.prefix) {
     return `https://${username}.${config.prefix}.${domain}`;

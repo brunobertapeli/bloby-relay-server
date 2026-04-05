@@ -93,7 +93,7 @@ Both the worker and backend use the same restart logic:
                               YES               NO
                                |                 |
                        Wait (restarts * 1s)    Log error:
-                       then respawn            "Use Fluxy chat to debug"
+                       then respawn            "Use Bloby chat to debug"
 ```
 
 Key parameters (from `supervisor/worker.ts` and `supervisor/backend.ts`):

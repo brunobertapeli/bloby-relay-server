@@ -6,8 +6,8 @@ title: "Getting Started"
 
 ```bash
 # Fork the repo on GitHub, then:
-git clone https://github.com/<your-username>/fluxy.git
-cd fluxy
+git clone https://github.com/<your-username>/bloby.git
+cd bloby
 npm install
 ```
 

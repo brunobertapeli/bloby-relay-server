@@ -27,7 +27,7 @@ Watches the `workspace/` root (non-recursive) for three specific files (lines
   triggers a backend restart. Used by external tools to signal a restart.
 - **`.update`**: A trigger file consumed immediately. If an agent query is active,
   the update is deferred until the agent turn ends. Otherwise, `runDeferredUpdate()`
-  is called immediately, which spawns a detached `fluxy update` process.
+  is called immediately, which spawns a detached `bloby update` process.
 
 ### 7.3 Agent-Aware Deferral
 

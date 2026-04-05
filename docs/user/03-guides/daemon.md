@@ -4,47 +4,47 @@ title: Daemon & Auto-Start
 
 # Daemon & Auto-Start
 
-The daemon keeps Fluxy running in the background and starts it automatically when your machine boots.
+The daemon keeps Bloby running in the background and starts it automatically when your machine boots.
 
 ## macOS (launchd)
 
-Fluxy creates a launch agent at:
+Bloby creates a launch agent at:
 ```
-~/Library/LaunchAgents/com.fluxy.bot.plist
+~/Library/LaunchAgents/com.bloby.bot.plist
 ```
 
 Logs go to:
 ```
-~/Library/Logs/fluxy/fluxy.log
+~/Library/Logs/bloby/bloby.log
 ```
 
 It starts automatically on login and restarts if it crashes.
 
 ## Linux (systemd)
 
-Fluxy creates a systemd service at:
+Bloby creates a systemd service at:
 ```
-/etc/systemd/system/fluxy.service
+/etc/systemd/system/bloby.service
 ```
 
 It starts on boot with auto-restart on failure. Some daemon commands require `sudo` on Linux.
 
 ## Windows
 
-No built-in daemon support yet. Run `fluxy start` manually, or set up Windows Task Scheduler to run it on login.
+No built-in daemon support yet. Run `bloby start` manually, or set up Windows Task Scheduler to run it on login.
 
 ## Commands
 
 ```bash
-fluxy daemon install    # Set up auto-start
-fluxy daemon start      # Start the daemon
-fluxy daemon stop       # Stop the daemon
-fluxy daemon restart    # Restart
-fluxy daemon status     # Check status
-fluxy daemon logs       # View logs
-fluxy daemon uninstall  # Remove auto-start
+bloby daemon install    # Set up auto-start
+bloby daemon start      # Start the daemon
+bloby daemon stop       # Stop the daemon
+bloby daemon restart    # Restart
+bloby daemon status     # Check status
+bloby daemon logs       # View logs
+bloby daemon uninstall  # Remove auto-start
 ```
 
 ## When is it installed?
 
-The daemon is set up automatically during `fluxy init` on macOS and Linux. You don't need to do anything extra.
+The daemon is set up automatically during `bloby init` on macOS and Linux. You don't need to do anything extra.

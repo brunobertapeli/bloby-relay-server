@@ -2,7 +2,7 @@
 title: "Supervisor"
 ---
 
-This document provides a comprehensive technical breakdown of the Fluxy supervisor
+This document provides a comprehensive technical breakdown of the Bloby supervisor
 process: the master orchestrator that binds the HTTP server, reverse proxy, WebSocket
 layer, child process management, tunnel networking, file persistence, and the
 injected chat widget into a single coherent runtime.

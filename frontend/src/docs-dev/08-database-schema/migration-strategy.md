@@ -2,7 +2,7 @@
 title: "Migration Strategy"
 ---
 
-Fluxy uses an **additive migration** approach. There is no formal migration
+Bloby uses an **additive migration** approach. There is no formal migration
 framework (no numbered migration files, no migration table). Instead, migrations
 are implemented as conditional `ALTER TABLE` statements executed during
 `initDb()`, immediately after the schema DDL.
@@ -45,5 +45,5 @@ if (!cols.some((c) => c.name === 'session_id')) {
   Migration applicability is determined solely by introspecting the current
   table structure.
 - **SQLite limitation awareness:** SQLite's `ALTER TABLE` only supports adding
-  columns (and renaming tables/columns in newer versions). Fluxy's migration
+  columns (and renaming tables/columns in newer versions). Bloby's migration
   strategy aligns with this constraint.

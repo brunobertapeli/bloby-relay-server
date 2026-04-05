@@ -12,10 +12,10 @@ forward using `req.pipe(proxy)`.
 The request handler at line 218 evaluates URL prefixes in a strict priority order.
 The first match wins:
 
-1. **`/fluxy/widget.js`** (line 220) -- Served directly from disk via
+1. **`/bloby/widget.js`** (line 220) -- Served directly from disk via
    `fs.readFileSync(paths.widgetJs)`. Not proxied.
 
-2. **`/sw.js` or `/fluxy/sw.js`** (line 228) -- Served from the embedded `SW_JS`
+2. **`/sw.js` or `/bloby/sw.js`** (line 228) -- Served from the embedded `SW_JS`
    constant. Not proxied.
 
 3. **`/app/api/*`** (line 235) -- Proxied to the **backend** process on
@@ -34,8 +34,8 @@ The first match wins:
    the `RECOVERING_HTML` page that auto-refreshes after 3 seconds (lines 265-268).
    **Auth enforcement** is applied here for mutation methods (see Section 4.2).
 
-5. **`/fluxy` or `/fluxy/*`** (line 304) -- Served as static files from
-   `dist-fluxy/`. Not proxied.
+5. **`/bloby` or `/bloby/*`** (line 304) -- Served as static files from
+   `dist-bloby/`. Not proxied.
 
 6. **Everything else** (line 340) -- Proxied to the **Vite dashboard dev server**
    on `vitePorts.dashboard`. This is the catch-all that serves the dashboard UI
@@ -57,14 +57,14 @@ proxy.on('error', (e) => {
 Backend proxy errors return JSON `{ error: 'Backend unavailable' }`. Worker and
 Vite proxy errors return the `RECOVERING_HTML` page (lines 87-92), which displays
 "Dashboard is restarting..." and auto-reloads after 3 seconds. The recovering page
-also injects the chat widget script so users can interact with Fluxy even while the
+also injects the chat widget script so users can interact with Bloby even while the
 dashboard is down.
 
 ### 3.3 Worker API Helper
 
 The supervisor also exposes an internal `workerApi()` function (lines 129-134) for
 making programmatic requests to the worker from within the supervisor process itself
-(not for proxying external requests). This is used extensively in the Fluxy chat
+(not for proxying external requests). This is used extensively in the Bloby chat
 WebSocket handler to persist conversations, validate tokens, and fetch context.
 
 ```typescript

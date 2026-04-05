@@ -16,7 +16,7 @@ Memory files live in the `workspace/` directory and are read into the system pro
 
 **Path:** `workspace/MYSELF.md`
 
-This file defines the agent's sense of self -- its personality, values, working style, and quirks. The system prompt describes it as "Your operating manual and sense of self" (line 62 of `fluxy-system-prompt.txt`).
+This file defines the agent's sense of self -- its personality, values, working style, and quirks. The system prompt describes it as "Your operating manual and sense of self" (line 62 of `bloby-system-prompt.txt`).
 
 The default content (from the file as shipped):
 
@@ -73,7 +73,7 @@ The system prompt emphasizes these are working logs, not polished documents (lin
 
 ### 5.6 How Memory is Read and Injected
 
-The `readMemoryFile()` function in `supervisor/fluxy-agent.ts` (lines 35-42) reads each file synchronously:
+The `readMemoryFile()` function in `supervisor/bloby-agent.ts` (lines 35-42) reads each file synchronously:
 
 ```ts
 function readMemoryFile(filename: string): string {

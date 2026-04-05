@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS settings (
 | Key | Description | Example Value |
 |---|---|---|
 | `user_name` | Human user's display name | `"Bruno"` |
-| `agent_name` | AI agent's display name | `"Fluxy"` |
+| `agent_name` | AI agent's display name | `"Bloby"` |
 | `onboard_complete` | Whether onboarding wizard has been completed | `"true"` |
 | `portal_user` | Portal login username | `"admin"` |
 | `portal_pass` | Scrypt-hashed portal password | `"<salt>:<hash>"` |
@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS trusted_devices (
 | Column | Type | Constraints | Default | Description |
 |---|---|---|---|---|
 | `id` | TEXT | PRIMARY KEY | `lower(hex(randomblob(8)))` | 16-character hex identifier for management operations (listing, deletion). |
-| `token` | TEXT | NOT NULL, UNIQUE | -- | 64-character hex token stored in an HttpOnly cookie (`fluxy_device`). |
+| `token` | TEXT | NOT NULL, UNIQUE | -- | 64-character hex token stored in an HttpOnly cookie (`bloby_device`). |
 | `label` | TEXT | nullable | `NULL` | Human-readable device label (e.g., `"Browser"`). |
 | `created_at` | DATETIME | | `CURRENT_TIMESTAMP` | When the device was first trusted. |
 | `expires_at` | DATETIME | NOT NULL | -- | Absolute expiry. Trusted devices are valid for 90 days. |

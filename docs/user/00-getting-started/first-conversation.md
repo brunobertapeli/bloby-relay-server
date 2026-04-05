@@ -8,13 +8,13 @@ After onboarding, you're in the chat. This is where everything happens — your 
 
 ## Start with something real
 
-Don't start small. Fluxy handles full features end-to-end. Try:
+Don't start small. Bloby handles full features end-to-end. Try:
 
 - *"Build me a personal contacts CRM with tags, search, and import from CSV"*
 - *"Create a habit tracker with streaks and a weekly overview chart"*
 - *"I want a finance dashboard — let me log expenses and see monthly breakdowns"*
 
-Fluxy builds the frontend UI, creates the backend API routes, sets up the database tables, and wires everything together. You'll see your workspace update in real time.
+Bloby builds the frontend UI, creates the backend API routes, sets up the database tables, and wires everything together. You'll see your workspace update in real time.
 
 ## Keep going
 
@@ -29,7 +29,7 @@ Every conversation changes real, working code. Your workspace grows with each re
 
 ## Talk to it from your phone
 
-Open the PWA on your phone and send a voice message: "Hey, add a notes section to the dashboard." Fluxy transcribes it with Whisper and gets to work. It's like talking to your codebase.
+Open the PWA on your phone and send a voice message: "Hey, add a notes section to the dashboard." Bloby transcribes it with Whisper and gets to work. It's like talking to your codebase.
 
 ## What happens behind the scenes
 
@@ -46,7 +46,7 @@ The chat shows what tools the agent is using in real time. And because the chat 
 ## Tips
 
 - Be specific when you can. "Add a contacts page" is good. "Add a contacts page with name, email, phone, and tags" is better.
-- Fluxy remembers context within a session. Refer back to what you just built.
-- If something breaks, just tell Fluxy. The chat always works, and the agent can debug and fix its own code.
+- Bloby remembers context within a session. Refer back to what you just built.
+- If something breaks, just tell Bloby. The chat always works, and the agent can debug and fix its own code.
 - Send voice messages from your phone if you set up Whisper during onboarding.
 - Think big — the workspace can hold many features. A CRM, a tracker, a research log, mini tools. All in one place.

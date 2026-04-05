@@ -2,7 +2,7 @@
 title: "Database Schema"
 ---
 
-The SQLite database lives at `~/.fluxy/memory.db` and uses WAL journal mode
+The SQLite database lives at `~/.bloby/memory.db` and uses WAL journal mode
 with foreign keys enabled.
 
 ### Tables
@@ -66,7 +66,7 @@ Index: `idx_msg_conv` on `(conversation_id, created_at)`.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | TEXT PK | 16 hex chars |
-| `token` | TEXT UNIQUE | 64 hex chars, stored in `fluxy_device` cookie |
+| `token` | TEXT UNIQUE | 64 hex chars, stored in `bloby_device` cookie |
 | `label` | TEXT | e.g. `"Browser"` |
 | `created_at` | DATETIME | |
 | `expires_at` | DATETIME | 90-day window |

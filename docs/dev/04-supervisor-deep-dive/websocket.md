@@ -6,7 +6,7 @@ title: "WebSocket Handling"
 
 The supervisor manages two distinct WebSocket protocols on the same port:
 
-1. **Fluxy Chat WebSocket** -- Path: `/fluxy/ws*`
+1. **Bloby Chat WebSocket** -- Path: `/bloby/ws*`
 2. **Vite HMR WebSocket** -- Any other upgrade path (handled by Vite)
 
 Dispatch happens in the `server.on('upgrade', ...)` handler (lines 634-657):
@@ -14,13 +14,13 @@ Dispatch happens in the `server.on('upgrade', ...)` handler (lines 634-657):
 ```typescript
 // supervisor/index.ts, lines 634-657
 server.on('upgrade', async (req, socket: net.Socket, head) => {
-  if (!req.url?.startsWith('/fluxy/ws')) {
+  if (!req.url?.startsWith('/bloby/ws')) {
     // Let Vite handle this upgrade
     return;
   }
-  // Auth check, then hand off to fluxyWss
-  fluxyWss.handleUpgrade(req, socket, head, (ws) =>
-    fluxyWss.emit('connection', ws, req)
+  // Auth check, then hand off to blobyWss
+  blobyWss.handleUpgrade(req, socket, head, (ws) =>
+    blobyWss.emit('connection', ws, req)
   );
 });
 ```
@@ -28,12 +28,12 @@ server.on('upgrade', async (req, socket: net.Socket, head) => {
 The key insight is that Vite's HMR WebSocket listener was already attached to the
 server **before** the supervisor's upgrade handler (because `startViteDevServers()`
 is called at line 105, before the `server.on('upgrade')` at line 634). By simply
-returning without consuming the socket for non-`/fluxy/ws` paths, the upgrade event
+returning without consuming the socket for non-`/bloby/ws` paths, the upgrade event
 bubbles to Vite's listener.
 
-### 5.2 Fluxy Chat WebSocket
+### 5.2 Bloby Chat WebSocket
 
-The `fluxyWss` is a `WebSocketServer` created with `{ noServer: true }` (line 357),
+The `blobyWss` is a `WebSocketServer` created with `{ noServer: true }` (line 357),
 meaning it does not bind to any port -- it relies on manual `handleUpgrade()` calls.
 
 **Authentication**: For WebSocket connections, the token is passed as a query
@@ -59,8 +59,8 @@ socket.destroy();
 
 **Broadcasting**: Two broadcast functions exist:
 
-- `broadcastFluxy(type, data)` (lines 360-365) -- sends to all connected clients.
-- `broadcastFluxyExcept(sender, type, data)` (lines 137-142) -- sends to all
+- `broadcastBloby(type, data)` (lines 360-365) -- sends to all connected clients.
+- `broadcastBlobyExcept(sender, type, data)` (lines 137-142) -- sends to all
   clients except the sender, used for `chat:sync` to avoid echoing a user's own
   message back.
 

@@ -193,7 +193,7 @@ Returns all settings as a flat key-value object.
   ```json
   {
     "user_name": "Bruno",
-    "agent_name": "Fluxy",
+    "agent_name": "Bloby",
     "portal_pass": "<scrypt hash>",
     "onboard_complete": "true",
     "vapid_public_key": "...",
@@ -319,7 +319,7 @@ Authenticates with username and password via JSON body.
   The `pendingToken` is valid for 5 minutes. The client must complete
   authentication via `GET /api/portal/login/totp`.
 - **Response** (TOTP enabled but trusted device cookie present):
-  Session token is issued directly, bypassing TOTP. The `fluxy_device`
+  Session token is issued directly, bypassing TOTP. The `bloby_device`
   cookie is read and validated against the `trusted_devices` table. If
   the device is trusted, `last_seen` is updated.
 - **Error**: `400` if password is missing or no password is set. `401` if
@@ -419,14 +419,14 @@ authenticator app.
   {
     "secret": "JBSWY3DPEHPK3PXP...",
     "qrDataUri": "data:image/png;base64,...",
-    "otpauthUri": "otpauth://totp/Fluxy:Fluxy?secret=...&issuer=Fluxy&algorithm=SHA1&digits=6&period=30"
+    "otpauthUri": "otpauth://totp/Bloby:Bloby?secret=...&issuer=Bloby&algorithm=SHA1&digits=6&period=30"
   }
   ```
 
 - **Error**: `401` if not authorized. `500` if QR code generation fails.
 - **Internals**: The secret is stored temporarily in the `totp_pending_secret`
   setting until confirmed via `/totp/verify-setup`. The TOTP label uses the
-  `agent_name` setting (defaults to `"Fluxy"`).
+  `agent_name` setting (defaults to `"Bloby"`).
 
 #### `POST /api/portal/totp/verify-setup`
 
@@ -516,7 +516,7 @@ Completes a TOTP-guarded login. The client must have already obtained a
   If `trust=1`, the response also includes a `Set-Cookie` header:
 
   ```
-  Set-Cookie: fluxy_device=<64 hex chars>; HttpOnly; Secure; SameSite=Strict; Max-Age=7776000; Path=/
+  Set-Cookie: bloby_device=<64 hex chars>; HttpOnly; Secure; SameSite=Strict; Max-Age=7776000; Path=/
   ```
 
   (`Max-Age=7776000` = 90 days).
@@ -599,7 +599,7 @@ setup steps remain.
   ```json
   {
     "userName": "Bruno",
-    "agentName": "Fluxy",
+    "agentName": "Bloby",
     "portalUser": "admin",
     "portalConfigured": true,
     "whisperEnabled": false,
@@ -609,7 +609,7 @@ setup steps remain.
     "handle": {
       "username": "bruno",
       "tier": "free",
-      "url": "https://bruno.fluxy.bot"
+      "url": "https://bruno.bloby.bot"
     },
     "tunnelMode": "quick",
     "tunnelDomain": "",
@@ -632,7 +632,7 @@ everything" endpoint called when the user completes the setup wizard.
   ```json
   {
     "userName": "Bruno",
-    "agentName": "Fluxy",
+    "agentName": "Bloby",
     "provider": "anthropic",
     "model": "claude-sonnet-4-20250514",
     "apiKey": "sk-...",
@@ -653,13 +653,13 @@ everything" endpoint called when the user completes the setup wizard.
   ```
 
 - **Internals** (execution order):
-  1. Reads old `agent_name` and `user_name` for FLUXY.md placeholder
+  1. Reads old `agent_name` and `user_name` for BLOBY.md placeholder
      replacement.
   2. Saves `user_name`, `agent_name`, `onboard_complete` to settings.
   3. Hashes and saves `portal_pass` (scrypt with random 16-byte salt).
   4. Saves `portal_user` (lowercased and trimmed).
   5. Saves whisper configuration.
-  6. Reads `workspace/FLUXY.md` and replaces old bot/human name strings
+  6. Reads `workspace/BLOBY.md` and replaces old bot/human name strings
      with the new ones, handling both initial `$BOT`/`$HUMAN` placeholders
      and re-onboard name changes.
   7. Re-reads `config.json` from disk to preserve any relay data written by
@@ -675,7 +675,7 @@ everything" endpoint called when the user completes the setup wizard.
 ### 4.10 Handle Registration (Relay)
 
 These endpoints manage the user's vanity URL handle (e.g.
-`username.fluxy.bot`) through the Fluxy relay server.
+`username.bloby.bot`) through the Bloby relay server.
 
 #### `GET /api/handle/check/:username`
 
@@ -707,7 +707,7 @@ Returns the current handle registration status.
     "registered": true,
     "username": "bruno",
     "tier": "free",
-    "url": "https://bruno.fluxy.bot"
+    "url": "https://bruno.bloby.bot"
   }
   ```
 
@@ -730,7 +730,7 @@ Registers a new handle with the relay server.
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://bruno.fluxy.bot" }
+  { "ok": true, "url": "https://bruno.bloby.bot" }
   ```
 
 - **Error**: `400` if `username` or `tier` is missing, or if registration
@@ -758,7 +758,7 @@ Changes an existing handle to a new username.
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://new-name.fluxy.bot" }
+  { "ok": true, "url": "https://new-name.bloby.bot" }
   ```
 
 - **Error**: `400` if fields are missing or if the new registration fails.
@@ -986,16 +986,16 @@ Sends a push notification to all registered subscriptions.
   ```json
   {
     "title": "New Message",
-    "body": "Fluxy says hello",
+    "body": "Bloby says hello",
     "tag": "chat",
     "url": "/chat"
   }
   ```
 
   All fields are optional.
-  - `title` defaults to `"Fluxy"`.
+  - `title` defaults to `"Bloby"`.
   - `body` defaults to `""`.
-  - `tag` defaults to `"fluxy"`.
+  - `tag` defaults to `"bloby"`.
   - `url` defaults to `"/"`.
 - **Response**:
 

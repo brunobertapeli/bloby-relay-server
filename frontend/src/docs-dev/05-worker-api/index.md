@@ -2,7 +2,7 @@
 title: "Worker API"
 ---
 
-The Worker is the data and settings layer of Fluxy. It is an Express.js HTTP
+The Worker is the data and settings layer of Bloby. It is an Express.js HTTP
 server that listens on port `3001` (configurable via the `WORKER_PORT`
 environment variable). Every piece of persistent state -- conversations,
 messages, settings, sessions, push subscriptions, trusted devices, and OAuth

@@ -8,11 +8,11 @@ title: "External Services"
 
 **Binary management** (`supervisor/tunnel.ts`):
 
-- Auto-downloads `cloudflared` to `~/.fluxy/bin/` on first run
+- Auto-downloads `cloudflared` to `~/.bloby/bin/` on first run
 - Validates binary by file size (minimum 10 MB -- a valid binary is 30-50 MB)
 - Platform-specific download URLs (Linux amd64/arm64/arm, macOS amd64/arm64, Windows amd64/arm64)
 
-**Two tunnel modes** (selected during `fluxy init`):
+**Two tunnel modes** (selected during `bloby init`):
 
 | Mode  | Command                                                          | URL Behavior                                     | Relay Needed                 |
 | ----- | ---------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- |
@@ -29,16 +29,16 @@ title: "External Services"
 - Quick tunnel: re-extracts new URL, updates relay if configured
 - Named tunnel: restarts process, URL is unchanged
 
-### Fluxy Relay (Optional)
+### Bloby Relay (Optional)
 
-**Purpose**: Provide a stable `username.fluxy.bot` domain that maps to the user's ephemeral Quick Tunnel URL. Not needed for Named Tunnel mode.
+**Purpose**: Provide a stable `username.bloby.bot` domain that maps to the user's ephemeral Quick Tunnel URL. Not needed for Named Tunnel mode.
 
-**Architecture**: Node.js + Express + `http-proxy` + MongoDB, hosted on Railway at `api.fluxy.bot`.
+**Architecture**: Node.js + Express + `http-proxy` + MongoDB, hosted on Railway at `api.bloby.bot`.
 
 ```plain
 Request Flow Through Relay:
 
-  Browser hits bruno.fluxy.bot
+  Browser hits bruno.bloby.bot
     |
     v
   Subdomain middleware extracts username + tier from hostname
@@ -65,14 +65,14 @@ Request Flow Through Relay:
 
 | Tier    | Subdomain Pattern       | Path Shortcut           | Cost  |
 | ------- | ----------------------- | ----------------------- | ----- |
-| Premium | `username.fluxy.bot`    | `fluxy.bot/username`    | $5/mo |
-| Free    | `username.my.fluxy.bot` | `my.fluxy.bot/username` | Free  |
+| Premium | `username.bloby.bot`    | `bloby.bot/username`    | $5/mo |
+| Free    | `username.my.bloby.bot` | `my.bloby.bot/username` | Free  |
 
 ### Claude API (via Agent SDK)
 
 **Purpose**: Power the AI agent with full tool access.
 
-**Integration point**: `supervisor/fluxy-agent.ts` wraps the `@anthropic-ai/claude-agent-sdk` package (v0.2.50+).
+**Integration point**: `supervisor/bloby-agent.ts` wraps the `@anthropic-ai/claude-agent-sdk` package (v0.2.50+).
 
 **Authentication**: OAuth PKCE flow managed by `worker/claude-auth.ts`:
 
@@ -83,7 +83,7 @@ Request Flow Through Relay:
 **Agent configuration**:
 
 ```typescript
-// From supervisor/fluxy-agent.ts:192-211
+// From supervisor/bloby-agent.ts:192-211
 query({
     prompt: sdkPrompt,
     options: {
@@ -100,6 +100,6 @@ query({
 });
 ```
 
-**Tool tracking**: After a query completes, `fluxy-agent.ts` checks whether `Write` or `Edit` tools were used. If so, the supervisor restarts the backend and fires HMR updates for the dashboard. This is tracked via a `usedTools` Set that accumulates tool names from `tool_use` blocks in the SDK response stream (line 233, line 274-276).
+**Tool tracking**: After a query completes, `bloby-agent.ts` checks whether `Write` or `Edit` tools were used. If so, the supervisor restarts the backend and fires HMR updates for the dashboard. This is tracked via a `usedTools` Set that accumulates tool names from `tool_use` blocks in the SDK response stream (line 233, line 274-276).
 
 ---

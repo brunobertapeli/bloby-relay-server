@@ -87,10 +87,10 @@ The supervisor maintains an in-memory token cache (`Map<string, number>`) with a
 
 **File:** `supervisor/chat/src/lib/auth.ts`, lines 1--38
 
-The client stores the session token in `localStorage` under the key `fluxy_token`:
+The client stores the session token in `localStorage` under the key `bloby_token`:
 
 ```typescript
-const TOKEN_KEY = 'fluxy_token';
+const TOKEN_KEY = 'bloby_token';
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

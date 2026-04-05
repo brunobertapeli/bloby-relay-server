@@ -63,13 +63,13 @@ export default function Navbar({ user, onLogin, onLogout }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <motion.img
-              src="/assets/images/fluxy.png"
-              alt="Fluxy"
+              src="/assets/images/bloby.png"
+              alt="Bloby"
               className="h-8 w-auto"
               whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
-            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
+            <span className="text-lg font-bold font-display text-foreground">Bloby</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -145,8 +145,8 @@ export default function Navbar({ user, onLogin, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-auto" />
-                  <span className="font-bold font-display text-foreground">Fluxy</span>
+                  <img src="/assets/images/bloby.png" alt="Bloby" className="h-7 w-auto" />
+                  <span className="font-bold font-display text-foreground">Bloby</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />

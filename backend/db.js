@@ -18,11 +18,11 @@ export async function connect() {
     });
 
     await client.connect();
-    db = client.db('fluxy');
+    db = client.db('bloby');
 
     await createIndexes();
 
-    console.log('[db] Connected to MongoDB (fluxy)');
+    console.log('[db] Connected to MongoDB (bloby)');
     return db;
   } catch (error) {
     console.error('[db] Failed to connect:', error.message);
@@ -47,6 +47,12 @@ async function createIndexes() {
     claims.createIndex({ code: 1 }),
     claims.createIndex({ accountId: 1 }),
     claims.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
+  ]);
+
+  const transactions = db.collection('transactions');
+  await Promise.all([
+    transactions.createIndex({ botUsername: 1, productId: 1 }, { unique: true }),
+    transactions.createIndex({ accountId: 1 }),
   ]);
 }
 

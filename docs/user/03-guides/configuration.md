@@ -4,7 +4,7 @@ title: Configuration
 
 # Configuration
 
-Fluxy stores its config at `~/.fluxy/config.json`. Most settings are configured during `fluxy init` and onboarding, but you can edit them manually.
+Bloby stores its config at `~/.bloby/config.json`. Most settings are configured during `bloby init` and onboarding, but you can edit them manually.
 
 ## Config file
 
@@ -24,7 +24,7 @@ Fluxy stores its config at `~/.fluxy/config.json`. Most settings are configured 
 
 ## AI provider settings
 
-AI provider, model, and API keys are configured through the onboarding wizard and stored in the database. You can change them later through the chat by asking Fluxy.
+AI provider, model, and API keys are configured through the onboarding wizard and stored in the database. You can change them later through the chat by asking Bloby.
 
 ## Workspace environment
 
@@ -32,7 +32,7 @@ The workspace backend reads from `workspace/.env` for any custom environment var
 
 ## Ports
 
-Fluxy uses a base port (default 3000) with automatic offsets:
+Bloby uses a base port (default 3000) with automatic offsets:
 
 | Service | Port |
 |---------|------|

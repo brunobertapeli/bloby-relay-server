@@ -97,7 +97,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
               Your handles:
             </h3>
             <p className="text-xs text-muted-foreground/60 text-center mb-3 font-display">
-              Handles are activated during <code className="text-foreground/50">fluxy init</code>
+              Handles are activated during <code className="text-foreground/50">bloby init</code>
             </p>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               {reservedHandles.map((rh) => (
@@ -106,7 +106,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
                   className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border last:border-b-0"
                 >
                   <span className="font-mono text-sm text-foreground">
-                    fluxy.bot/<span className="text-gradient font-semibold">{rh.handle}</span>
+                    bloby.bot/<span className="text-gradient font-semibold">{rh.handle}</span>
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-muted-foreground select-all">
@@ -198,7 +198,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
             layout
           >
             <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/30">
-              fluxy.bot/
+              bloby.bot/
             </span>
             <AnimatePresence mode="wait">
               <motion.span
@@ -273,7 +273,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
 
         {reservedHandles.length === 0 && (
           <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
-            Handles are activated during <code className="text-foreground/50">fluxy init</code>
+            Handles are activated during <code className="text-foreground/50">bloby init</code>
           </p>
         )}
       </div>

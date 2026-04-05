@@ -47,7 +47,7 @@ The typical patterns are:
   verified against the scrypt hash stored in the `portal_pass` setting.
 - **Onboarding bypass**: During initial setup (before `portal_pass` is set),
   certain TOTP setup endpoints allow unauthenticated access.
-- **Trusted device cookie**: The `fluxy_device` cookie is checked against the
+- **Trusted device cookie**: The `bloby_device` cookie is checked against the
   `trusted_devices` table to bypass TOTP on recognized browsers.
 
 Session tokens are 64-byte hex strings (128 hex characters) with a 7-day

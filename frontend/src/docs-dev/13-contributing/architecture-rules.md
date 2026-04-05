@@ -11,7 +11,7 @@ The supervisor does not import `better-sqlite3`. It does not open any database f
 ```typescript
 // WRONG -- in supervisor code
 import Database from 'better-sqlite3';
-const db = new Database('~/.fluxy/memory.db');
+const db = new Database('~/.bloby/memory.db');
 
 // RIGHT -- in supervisor code
 const res = await fetch(`http://127.0.0.1:${workerPort}/api/conversations`);
@@ -20,7 +20,7 @@ const data = await res.json();
 
 ### Do NOT make the chat UI depend on the Vite dev server
 
-The chat SPA is served from `dist-fluxy/` (pre-built static files). It must work without a running Vite dev server. This is why the chat has its own Vite config (`vite.fluxy.config.ts`) and builds to a separate output directory.
+The chat SPA is served from `dist-bloby/` (pre-built static files). It must work without a running Vite dev server. This is why the chat has its own Vite config (`vite.bloby.config.ts`) and builds to a separate output directory.
 
 If you reference a dependency that is only available during `npm run dev`, the chat will break in production.
 
@@ -47,17 +47,17 @@ const workerPort = getWorkerPort(config.port);  // config.port + 1
 const WORKER_URL = `http://127.0.0.1:${workerPort}`;
 ```
 
-This allows multiple Fluxy instances on the same machine with different base ports.
+This allows multiple Bloby instances on the same machine with different base ports.
 
-### Do NOT modify `dist-fluxy/` directly
+### Do NOT modify `dist-bloby/` directly
 
-The `dist-fluxy/` directory contains build artifacts generated from `supervisor/chat/`. Any manual edits will be overwritten on the next build.
+The `dist-bloby/` directory contains build artifacts generated from `supervisor/chat/`. Any manual edits will be overwritten on the next build.
 
 To change the chat UI:
 
 1. Edit source files in `supervisor/chat/`
-2. Run `npm run build:fluxy`
-3. Commit both the source changes and the updated `dist-fluxy/`
+2. Run `npm run build:bloby`
+3. Commit both the source changes and the updated `dist-bloby/`
 
 ### Do NOT add process-specific code to `shared/`
 

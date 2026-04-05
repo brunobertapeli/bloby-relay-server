@@ -8,10 +8,10 @@ The system prompt is built in two stages: a base prompt with placeholder replace
 
 ### 2.1 Base Prompt
 
-The base prompt lives at `worker/prompts/fluxy-system-prompt.txt` (381 lines). It is read by `readSystemPrompt()` in `supervisor/fluxy-agent.ts` (line 98):
+The base prompt lives at `worker/prompts/bloby-system-prompt.txt` (381 lines). It is read by `readSystemPrompt()` in `supervisor/bloby-agent.ts` (line 98):
 
 ```ts
-function readSystemPrompt(botName = 'Fluxy', humanName = 'Human'): string {
+function readSystemPrompt(botName = 'Bloby', humanName = 'Human'): string {
   const raw = fs.readFileSync(PROMPT_FILE, 'utf-8').trim();
   return raw.replace(/\$BOT/g, botName).replace(/\$HUMAN/g, humanName);
 }
@@ -22,14 +22,14 @@ The `$BOT` and `$HUMAN` placeholders are replaced with the user-configured agent
 The prompt path is resolved relative to `import.meta.dirname` (line 14):
 
 ```ts
-const PROMPT_FILE = path.join(import.meta.dirname, '..', 'worker', 'prompts', 'fluxy-system-prompt.txt');
+const PROMPT_FILE = path.join(import.meta.dirname, '..', 'worker', 'prompts', 'bloby-system-prompt.txt');
 ```
 
 If the file is missing or empty, a minimal fallback is used (lines 103-108).
 
 ### 2.2 Prompt Structure
 
-The system prompt (`fluxy-system-prompt.txt`) is organized into these major sections:
+The system prompt (`bloby-system-prompt.txt`) is organized into these major sections:
 
 1. **Identity** -- Establishes who the agent is, that it has full machine access, and communicates through a chat bubble. It is explicitly told it is not a CLI tool but an agent with a home.
 
@@ -39,7 +39,7 @@ The system prompt (`fluxy-system-prompt.txt`) is organized into these major sect
 
 4. **PULSE and CRON** -- Instructions for handling `<PULSE/>` and `<CRON>id</CRON>` trigger messages from the scheduler. Covers config file editing, quiet hours, importance rating, and the `<Message>` output tag.
 
-5. **Self-Update** -- How the agent checks for and triggers its own updates via `touch ~/.fluxy/workspace/.update`.
+5. **Self-Update** -- How the agent checks for and triggers its own updates via `touch ~/.bloby/workspace/.update`.
 
 6. **Task Files** -- How `tasks/{cron-id}.md` files extend cron task definitions with detailed instructions.
 
@@ -57,7 +57,7 @@ The system prompt (`fluxy-system-prompt.txt`) is organized into these major sect
 
 ### 2.3 Memory Injection
 
-After the base prompt is read and placeholders are replaced, `startFluxyAgentQuery()` appends memory file contents (line 139):
+After the base prompt is read and placeholders are replaced, `startBlobyAgentQuery()` appends memory file contents (line 139):
 
 ```ts
 enrichedPrompt += `\n\n---\n# Your Memory Files\n\n## MYSELF.md\n${memoryFiles.myself}` +
@@ -104,7 +104,7 @@ Messages are fetched from the database via the worker API at `/api/conversations
 
 ### 2.5 Context Enrichment
 
-Unlike some agent frameworks, Fluxy does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and skill plugins.
+Unlike some agent frameworks, Bloby does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and skill plugins.
 
 The working directory context is provided implicitly via the `cwd` option in the SDK query (line 196):
 

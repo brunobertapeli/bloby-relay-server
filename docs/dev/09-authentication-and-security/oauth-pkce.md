@@ -4,7 +4,7 @@ title: "OAuth PKCE Flows"
 
 ## 6. OAuth PKCE Flows
 
-Fluxy supports two OAuth PKCE flows for authenticating with third-party AI providers. Both use the Authorization Code flow with PKCE (Proof Key for Code Exchange) using the S256 challenge method.
+Bloby supports two OAuth PKCE flows for authenticating with third-party AI providers. Both use the Authorization Code flow with PKCE (Proof Key for Code Exchange) using the S256 challenge method.
 
 ### 6.1 Claude OAuth (Anthropic)
 

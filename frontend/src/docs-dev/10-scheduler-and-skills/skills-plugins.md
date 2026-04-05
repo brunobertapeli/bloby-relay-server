@@ -6,9 +6,9 @@ title: "Skills & Plugins"
 
 ### 2.1 Skills Architecture
 
-Fluxy uses a directory-based plugin system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill (plugin) that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are prompt-injection plugins that provide the Claude Agent SDK with additional instructions, context, and behavior patterns.
+Bloby uses a directory-based plugin system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill (plugin) that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are prompt-injection plugins that provide the Claude Agent SDK with additional instructions, context, and behavior patterns.
 
-Skills are auto-discovered at query time. In `supervisor/fluxy-agent.ts`, every directory under `workspace/skills/` that contains a `.claude-plugin/plugin.json` file is registered as a local plugin:
+Skills are auto-discovered at query time. In `supervisor/bloby-agent.ts`, every directory under `workspace/skills/` that contains a `.claude-plugin/plugin.json` file is registered as a local plugin:
 
 ```typescript
 const skillsDir = path.join(PKG_DIR, 'workspace', 'skills');
@@ -104,13 +104,13 @@ The `description` in the YAML front matter is critical -- it tells the Claude Ag
 
 ### 2.3 Built-in Skills
 
-Fluxy ships with three built-in skills.
+Bloby ships with three built-in skills.
 
 #### 2.3.1 code-reviewer
 
 **Directory**: `workspace/skills/code-reviewer/`
 
-**Purpose**: Reviews code changes and provides improvement suggestions across the Fluxy full-stack (React + Tailwind frontend, Express + SQLite backend).
+**Purpose**: Reviews code changes and provides improvement suggestions across the Bloby full-stack (React + Tailwind frontend, Express + SQLite backend).
 
 **Plugin manifest** (`plugin.json`):
 
@@ -189,7 +189,7 @@ This skill pairs naturally with the cron system. A cron like `{ "id": "morning-s
 
 **Directory**: `workspace/skills/workspace-helper/`
 
-**Purpose**: Helps manage and understand the Fluxy workspace structure -- project layout, file organization, code navigation, and scaffolding.
+**Purpose**: Helps manage and understand the Bloby workspace structure -- project layout, file organization, code navigation, and scaffolding.
 
 **Plugin manifest** (`plugin.json`):
 
@@ -197,7 +197,7 @@ This skill pairs naturally with the cron system. A cron like `{ "id": "morning-s
 {
     "name": "workspace-helper",
     "version": "1.0.0",
-    "description": "Helps manage and understand the Fluxy workspace structure."
+    "description": "Helps manage and understand the Bloby workspace structure."
 }
 ```
 
@@ -233,7 +233,7 @@ It also provides scaffolding instructions for adding new pages (component + rout
 
 ### 2.4 How to Create a New Skill
 
-Follow these steps to add a custom skill to Fluxy:
+Follow these steps to add a custom skill to Bloby:
 
 #### Step 1: Create the directory structure
 
@@ -299,7 +299,7 @@ Show the agent what good output looks like.
 
 #### Step 4: Verify
 
-Send a message to Fluxy that matches your skill's activation criteria. The skill is auto-discovered on each query -- no restart needed. Check the supervisor logs for plugin loading:
+Send a message to Bloby that matches your skill's activation criteria. The skill is auto-discovered on each query -- no restart needed. Check the supervisor logs for plugin loading:
 
 ```plain
 Loaded MCP server(s): [...]  // if MCP is configured
@@ -318,7 +318,7 @@ The Claude Agent SDK log output will show the plugins being loaded.
 
 File path: `workspace/MCP.json` (optional -- does not exist by default)
 
-Fluxy supports the **Model Context Protocol (MCP)** for connecting external tool servers to the agent. MCP servers give the agent access to external APIs, databases, services, or any custom tooling exposed through the MCP standard.
+Bloby supports the **Model Context Protocol (MCP)** for connecting external tool servers to the agent. MCP servers give the agent access to external APIs, databases, services, or any custom tooling exposed through the MCP standard.
 
 #### Configuration Format
 
@@ -361,7 +361,7 @@ Array entries are merged into a single object via `Object.assign({}, ...mcpConfi
 
 #### How MCP Servers Are Loaded
 
-In `supervisor/fluxy-agent.ts`, MCP configuration is read from disk on every agent query:
+In `supervisor/bloby-agent.ts`, MCP configuration is read from disk on every agent query:
 
 ```typescript
 let mcpServers: Record<string, any> | undefined;

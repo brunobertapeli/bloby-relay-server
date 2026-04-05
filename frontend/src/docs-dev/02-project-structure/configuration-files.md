@@ -50,12 +50,12 @@ Key decisions:
 - **Watch ignores:** Database files (`*.db*`), log files, `files/` directory, `.env`, `backend/` directory
 - **Optimized deps:** React, React DOM, Lucide, Framer Motion, Recharts, Zustand, Sonner
 
-### 3.3 Vite Configuration (Chat SPA) -- `vite.fluxy.config.ts`
+### 3.3 Vite Configuration (Chat SPA) -- `vite.bloby.config.ts`
 
 - **Root:** `supervisor/chat/`
-- **Base path:** `/fluxy/` (all assets served under this prefix)
-- **Build output:** `dist-fluxy/`
-- **Multi-page:** Two entry points -- `fluxy.html` (chat) and `onboard.html` (wizard)
+- **Base path:** `/bloby/` (all assets served under this prefix)
+- **Build output:** `dist-bloby/`
+- **Multi-page:** Two entry points -- `bloby.html` (chat) and `onboard.html` (wizard)
 - **Alias:** `@` maps to `supervisor/chat/src/`
 - **Plugins:** Same as dashboard (React + Tailwind)
 - **Optimized deps:** React, Lucide, Framer Motion, React Markdown, Remark GFM, React Syntax Highlighter

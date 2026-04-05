@@ -13,7 +13,7 @@ The primary AI integration. Used when `config.ai.provider === 'anthropic'`. The 
 - **`permissionMode: 'bypassPermissions'`** -- the agent runs with full tool access, no interactive approval.
 - **`maxTurns: 50`** -- limits agentic loops.
 - **`cwd: workspace/`** -- the agent operates within the workspace directory.
-- **System prompt** -- loaded from `worker/prompts/fluxy-system-prompt.txt` with `$BOT` and `$HUMAN` placeholder substitution.
+- **System prompt** -- loaded from `worker/prompts/bloby-system-prompt.txt` with `$BOT` and `$HUMAN` placeholder substitution.
 - **Memory injection** -- `MYSELF.md`, `MYHUMAN.md`, `MEMORY.md`, `PULSE.json`, and `CRONS.json` are appended to the system prompt on every turn.
 - **Conversation history** -- the last 20 messages are injected into the system prompt for context continuity.
 - **Plugin support** -- auto-discovers skill plugins in `workspace/skills/` (folders containing `.claude-plugin/plugin.json`).

@@ -10,13 +10,13 @@ The supervisor is a raw `http.createServer` (no Express) that acts as a reverse 
                               |
                               v
                +-----------------------------+
-               | /fluxy/widget.js ?          |--YES--> Serve file directly from disk
+               | /bloby/widget.js ?          |--YES--> Serve file directly from disk
                +-----------------------------+         (supervisor/widget.js, no-cache)
                               |
                              NO
                               v
                +-----------------------------+
-               | /sw.js or /fluxy/sw.js ?    |--YES--> Serve embedded SW_JS constant
+               | /sw.js or /bloby/sw.js ?    |--YES--> Serve embedded SW_JS constant
                +-----------------------------+         (PWA service worker, no-cache)
                               |
                              NO
@@ -34,8 +34,8 @@ The supervisor is a raw `http.createServer` (no Express) that acts as a reverse 
                              NO
                               v
                +-----------------------------+
-               | /fluxy or /fluxy/* ?        |--YES--> Serve pre-built static files
-               +-----------------------------+         from dist-fluxy/ directory
+               | /bloby or /bloby/* ?        |--YES--> Serve pre-built static files
+               +-----------------------------+         from dist-bloby/ directory
                               |                        HTML: no-cache
                              NO                        Hashed assets: immutable, 1yr
                               v
@@ -53,9 +53,9 @@ WebSocket upgrades are handled separately via the `server.on('upgrade')` event (
                               |
                               v
                +-----------------------------+
-               | URL starts with /fluxy/ws ? |--YES--> Auth check (token in query param)
-               +-----------------------------+         Then fluxyWss.handleUpgrade()
-                              |                        --> Fluxy chat WebSocket handler
+               | URL starts with /bloby/ws ? |--YES--> Auth check (token in query param)
+               +-----------------------------+         Then blobyWss.handleUpgrade()
+                              |                        --> Bloby chat WebSocket handler
                              NO
                               v
                +-----------------------------+
@@ -65,7 +65,7 @@ WebSocket upgrades are handled separately via the `server.on('upgrade')` event (
                                                         hmr.server option)
 ```
 
-The Vite HMR WebSocket is special: Vite attaches its own upgrade handler directly to the supervisor's HTTP server via the `hmr: { server: hmrServer }` option in `supervisor/vite-dev.ts:29`. This means the supervisor does not need to manually proxy HMR upgrades -- Vite's internal handler picks them up automatically when the URL does not match `/fluxy/ws`.
+The Vite HMR WebSocket is special: Vite attaches its own upgrade handler directly to the supervisor's HTTP server via the `hmr: { server: hmrServer }` option in `supervisor/vite-dev.ts:29`. This means the supervisor does not need to manually proxy HMR upgrades -- Vite's internal handler picks them up automatically when the URL does not match `/bloby/ws`.
 
 ### Auth Middleware
 

@@ -38,7 +38,7 @@ if (portalPass) {
 
 ### 2.2 Login Flow
 
-Fluxy supports two login methods to accommodate relay proxies that may not forward POST bodies:
+Bloby supports two login methods to accommodate relay proxies that may not forward POST bodies:
 
 **POST login** (`POST /api/portal/login`) -- credentials in JSON body (`worker/index.ts`, lines 389--392):
 
@@ -65,7 +65,7 @@ The shared `handleLogin` function (`worker/index.ts`, lines 349--386) executes t
 
 1. Verify the password is provided and a stored password exists.
 2. Call `verifyPassword()` against the stored `portal_pass` setting.
-3. If TOTP is enabled, check for a trusted device cookie (`fluxy_device`). If a valid trusted device is found, skip TOTP and issue a session immediately. Otherwise, return `{ requiresTOTP: true, pendingToken }` to trigger the 2FA flow.
+3. If TOTP is enabled, check for a trusted device cookie (`bloby_device`). If a valid trusted device is found, skip TOTP and issue a session immediately. Otherwise, return `{ requiresTOTP: true, pendingToken }` to trigger the 2FA flow.
 4. If TOTP is not enabled (or device is trusted), clean up expired sessions, generate a 64-byte random token, create a session with a 7-day expiry, and return `{ token, expiresAt }`.
 
 ```typescript
@@ -88,4 +88,4 @@ const res = await fetch('/api/portal/login', {
 });
 ```
 
-The `credentials: 'include'` option ensures cookies (specifically the `fluxy_device` trusted device cookie) are sent with the request.
+The `credentials: 'include'` option ensures cookies (specifically the `bloby_device` trusted device cookie) are sent with the request.

@@ -6,7 +6,7 @@ title: "Key Files"
 
 | File | Purpose |
 |------|---------|
-| `supervisor/fluxy-agent.ts` | Agent SDK integration and context assembly |
+| `supervisor/bloby-agent.ts` | Agent SDK integration and context assembly |
 | `supervisor/scheduler.ts` | Pulse and Cron scheduler |
 | `supervisor/index.ts` | Supervisor process: HTTP server, WebSocket, routing |
 | `supervisor/file-saver.ts` | Attachment persistence to disk |
@@ -16,7 +16,7 @@ title: "Key Files"
 | `worker/index.ts` | Worker process: Express API server |
 | `worker/db.ts` | SQLite database schema and queries |
 | `worker/claude-auth.ts` | Claude OAuth PKCE flow |
-| `worker/prompts/fluxy-system-prompt.txt` | Base system prompt template |
+| `worker/prompts/bloby-system-prompt.txt` | Base system prompt template |
 | `workspace/MYSELF.md` | Agent identity file |
 | `workspace/MYHUMAN.md` | User profile file |
 | `workspace/MEMORY.md` | Curated long-term memory |

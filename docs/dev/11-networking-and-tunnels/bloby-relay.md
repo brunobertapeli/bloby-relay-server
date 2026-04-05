@@ -1,10 +1,10 @@
 ---
-title: "Fluxy Relay"
+title: "Bloby Relay"
 ---
 
-The Fluxy Relay is an optional cloud service that provides permanent, human-readable domain names (e.g., `username.fluxy.bot`). It acts as a reverse proxy at the DNS level -- when a browser requests `username.fluxy.bot`, the relay forwards the request to the user's current Cloudflare Tunnel URL.
+The Bloby Relay is an optional cloud service that provides permanent, human-readable domain names (e.g., `username.bloby.bot`). It acts as a reverse proxy at the DNS level -- when a browser requests `username.bloby.bot`, the relay forwards the request to the user's current Cloudflare Tunnel URL.
 
-All relay client logic lives in `shared/relay.ts`. The relay API base URL is `https://api.fluxy.bot/api`.
+All relay client logic lives in `shared/relay.ts`. The relay API base URL is `https://api.bloby.bot/api`.
 
 ### 4.1 Registration Flow
 
@@ -15,7 +15,7 @@ The `registerHandle(username, tier)` function sends a `POST /api/register` reque
 ```
 
 - `token` -- a bearer token used for all subsequent relay API calls (heartbeat, tunnel updates, disconnect).
-- `relayUrl` -- the assigned URL (e.g., `https://username.fluxy.bot`).
+- `relayUrl` -- the assigned URL (e.g., `https://username.bloby.bot`).
 
 These values are stored in `config.relay.token` and `config.relay.url` by the caller.
 

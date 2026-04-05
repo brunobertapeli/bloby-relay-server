@@ -51,19 +51,19 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 Two categories of static content are served directly by the supervisor without
 proxying:
 
-**Fluxy chat UI** (`/fluxy` and `/fluxy/*`, lines 304-337): Pre-built static files
-from `dist-fluxy/`. The supervisor resolves files from the `DIST_FLUXY` directory
+**Bloby chat UI** (`/bloby` and `/bloby/*`, lines 304-337): Pre-built static files
+from `dist-bloby/`. The supervisor resolves files from the `DIST_BLOBY` directory
 (line 22), applies directory traversal protection (line 312), and serves them with
 appropriate MIME types from the `MIME_TYPES` map (lines 38-48). HTML files get
 `Cache-Control: no-cache`; hashed assets (JS, CSS) get immutable caching with a
 one-year max-age (line 325).
 
-**Service worker** (`/sw.js` or `/fluxy/sw.js`, lines 228-231): Served from an
+**Service worker** (`/sw.js` or `/bloby/sw.js`, lines 228-231): Served from an
 embedded string constant `SW_JS` (lines 51-85) rather than a file on disk. This
 guarantees the service worker is always in sync with the supervisor version. The
 service worker handles PWA installability, push notifications, and notification
 click routing.
 
-**First-run build**: If `dist-fluxy/` does not exist on startup (lines 24-36), the
-supervisor runs `npx vite build --config vite.fluxy.config.ts` synchronously to
+**First-run build**: If `dist-bloby/` does not exist on startup (lines 24-36), the
+supervisor runs `npx vite build --config vite.bloby.config.ts` synchronously to
 build the chat UI. This handles cases where the postinstall script failed silently.

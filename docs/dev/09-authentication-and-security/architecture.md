@@ -4,7 +4,7 @@ title: "Architecture"
 
 ## 1. Authentication Architecture Overview
 
-Fluxy implements a multi-layer authentication architecture spanning three processes:
+Bloby implements a multi-layer authentication architecture spanning three processes:
 
 | Layer | Process | Responsibility |
 |---|---|---|

@@ -6,12 +6,12 @@ title: "Directory Tree"
 
 ```plain
 bin/
-  cli.js            The `fluxy` command-line interface (59 KB, bundled JS)
+  cli.js            The `bloby` command-line interface (59 KB, bundled JS)
 ```
 
 | File     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli.js` | The executable CLI. Registered as `"fluxy"` in `package.json`'s `bin` field. Determines whether it is running in dev mode (has `.git`) or production mode (operates from `~/.fluxy/`). Handles all subcommands: `fluxy start`, `fluxy init`, `fluxy daemon install/uninstall/status`, `fluxy tunnel`, etc. Supports systemd (Linux) and launchd (macOS) daemon management. Accepts `--hosted` flag for cloud deployments. |
+| `cli.js` | The executable CLI. Registered as `"bloby"` in `package.json`'s `bin` field. Determines whether it is running in dev mode (has `.git`) or production mode (operates from `~/.bloby/`). Handles all subcommands: `bloby start`, `bloby init`, `bloby daemon install/uninstall/status`, `bloby tunnel`, etc. Supports systemd (Linux) and launchd (macOS) daemon management. Accepts `--hosted` flag for cloud deployments. |
 
 ---
 
@@ -26,7 +26,7 @@ supervisor/
   backend.ts         Backend child process manager -- spawns, monitors, auto-restarts the user's Express backend
   tunnel.ts          Cloudflare Tunnel manager -- installs cloudflared, starts quick/named tunnels
   vite-dev.ts        Vite dev server launcher -- starts HMR dev server for the dashboard in development mode
-  fluxy-agent.ts     Claude Agent SDK wrapper -- handles agent queries from the chat UI using claude-agent-sdk
+  bloby-agent.ts     Claude Agent SDK wrapper -- handles agent queries from the chat UI using claude-agent-sdk
   scheduler.ts       Pulse and cron scheduler -- checks timing every 60s, triggers autonomous agent actions
   file-saver.ts      File attachment handler -- saves uploaded images and documents to workspace/files/
   widget.js          Chat widget injector -- vanilla JS that creates the floating bubble and slide-out chat panel
@@ -37,26 +37,26 @@ supervisor/
 
 | File             | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`       | **The heart of Fluxy.** Creates an HTTP server on the configured port (default 3000). Serves the dashboard from `dist/` (production) or proxies to Vite dev server (development). Serves the chat UI from `dist-fluxy/` under the `/fluxy/` path. Runs a WebSocket server for real-time chat communication. Orchestrates startup: spawns the worker on port+1, backend on port+4, starts Cloudflare tunnel, begins heartbeat to the relay, starts the scheduler. Handles graceful shutdown (SIGINT/SIGTERM). Embeds a service worker for PWA installability and push notifications. |
+| `index.ts`       | **The heart of Bloby.** Creates an HTTP server on the configured port (default 3000). Serves the dashboard from `dist/` (production) or proxies to Vite dev server (development). Serves the chat UI from `dist-bloby/` under the `/bloby/` path. Runs a WebSocket server for real-time chat communication. Orchestrates startup: spawns the worker on port+1, backend on port+4, starts Cloudflare tunnel, begins heartbeat to the relay, starts the scheduler. Handles graceful shutdown (SIGINT/SIGTERM). Embeds a service worker for PWA installability and push notifications. |
 | `worker.ts`      | Spawns the worker (`worker/index.ts`) as a child process using `tsx/esm` loader. Exposes `spawnWorker(port)`, `stopWorker()`, `isWorkerAlive()`. Auto-restarts on unexpected exit (up to 3 times with exponential backoff, resets after 30s of stable runtime).                                                                                                                                                                                                                                                                                                                     |
 | `backend.ts`     | Spawns the user's backend (`workspace/backend/index.ts`) as a child process. Same restart logic as `worker.ts`. Logs stdout/stderr to `workspace/.backend.log`. Exposes `spawnBackend(port)`, `stopBackend()`, `isBackendAlive()`, `resetBackendRestarts()`. Port is `basePort + 4`.                                                                                                                                                                                                                                                                                                |
-| `tunnel.ts`      | Manages Cloudflare Tunnel for public access. `installCloudflared()` downloads the binary to `~/.fluxy/bin/cloudflared` if not present. `startTunnel(port)` starts a quick tunnel and returns the assigned `*.trycloudflare.com` URL. `startNamedTunnel(configPath, name)` starts a persistent named tunnel with a custom domain. Supports `isTunnelAlive()` health checks and `restartTunnel()`/`restartNamedTunnel()` for recovery.                                                                                                                                                |
+| `tunnel.ts`      | Manages Cloudflare Tunnel for public access. `installCloudflared()` downloads the binary to `~/.bloby/bin/cloudflared` if not present. `startTunnel(port)` starts a quick tunnel and returns the assigned `*.trycloudflare.com` URL. `startNamedTunnel(configPath, name)` starts a persistent named tunnel with a custom domain. Supports `isTunnelAlive()` health checks and `restartTunnel()`/`restartNamedTunnel()` for recovery.                                                                                                                                                |
 | `vite-dev.ts`    | Creates an in-process Vite dev server for the dashboard on port `basePort + 2`. Attaches HMR WebSocket to the supervisor's HTTP server so hot reload works through the tunnel. Pre-warms module transforms on startup. Only active during development (`npm run dev`).                                                                                                                                                                                                                                                                                                              |
-| `fluxy-agent.ts` | Lightweight wrapper around `@anthropic-ai/claude-agent-sdk`. Each conversation turn gets a fresh context with memory files (`MYSELF.md`, `MYHUMAN.md`, `MEMORY.md`) and recent conversation history injected into the system prompt. Reads the system prompt from `worker/prompts/fluxy-system-prompt.txt`. Supports attachments (images, files) via base64 encoding. Manages active queries with abort controllers for cancellation.                                                                                                                                               |
-| `scheduler.ts`   | Reads `workspace/PULSE.json` and `workspace/CRONS.json` every 60 seconds. Pulse: triggers autonomous agent actions at a configurable interval (default 30 min) with quiet hours support. Crons: evaluates cron expressions (via `cron-parser`) and fires `startFluxyAgentQuery` when schedules match. Supports one-shot crons that auto-disable after firing.                                                                                                                                                                                                                       |
+| `bloby-agent.ts` | Lightweight wrapper around `@anthropic-ai/claude-agent-sdk`. Each conversation turn gets a fresh context with memory files (`MYSELF.md`, `MYHUMAN.md`, `MEMORY.md`) and recent conversation history injected into the system prompt. Reads the system prompt from `worker/prompts/bloby-system-prompt.txt`. Supports attachments (images, files) via base64 encoding. Manages active queries with abort controllers for cancellation.                                                                                                                                               |
+| `scheduler.ts`   | Reads `workspace/PULSE.json` and `workspace/CRONS.json` every 60 seconds. Pulse: triggers autonomous agent actions at a configurable interval (default 30 min) with quiet hours support. Crons: evaluates cron expressions (via `cron-parser`) and fires `startBlobyAgentQuery` when schedules match. Supports one-shot crons that auto-disable after firing.                                                                                                                                                                                                                       |
 | `file-saver.ts`  | Handles file uploads from chat. `ensureFileDirs()` creates `workspace/files/audio/`, `workspace/files/images/`, and `workspace/files/documents/`. `saveAttachment()` takes a base64-encoded file, generates a timestamped filename with random suffix, writes it to the appropriate subdirectory, and returns metadata including the relative and absolute paths.                                                                                                                                                                                                                   |
-| `widget.js`      | Vanilla JavaScript snippet (no framework dependencies). Injected into the dashboard via a `<script>` tag in `workspace/client/index.html`. Creates three DOM elements: (1) a floating circular bubble with the Fluxy avatar video, (2) a backdrop overlay, and (3) a slide-out side panel containing an iframe pointed at `/fluxy/fluxy.html`. Handles open/close toggling, mobile responsiveness, and escape-key dismissal.                                                                                                                                                        |
+| `widget.js`      | Vanilla JavaScript snippet (no framework dependencies). Injected into the dashboard via a `<script>` tag in `workspace/client/index.html`. Creates three DOM elements: (1) a floating circular bubble with the Bloby avatar video, (2) a backdrop overlay, and (3) a slide-out side panel containing an iframe pointed at `/bloby/bloby.html`. Handles open/close toggling, mobile responsiveness, and escape-key dismissal.                                                                                                                                                        |
 
 ---
 
 ### 2.3 `/supervisor/chat/` -- Pre-built Chat SPA
 
-The chat UI is a standalone React single-page application. It runs inside an iframe embedded by `widget.js` and communicates with the supervisor via WebSocket. It is built separately from the dashboard and ships pre-compiled in `dist-fluxy/`.
+The chat UI is a standalone React single-page application. It runs inside an iframe embedded by `widget.js` and communicates with the supervisor via WebSocket. It is built separately from the dashboard and ships pre-compiled in `dist-bloby/`.
 
 ```plain
 supervisor/chat/
-  fluxy.html              HTML entry point for the chat interface
-  fluxy-main.tsx          React entry point for the chat app (21 KB)
+  bloby.html              HTML entry point for the chat interface
+  bloby-main.tsx          React entry point for the chat app (21 KB)
   onboard.html            HTML entry point for the onboarding wizard
   onboard-main.tsx        React entry point for onboarding (renders OnboardWizard)
   OnboardWizard.tsx       Full onboarding wizard component (94 KB) -- AI setup, config, relay registration
@@ -74,7 +74,7 @@ supervisor/chat/
         TypingIndicator.tsx Animated typing dots indicator
     hooks/
       useChat.ts          Base chat hook -- defines ChatMessage, ToolActivity, Attachment types and core chat logic
-      useFluxyChat.ts     Fluxy-specific chat hook -- loads/persists messages via worker API, handles cross-device sync
+      useBlobyChat.ts     Bloby-specific chat hook -- loads/persists messages via worker API, handles cross-device sync
     lib/
       auth.ts             Auth token management (localStorage) and `authFetch()` wrapper that auto-handles 401s
       ws-client.ts        WebSocket client class with auto-reconnect, message queuing, heartbeat, and auth token injection
@@ -86,7 +86,7 @@ supervisor/chat/
 
 - The chat SPA is **completely isolated** from the dashboard. It has its own React tree, its own styles, its own WebSocket connection.
 - POST requests from the chat iframe fail through the relay/tunnel chain. All mutations (saving settings, etc.) are sent over WebSocket instead. The supervisor's WS handler makes local HTTP calls to the worker, bypassing the relay entirely.
-- The onboarding wizard (`OnboardWizard.tsx`) is reusable -- it can be rendered both as the initial setup flow (in its own iframe at `/fluxy/onboard.html`) and from within the chat settings menu.
+- The onboarding wizard (`OnboardWizard.tsx`) is reusable -- it can be rendered both as the initial setup flow (in its own iframe at `/bloby/onboard.html`) and from within the chat settings menu.
 
 ---
 
@@ -101,7 +101,7 @@ worker/
   claude-auth.ts      Claude OAuth PKCE flow -- authenticates via claude.ai for Anthropic subscription users
   codex-auth.ts       Codex OAuth PKCE flow -- authenticates via OpenAI for ChatGPT Plus/Pro subscription users
   prompts/
-    fluxy-system-prompt.txt    The agent's system prompt (20 KB) -- personality, capabilities, routing rules, memory system
+    bloby-system-prompt.txt    The agent's system prompt (20 KB) -- personality, capabilities, routing rules, memory system
 ```
 
 #### File-by-file breakdown
@@ -109,10 +109,10 @@ worker/
 | File                              | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `index.ts`                        | Express server with all API routes. Password hashing (scrypt), TOTP-based 2FA, session management, conversation CRUD, message storage, settings management, push notification setup (web-push), file upload handling, relay registration (handle availability, registration, release). Imports auth flows from `claude-auth.ts` and `codex-auth.ts`.                                                                                                      |
-| `db.ts`                           | SQLite database using `better-sqlite3`. Schema defines tables: `conversations`, `messages`, `settings`, `sessions`, `push_subscriptions`, `trusted_devices`. Stores data in `~/.fluxy/memory.db`. Exports functions: `initDb`, `closeDb`, `listConversations`, `createConversation`, `deleteConversation`, `getMessages`, `addMessage`, `getSetting`, `setSetting`, `createSession`, `getSession`, push subscription CRUD, trusted device CRUD, and more. |
+| `db.ts`                           | SQLite database using `better-sqlite3`. Schema defines tables: `conversations`, `messages`, `settings`, `sessions`, `push_subscriptions`, `trusted_devices`. Stores data in `~/.bloby/memory.db`. Exports functions: `initDb`, `closeDb`, `listConversations`, `createConversation`, `deleteConversation`, `getMessages`, `addMessage`, `getSetting`, `setSetting`, `createSession`, `getSession`, push subscription CRUD, trusted device CRUD, and more. |
 | `claude-auth.ts`                  | Implements OAuth 2.0 PKCE flow for Anthropic's Claude. User signs in at `claude.ai`, receives a code, pastes it back. Stores credentials in `~/.claude/.credentials.json`. Uses macOS Keychain when available. Exposes `startClaudeOAuth()`, `exchangeClaudeCode()`, `getClaudeAuthStatus()`, `readClaudeAccessToken()`.                                                                                                                                  |
 | `codex-auth.ts`                   | Implements OAuth 2.0 PKCE flow for OpenAI's Codex/ChatGPT. Spins up a temporary HTTP server on port 1455 to capture the OAuth callback. Stores credentials in `~/.codex/codedeck-auth.json`. Exposes `startCodexOAuth()`, `cancelCodexOAuth()`, `getCodexAuthStatus()`, `readCodexAccessToken()`.                                                                                                                                                         |
-| `prompts/fluxy-system-prompt.txt` | The master system prompt injected into every Claude Agent SDK query. Defines the agent's personality, capabilities, coding rules, memory system, dashboard architecture, file organization, tool usage patterns, and workspace conventions. This is what makes Fluxy "Fluxy."                                                                                                                                                                             |
+| `prompts/bloby-system-prompt.txt` | The master system prompt injected into every Claude Agent SDK query. Defines the agent's personality, capabilities, coding rules, memory system, dashboard architecture, file organization, tool usage patterns, and workspace conventions. This is what makes Bloby "Bloby."                                                                                                                                                                             |
 
 ---
 
@@ -122,9 +122,9 @@ Utility modules imported by both the supervisor and worker. No runtime-specific 
 
 ```plain
 shared/
-  config.ts           Configuration loader/saver -- reads/writes ~/.fluxy/config.json
+  config.ts           Configuration loader/saver -- reads/writes ~/.bloby/config.json
   paths.ts            Central path definitions -- PKG_DIR, DATA_DIR, WORKSPACE_DIR, all derived paths
-  relay.ts            Fluxy Relay API client -- handle registration, availability checks, heartbeat, tunnel URL updates
+  relay.ts            Bloby Relay API client -- handle registration, availability checks, heartbeat, tunnel URL updates
   ai.ts               AI provider abstraction -- unified streaming interface for OpenAI, Anthropic, and Ollama
   logger.ts           Minimal colored console logger -- info, warn, error, ok with timestamps
 ```
@@ -133,9 +133,9 @@ shared/
 
 | File        | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config.ts` | Defines `BotConfig` interface: `port`, `username`, `ai` (provider, model, apiKey, baseUrl), `tunnel` (mode: off/quick/named, name, domain, configPath), `relay` (token, tier, url), `tunnelUrl`. `loadConfig()` reads from `~/.fluxy/config.json` with backward compatibility migration. `saveConfig()` writes atomically.                                                                                                                                                               |
-| `paths.ts`  | Computes and exports all critical paths: `PKG_DIR` (package install directory), `DATA_DIR` (`~/.fluxy/`), `WORKSPACE_DIR` (`{PKG_DIR}/workspace`). The `paths` object maps logical names to absolute paths: `config`, `db`, `widgetJs`, `cloudflared`, `files`, `filesAudio`, `filesImages`, `filesDocuments`.                                                                                                                                                                           |
-| `relay.ts`  | HTTP client for the Fluxy Relay cloud service at `https://api.fluxy.bot/api`. Functions: `registerHandle(username, tier)` -- registers a public handle, `checkAvailability(username)` -- checks if a handle is taken, `releaseHandle(token)` -- releases a handle, `updateTunnelUrl(token, tunnelUrl)` -- tells the relay where to route traffic, `startHeartbeat(token, tunnelUrl)` -- pings the relay every 30s to stay online, `disconnect(token)` -- graceful shutdown notification. |
+| `config.ts` | Defines `BotConfig` interface: `port`, `username`, `ai` (provider, model, apiKey, baseUrl), `tunnel` (mode: off/quick/named, name, domain, configPath), `relay` (token, tier, url), `tunnelUrl`. `loadConfig()` reads from `~/.bloby/config.json` with backward compatibility migration. `saveConfig()` writes atomically.                                                                                                                                                               |
+| `paths.ts`  | Computes and exports all critical paths: `PKG_DIR` (package install directory), `DATA_DIR` (`~/.bloby/`), `WORKSPACE_DIR` (`{PKG_DIR}/workspace`). The `paths` object maps logical names to absolute paths: `config`, `db`, `widgetJs`, `cloudflared`, `files`, `filesAudio`, `filesImages`, `filesDocuments`.                                                                                                                                                                           |
+| `relay.ts`  | HTTP client for the Bloby Relay cloud service at `https://api.bloby.bot/api`. Functions: `registerHandle(username, tier)` -- registers a public handle, `checkAvailability(username)` -- checks if a handle is taken, `releaseHandle(token)` -- releases a handle, `updateTunnelUrl(token, tunnelUrl)` -- tells the relay where to route traffic, `startHeartbeat(token, tunnelUrl)` -- pings the relay every 30s to stay online, `disconnect(token)` -- graceful shutdown notification. |
 | `ai.ts`     | Provider-agnostic AI streaming interface. Defines `AiProvider` interface with a `chat()` method that accepts messages, model name, and callbacks (`onToken`, `onDone`, `onError`). Factory function `createProvider(provider, apiKey, baseUrl)` returns an implementation for `openai`, `anthropic`, or `ollama`. All providers use raw `fetch()` with SSE streaming -- zero external AI SDK dependencies. Tracks token usage (`tokensIn`, `tokensOut`).                                 |
 | `logger.ts` | Simple structured logger. All output goes to `console.log`/`console.warn`/`console.error` with ANSI color codes and `HH:MM:SS` timestamps. Levels: `log.info()` (cyan), `log.warn()` (yellow), `log.error()` (red), `log.ok()` (green).                                                                                                                                                                                                                                                  |
 
@@ -177,7 +177,7 @@ workspace/
 
 #### 2.6.1 `/workspace/client/` -- React Dashboard
 
-The dashboard is a Vite-powered React SPA. It is the main user-facing interface -- what the user sees when they visit their Fluxy instance. The agent can modify any file here to build custom apps.
+The dashboard is a Vite-powered React SPA. It is the main user-facing interface -- what the user sees when they visit their Bloby instance. The agent can modify any file here to build custom apps.
 
 ```
 workspace/client/
@@ -185,13 +185,13 @@ workspace/client/
   public/
     manifest.json           PWA manifest -- app name, theme color (#212121), icon references
     sw.js                   Service worker -- PWA installability, push notification handling
-    fluxy.png               Fluxy logo (PNG, 44 KB)
-    fluxy_frame1.png        Fluxy avatar static frame (PNG, 390 KB, used as fallback)
-    fluxy_say_hi.webm       Fluxy avatar wave animation (WebM, 787 KB)
-    fluxy_tilts.webm        Fluxy avatar tilt animation (WebM, 880 KB)
-    fluxy-badge.png         Notification badge icon (PNG, 3 KB)
-    fluxy-icon-192.png      PWA icon 192x192 (PNG, 27 KB)
-    fluxy-icon-512.png      PWA icon 512x512 (PNG, 115 KB)
+    bloby.png               Bloby logo (PNG, 44 KB)
+    bloby_frame1.png        Bloby avatar static frame (PNG, 390 KB, used as fallback)
+    bloby_say_hi.webm       Bloby avatar wave animation (WebM, 787 KB)
+    bloby_tilts.webm        Bloby avatar tilt animation (WebM, 880 KB)
+    bloby-badge.png         Notification badge icon (PNG, 3 KB)
+    bloby-icon-192.png      PWA icon 192x192 (PNG, 27 KB)
+    bloby-icon-512.png      PWA icon 512x512 (PNG, 115 KB)
     arrow.png               Onboarding arrow graphic (PNG, 1.4 MB)
     icons/
       claude.png            Claude/Anthropic provider icon (PNG, 27 KB)
@@ -234,12 +234,12 @@ workspace/client/
 
 **How the dashboard loads:**
 
-1. Browser navigates to the Fluxy URL (local or through the relay).
+1. Browser navigates to the Bloby URL (local or through the relay).
 2. The supervisor serves `workspace/client/index.html` (in production from `dist/`, in dev via Vite proxy).
 3. `index.html` loads `src/main.tsx`, registers the service worker (`sw.js`), and injects `widget.js`.
-4. `widget.js` creates the floating Fluxy bubble and the slide-out panel with the chat iframe.
+4. `widget.js` creates the floating Bloby bubble and the slide-out panel with the chat iframe.
 5. `App.tsx` checks if onboarding is complete; if not, it shows the onboard iframe overlay.
-6. The app listens for postMessage events from the chat iframe: `fluxy:rebuilding`, `fluxy:rebuilt`, `fluxy:build-error`, `fluxy:onboard-complete`, `fluxy:hmr-update`.
+6. The app listens for postMessage events from the chat iframe: `bloby:rebuilding`, `bloby:rebuilt`, `bloby:build-error`, `bloby:onboard-complete`, `bloby:hmr-update`.
 
 ---
 
@@ -308,34 +308,34 @@ Files are named with the pattern `YYYYMMDD_HHMMSS_{random-hex}.{ext}` to avoid c
 ```
 scripts/
   install              Unix installer (symlink to install.sh)
-  install.sh           Unix installer -- downloads Node.js + Fluxy into ~/.fluxy (10 KB)
+  install.sh           Unix installer -- downloads Node.js + Bloby into ~/.bloby (10 KB)
   install.ps1          Windows installer (PowerShell) -- same logic as install.sh for Windows (13 KB)
-  postinstall.js       npm postinstall hook -- copies source files to ~/.fluxy, installs deps, builds chat UI
+  postinstall.js       npm postinstall hook -- copies source files to ~/.bloby, installs deps, builds chat UI
 ```
 
 | File                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `install` / `install.sh` | Standalone curl installer (`curl -fsSL https://fluxy.bot/install \| sh`). Downloads Node.js v22.14.0 if not present, clones Fluxy into `~/.fluxy/`, installs dependencies, builds the chat UI, and creates a `fluxy` symlink in `/usr/local/bin/` or `~/.local/bin/`. Works on Linux, macOS, and ARM (Raspberry Pi).                                                                                                                                                                                     |
-| `install.ps1`            | PowerShell equivalent (`irm https://fluxy.bot/install.ps1 \| iex`). Same logic adapted for Windows: downloads Node.js, sets up `~/.fluxy/`, installs dependencies.                                                                                                                                                                                                                                                                                                                                       |
-| `postinstall.js`         | Runs after `npm install -g fluxy-bot`. Copies application code directories (`bin/`, `supervisor/`, `worker/`, `shared/`, `scripts/`) to `~/.fluxy/`, preserving the workspace on updates (only copies workspace template on first install). Installs production dependencies in `~/.fluxy/`. Copies or builds `dist-fluxy/`. Creates the `fluxy` symlink. Includes guards to skip execution during development (if `.git` exists) and to prevent infinite loops (if already running inside `~/.fluxy/`). |
+| `install` / `install.sh` | Standalone curl installer (`curl -fsSL https://bloby.bot/install \| sh`). Downloads Node.js v22.14.0 if not present, clones Bloby into `~/.bloby/`, installs dependencies, builds the chat UI, and creates a `bloby` symlink in `/usr/local/bin/` or `~/.local/bin/`. Works on Linux, macOS, and ARM (Raspberry Pi).                                                                                                                                                                                     |
+| `install.ps1`            | PowerShell equivalent (`irm https://bloby.bot/install.ps1 \| iex`). Same logic adapted for Windows: downloads Node.js, sets up `~/.bloby/`, installs dependencies.                                                                                                                                                                                                                                                                                                                                       |
+| `postinstall.js`         | Runs after `npm install -g bloby-bot`. Copies application code directories (`bin/`, `supervisor/`, `worker/`, `shared/`, `scripts/`) to `~/.bloby/`, preserving the workspace on updates (only copies workspace template on first install). Installs production dependencies in `~/.bloby/`. Copies or builds `dist-bloby/`. Creates the `bloby` symlink. Includes guards to skip execution during development (if `.git` exists) and to prevent infinite loops (if already running inside `~/.bloby/`). |
 
 ---
 
-### 2.8 `/dist-fluxy/` -- Pre-built Chat UI Bundles
+### 2.8 `/dist-bloby/` -- Pre-built Chat UI Bundles
 
-Production build output of `vite.fluxy.config.ts`. Shipped with the npm package so users do not need to build from source.
+Production build output of `vite.bloby.config.ts`. Shipped with the npm package so users do not need to build from source.
 
 ```
-dist-fluxy/
-  fluxy.html                  Production entry point for the chat interface
+dist-bloby/
+  bloby.html                  Production entry point for the chat interface
   onboard.html                Production entry point for the onboarding wizard
   assets/
-    fluxy-Bcd5tJrt.js         Chat app bundle (838 KB) -- all React components, hooks, libraries
+    bloby-Bcd5tJrt.js         Chat app bundle (838 KB) -- all React components, hooks, libraries
     globals-CMrTFJSE.js       Shared vendor bundle (367 KB) -- React, Radix UI, framer-motion, etc.
     globals-Bs_wR6rP.css      Compiled CSS (42 KB) -- Tailwind output + custom styles
     onboard-BSlNrxVH.js       Onboard entry chunk (301 B) -- tiny bootstrap for the wizard
 ```
 
-These bundles are hashed for cache-busting. The supervisor serves them under the `/fluxy/` URL path.
+These bundles are hashed for cache-busting. The supervisor serves them under the `/bloby/` URL path.
 
 ---

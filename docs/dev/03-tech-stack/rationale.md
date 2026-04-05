@@ -8,7 +8,7 @@ Express v5 adds native async error handling -- `async` route handlers that throw
 
 ### Why SQLite over PostgreSQL
 
-Fluxy is a **self-hosted, single-user** application designed to run on everything from a Raspberry Pi to a cloud VM. PostgreSQL imposes:
+Bloby is a **self-hosted, single-user** application designed to run on everything from a Raspberry Pi to a cloud VM. PostgreSQL imposes:
 
 - A separate daemon to install, configure, and keep running.
 - Memory overhead (minimum ~30 MB RSS) that matters on low-resource devices.
@@ -16,7 +16,7 @@ Fluxy is a **self-hosted, single-user** application designed to run on everythin
 
 SQLite with WAL mode gives:
 
-- Zero-config operation -- the database is a single file at `~/.fluxy/memory.db`.
+- Zero-config operation -- the database is a single file at `~/.bloby/memory.db`.
 - Microsecond query latency (in-process, no network hop).
 - Portable backups -- copy one file.
 - `better-sqlite3`'s synchronous API means no callback/promise overhead per query.
@@ -45,13 +45,13 @@ No providers, no wrappers, no context. Zustand v5 ships as a pure ESM package wi
 
 ### Why React 19
 
-React 19 ships the new `use()` hook, improved server-client serialization primitives, and `ref` as a prop (no more `forwardRef`). Fluxy uses `react-jsx` automatic transform so there is no `import React from 'react'` boilerplate. The v19 concurrent renderer also improves streaming UI updates during agent token-by-token responses.
+React 19 ships the new `use()` hook, improved server-client serialization primitives, and `ref` as a prop (no more `forwardRef`). Bloby uses `react-jsx` automatic transform so there is no `import React from 'react'` boilerplate. The v19 concurrent renderer also improves streaming UI updates during agent token-by-token responses.
 
 ### Why http.createServer for the Supervisor (not Express)
 
 The supervisor does not serve typical HTTP routes -- it is a **reverse proxy** and **WebSocket gateway**. Express adds overhead that provides no value here:
 
-- Routing is simple prefix-matching (`/api/*`, `/fluxy/*`, everything else).
+- Routing is simple prefix-matching (`/api/*`, `/bloby/*`, everything else).
 - Request bodies are not parsed -- they are piped directly to upstream services.
 - WebSocket upgrade handling requires raw access to the `http.Server` instance.
 - Vite's HMR WebSocket attaches directly to the server (requires `hmr: { server }`).
@@ -72,7 +72,7 @@ The raw Anthropic API (also in `shared/ai.ts`) supports streaming text, but not 
 - Session resumption via `session_id` for conversation continuity across process restarts.
 - Abort controller support for user-initiated stop.
 
-The raw API path remains available for OpenAI and Ollama providers, which do not need tool use in Fluxy's current architecture.
+The raw API path remains available for OpenAI and Ollama providers, which do not need tool use in Bloby's current architecture.
 
 ### Why Three.js / React Three Fiber
 

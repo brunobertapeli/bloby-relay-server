@@ -5,7 +5,7 @@ import { createPublicClient, http, formatUnits } from 'viem';
 import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { authenticate } from '../middleware/auth.js';
-import { claimVerifyLimiter, claimGenerateLimiter } from '../middleware/rateLimiter.js';
+import { claimVerifyLimiter, claimGenerateLimiter, claimStatusLimiter, claimBlobiesLimiter } from '../middleware/rateLimiter.js';
 import { buildRelayUrl } from '../lib/validate.js';
 
 const tempo = {
@@ -60,7 +60,7 @@ function generateClaimCode() {
 /**
  * POST /api/claim/generate
  *
- * Dashboard user generates a claim code to link a self-hosted Fluxy.
+ * Dashboard user generates a claim code to link a self-hosted Bloby.
  * Invalidates any existing pending claims for this account.
  *
  * JWT auth required.
@@ -154,9 +154,9 @@ router.post('/claim/verify', authenticate, claimVerifyLimiter, async (req, res) 
  * Only returns claims belonging to the authenticated account.
  *
  * JWT auth required.
- * Returns: { claimed, expired?, fluxy?, claimedAt?, expiresAt? }
+ * Returns: { claimed, expired?, bloby?, claimedAt?, expiresAt? }
  */
-router.get('/claim/status/:code', jwtAuth, async (req, res) => {
+router.get('/claim/status/:code', jwtAuth, claimStatusLimiter, async (req, res) => {
   try {
     const db = getDb();
     const accountId = new ObjectId(req.account.id);
@@ -173,7 +173,7 @@ router.get('/claim/status/:code', jwtAuth, async (req, res) => {
     if (claim.claimedAt) {
       return res.json({
         claimed: true,
-        fluxy: claim.claimedBy,
+        bloby: claim.claimedBy,
         claimedAt: claim.claimedAt.toISOString(),
       });
     }
@@ -191,42 +191,42 @@ router.get('/claim/status/:code', jwtAuth, async (req, res) => {
 });
 
 /**
- * GET /api/claim/fluxies
+ * GET /api/claim/blobies
  *
- * Get all fluxies linked to this dashboard account.
+ * Get all blobies linked to this dashboard account.
  *
  * JWT auth required.
- * Returns: { fluxies: [{ id, name, url, tier, isOnline, lastSeen }] }
+ * Returns: { blobies: [{ id, name, url, tier, isOnline, lastSeen }] }
  */
-router.get('/claim/fluxies', jwtAuth, async (req, res) => {
+router.get('/claim/blobies', jwtAuth, claimBlobiesLimiter, async (req, res) => {
   try {
     const accountId = new ObjectId(req.account.id);
 
-    const fluxies = await getUsers()
+    const blobies = await getUsers()
       .find({ accountId })
       .project({ username: 1, tier: 1, isOnline: 1, lastHeartbeat: 1, walletAddress: 1 })
       .toArray();
 
     const results = await Promise.all(
-      fluxies.map(async (f) => {
-        const balance = f.walletAddress ? await getUsdcBalance(f.walletAddress) : '0';
+      blobies.map(async (b) => {
+        const balance = b.walletAddress ? await getUsdcBalance(b.walletAddress) : '0';
         return {
-          id: f._id.toString(),
-          name: f.username,
-          url: buildRelayUrl(f.username, f.tier),
-          tier: f.tier,
-          isOnline: f.isOnline,
-          lastSeen: f.lastHeartbeat?.toISOString() || null,
-          walletAddress: f.walletAddress || null,
+          id: b._id.toString(),
+          name: b.username,
+          url: buildRelayUrl(b.username, b.tier),
+          tier: b.tier,
+          isOnline: b.isOnline,
+          lastSeen: b.lastHeartbeat?.toISOString() || null,
+          walletAddress: b.walletAddress || null,
           balance,
         };
       }),
     );
 
-    res.json({ fluxies: results });
+    res.json({ blobies: results });
   } catch (error) {
-    console.error('[claim/fluxies]', error.message);
-    res.status(500).json({ error: 'Failed to fetch fluxies' });
+    console.error('[claim/blobies]', error.message);
+    res.status(500).json({ error: 'Failed to fetch blobies' });
   }
 });
 

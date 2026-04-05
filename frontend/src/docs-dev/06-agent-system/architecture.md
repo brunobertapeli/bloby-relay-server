@@ -6,7 +6,7 @@ title: "Agent Architecture"
 
 ### 1.1 Claude Agent SDK Integration
 
-The primary agent path uses the `@anthropic-ai/claude-agent-sdk` package. The integration lives in `supervisor/fluxy-agent.ts` and wraps the SDK's `query()` function with Fluxy-specific context assembly, streaming I/O, and lifecycle management.
+The primary agent path uses the `@anthropic-ai/claude-agent-sdk` package. The integration lives in `supervisor/bloby-agent.ts` and wraps the SDK's `query()` function with Bloby-specific context assembly, streaming I/O, and lifecycle management.
 
 Key import (line 6):
 
@@ -14,18 +14,18 @@ Key import (line 6):
 import { query, type SDKMessage, type SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 ```
 
-The SDK is invoked in `startFluxyAgentQuery()` (line 116) with a call to `query()` (line 192) that returns an async iterable of SDK messages. The function iterates over these messages, extracting text blocks, tool-use blocks, and result events, then re-emits them as Fluxy's internal event protocol (`bot:token`, `bot:tool`, `bot:response`, `bot:error`, `bot:done`).
+The SDK is invoked in `startBlobyAgentQuery()` (line 116) with a call to `query()` (line 192) that returns an async iterable of SDK messages. The function iterates over these messages, extracting text blocks, tool-use blocks, and result events, then re-emits them as Bloby's internal event protocol (`bot:token`, `bot:tool`, `bot:response`, `bot:error`, `bot:done`).
 
 ### 1.2 Session Management
 
-Fluxy uses a **fresh-context-per-turn** model. There is no persistent Agent SDK session carried across turns. The file header (lines 1-4) states this explicitly:
+Bloby uses a **fresh-context-per-turn** model. There is no persistent Agent SDK session carried across turns. The file header (lines 1-4) states this explicitly:
 
 ```
 Fresh context per turn -- memory files and conversation history
 are injected into the system prompt.
 ```
 
-Each invocation of `startFluxyAgentQuery()` creates a brand-new `query()` call. Continuity is achieved by:
+Each invocation of `startBlobyAgentQuery()` creates a brand-new `query()` call. Continuity is achieved by:
 
 1. Injecting the last 20 messages from the database into the system prompt as a `# Recent Conversation` section (line 142).
 2. Injecting memory files (MYSELF.md, MYHUMAN.md, MEMORY.md, PULSE.json, CRONS.json) into the system prompt (line 139).
@@ -36,11 +36,11 @@ The `activeQueries` map (line 25) tracks in-flight queries by conversation ID so
 const activeQueries = new Map<string, ActiveQuery>();
 ```
 
-Each query gets its own `AbortController` (line 132). Cancellation is exposed via `stopFluxyAgentQuery()` (line 281), which aborts the controller and removes the entry from the map.
+Each query gets its own `AbortController` (line 132). Cancellation is exposed via `stopBlobyAgentQuery()` (line 281), which aborts the controller and removes the entry from the map.
 
 ### 1.3 Query Lifecycle
 
-The lifecycle of a single agent query in `startFluxyAgentQuery()` (lines 116-277):
+The lifecycle of a single agent query in `startBlobyAgentQuery()` (lines 116-277):
 
 1. **OAuth token retrieval** -- `getClaudeAccessToken()` from `worker/claude-auth.ts` (line 126). If the token is expired, it attempts a refresh using the stored refresh token.
 2. **System prompt construction** -- `readSystemPrompt()` + memory file injection (lines 133-143).

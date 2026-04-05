@@ -10,11 +10,11 @@ Requests are matched in order. The first match wins.
 
 | Path Pattern       | Target                                    | Notes                                              |
 |--------------------|-------------------------------------------|----------------------------------------------------|
-| `/fluxy/widget.js` | Served directly from `paths.widgetJs`     | Not part of any Vite build                         |
-| `/sw.js`, `/fluxy/sw.js` | Served from embedded `SW_JS` constant | Service worker for PWA + push notifications        |
+| `/bloby/widget.js` | Served directly from `paths.widgetJs`     | Not part of any Vite build                         |
+| `/sw.js`, `/bloby/sw.js` | Served from embedded `SW_JS` constant | Service worker for PWA + push notifications        |
 | `/app/api/*`       | Backend (`127.0.0.1:<backendPort>`)       | Strips `/app/api` prefix before proxying           |
 | `/api/*`           | Worker (`127.0.0.1:<workerPort>`)         | Auth middleware applied for mutation routes         |
-| `/fluxy`, `/fluxy/*` | Static files from `dist-fluxy/`         | Pre-built chat UI SPA, directory traversal guarded |
+| `/bloby`, `/bloby/*` | Static files from `dist-bloby/`         | Pre-built chat UI SPA, directory traversal guarded |
 | `/*` (default)     | Vite Dashboard (`127.0.0.1:<vitePort>`)   | All other routes go to the dashboard dev server    |
 
 ### 5.2 Proxy Implementation

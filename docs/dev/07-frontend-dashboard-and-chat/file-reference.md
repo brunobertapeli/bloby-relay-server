@@ -11,7 +11,7 @@ Comprehensive listing of all frontend-related files across both applications.
 | File | Description |
 |---|---|
 | `vite.config.ts` | Dashboard Vite configuration. Root is `workspace/client`, builds to `dist/`, proxies `/api` to supervisor and `/app/api` to user backend. Includes `@tailwindcss/vite` plugin. |
-| `vite.fluxy.config.ts` | Chat UI Vite configuration. Root is `supervisor/chat`, base path `/fluxy/`, builds to `dist-fluxy/`. Multi-entry: `fluxy.html` and `onboard.html`. |
+| `vite.bloby.config.ts` | Chat UI Vite configuration. Root is `supervisor/chat`, base path `/bloby/`, builds to `dist-bloby/`. Multi-entry: `bloby.html` and `onboard.html`. |
 | `components.json` | shadcn/ui configuration. Style: `new-york`, base color: `neutral`, icon library: `lucide`. Points CSS to `workspace/client/src/styles/globals.css`. |
 | `package.json` | Shared dependencies for both frontends. Includes React 19, Vite 7, Tailwind v4, Zustand, framer-motion, recharts, shadcn primitives, and more. |
 
@@ -49,7 +49,7 @@ Comprehensive listing of all frontend-related files across both applications.
 | File | Description |
 |---|---|
 | `DashboardLayout.tsx` | App shell with responsive layout. Desktop: sidebar + main content. Mobile: hamburger header + sheet nav. Polls `/api/health` every 15s for connection status. Uses `h-dvh` for proper mobile viewport. |
-| `Sidebar.tsx` | 256px sidebar with Fluxy branding, time-aware greeting, and navigation (Dashboard, My Apps dropdown, Reports, Research, What Else). Uses `lucide-react` icons and sidebar-specific color tokens. |
+| `Sidebar.tsx` | 256px sidebar with Bloby branding, time-aware greeting, and navigation (Dashboard, My Apps dropdown, Reports, Research, What Else). Uses `lucide-react` icons and sidebar-specific color tokens. |
 | `MobileNav.tsx` | Hamburger menu button that opens a shadcn `Sheet` from the left containing the `Sidebar` component. Hidden on `md:` breakpoint and above. |
 | `Footer.tsx` | Status bar with green/red connection indicator dot and "Connected"/"Disconnected" text. Receives `connected` prop from `DashboardLayout`. |
 
@@ -103,10 +103,10 @@ All shadcn/ui components (new-york style, Radix UI primitives):
 
 | File | Description |
 |---|---|
-| `fluxy.html` | Chat app HTML shell. Minimal: `#root` div, module script loading `fluxy-main.tsx`, service worker registration at `/fluxy/sw.js`. |
-| `onboard.html` | Onboarding wizard HTML shell. Same structure as `fluxy.html` but loads `onboard-main.tsx`. |
-| `fluxy-main.tsx` | Chat app entry point. Large root component (`FluxyApp`) handling auth gate, WebSocket connection, chat UI composition, push notifications, PWA install flow, rebuild event forwarding, and setup wizard overlay. |
-| `onboard-main.tsx` | Onboarding entry point. Renders `<OnboardWizard isInitialSetup />`, notifies parent (`fluxy:onboard-complete`) on completion. |
+| `bloby.html` | Chat app HTML shell. Minimal: `#root` div, module script loading `bloby-main.tsx`, service worker registration at `/bloby/sw.js`. |
+| `onboard.html` | Onboarding wizard HTML shell. Same structure as `bloby.html` but loads `onboard-main.tsx`. |
+| `bloby-main.tsx` | Chat app entry point. Large root component (`BlobyApp`) handling auth gate, WebSocket connection, chat UI composition, push notifications, PWA install flow, rebuild event forwarding, and setup wizard overlay. |
+| `onboard-main.tsx` | Onboarding entry point. Renders `<OnboardWizard isInitialSetup />`, notifies parent (`bloby:onboard-complete`) on completion. |
 | `OnboardWizard.tsx` | Multi-step setup wizard. Provider selection (Anthropic/OpenAI), OAuth device flow, model selection, agent/user name, whisper toggle, portal password, tunnel config, handle registration. Access method detection (Tailscale, LAN, localhost, tunnel, relay, custom domain). |
 
 ### Chat Components (`supervisor/chat/src/components/Chat/`)
@@ -132,7 +132,7 @@ All shadcn/ui components (new-york style, Radix UI primitives):
 | File | Description |
 |---|---|
 | `useChat.ts` | Simple chat hook. Manages messages, streaming state, tool activity, conversation ID. WebSocket event handlers for `bot:*` events. Optimistic message sending. Conversation persistence via `/api/context/*`. Exports types: `ChatMessage`, `ToolActivity`, `Attachment`, `StoredAttachment`. |
-| `useFluxyChat.ts` | Full-featured chat hook for standalone app. Extends `useChat` semantics with authenticated fetching, cursor-based pagination (20 messages per page), cross-device sync (`chat:sync`), server conversation creation (`chat:conversation-created`), reconnect state recovery (`chat:state`), multi-client clearing (`chat:cleared`), and periodic DB re-sync during streams. |
+| `useBlobyChat.ts` | Full-featured chat hook for standalone app. Extends `useChat` semantics with authenticated fetching, cursor-based pagination (20 messages per page), cross-device sync (`chat:sync`), server conversation creation (`chat:conversation-created`), reconnect state recovery (`chat:state`), multi-client clearing (`chat:cleared`), and periodic DB re-sync during streams. |
 
 ### Libraries (`supervisor/chat/src/lib/`)
 
@@ -153,21 +153,21 @@ All shadcn/ui components (new-york style, Radix UI primitives):
 
 | File | Description |
 |---|---|
-| `widget.js` | Chat bubble injector. Creates backdrop, slide-in panel (480px, iframe to `/fluxy/`), and animated bubble (WebM video or PNG fallback for Safari). Toggle on click/Escape, `postMessage` handling for close/install, onboarding visibility check, HMR state persistence via `sessionStorage`. |
+| `widget.js` | Chat bubble injector. Creates backdrop, slide-in panel (480px, iframe to `/bloby/`), and animated bubble (WebM video or PNG fallback for Safari). Toggle on click/Escape, `postMessage` handling for close/install, onboarding visibility check, HMR state persistence via `sessionStorage`. |
 | `vite-dev.ts` | Vite dev server launcher. Creates dashboard Vite server on `port+2`, attaches HMR WebSocket to supervisor's HTTP server (for tunnel/relay compatibility). Pre-warms module transforms. Exports `reloadDashboard()` for programmatic full-reload. |
-| `index.ts` | Supervisor main. HTTP reverse proxy, WebSocket server, auth middleware, `/fluxy/*` static file serving, chat message routing, agent query orchestration. Contains embedded service worker constant and recovering HTML. |
+| `index.ts` | Supervisor main. HTTP reverse proxy, WebSocket server, auth middleware, `/bloby/*` static file serving, chat message routing, agent query orchestration. Contains embedded service worker constant and recovering HTML. |
 
 ---
 
-## Build Output (`dist-fluxy/`)
+## Build Output (`dist-bloby/`)
 
-Pre-built static files shipped in the npm package. Not checked into source control but generated by `npm run build:fluxy`. Contains:
+Pre-built static files shipped in the npm package. Not checked into source control but generated by `npm run build:bloby`. Contains:
 
 | Path | Description |
 |---|---|
-| `fluxy.html` | Chat app HTML entry point (references hashed JS/CSS). |
+| `bloby.html` | Chat app HTML entry point (references hashed JS/CSS). |
 | `onboard.html` | Onboarding wizard HTML entry point (references hashed JS/CSS). |
 | `assets/*.js` | Bundled and minified JavaScript chunks with content hashes. |
 | `assets/*.css` | Bundled and minified CSS with content hashes. |
 
-The supervisor serves these files for any request matching `/fluxy/*`, with appropriate cache headers (no-cache for HTML, immutable for hashed assets).
+The supervisor serves these files for any request matching `/bloby/*`, with appropriate cache headers (no-cache for HTML, immutable for hashed assets).

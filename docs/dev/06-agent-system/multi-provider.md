@@ -41,7 +41,7 @@ export function createProvider(provider: string, apiKey: string, baseUrl?: strin
 
 The supervisor determines which path to use in `supervisor/index.ts` (lines 446-604). The routing logic:
 
-- **If the provider is `'anthropic'`** (line 446): the request goes through the Claude Agent SDK path (`startFluxyAgentQuery()`). This is the primary path with full agentic capabilities (tool use, file editing, shell access, multi-turn reasoning).
+- **If the provider is `'anthropic'`** (line 446): the request goes through the Claude Agent SDK path (`startBlobyAgentQuery()`). This is the primary path with full agentic capabilities (tool use, file editing, shell access, multi-turn reasoning).
 
 - **If the provider is anything else** (lines 580-604): the request goes through the `AiProvider.chat()` interface defined in `shared/ai.ts`. This is a simpler path -- it sends conversation history as a message array and streams token-by-token responses. There is no tool use, no file access, no agentic behavior.
 

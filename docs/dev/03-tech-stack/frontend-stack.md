@@ -2,7 +2,7 @@
 title: "Frontend Stack"
 ---
 
-Fluxy ships **two independent frontend applications**, each with its own Vite config:
+Bloby ships **two independent frontend applications**, each with its own Vite config:
 
 ### 3a. Dashboard (`workspace/client/` -- `vite.config.ts`)
 
@@ -44,9 +44,9 @@ The main management UI. Full-featured SPA.
 
 CSS globals live at `workspace/client/src/styles/globals.css`. Component aliases follow the standard shadcn layout: `@/components/ui`, `@/lib/utils`, `@/hooks`.
 
-### 3b. Fluxy Chat (`supervisor/chat/` -- `vite.fluxy.config.ts`)
+### 3b. Bloby Chat (`supervisor/chat/` -- `vite.bloby.config.ts`)
 
-The embeddable chat interface and onboarding flow. Served under `/fluxy/`.
+The embeddable chat interface and onboarding flow. Served under `/bloby/`.
 
 | Dependency                       | Version    | Purpose                              |
 | -------------------------------- | ---------- | ------------------------------------ |
@@ -60,10 +60,10 @@ The embeddable chat interface and onboarding flow. Served under `/fluxy/`.
 
 This build has **two HTML entry points** configured via Rollup:
 
-- `fluxy.html` -- the main chat interface.
+- `bloby.html` -- the main chat interface.
 - `onboard.html` -- the first-run setup wizard.
 
-The base path is `/fluxy/` and the output goes to `dist-fluxy/`.
+The base path is `/bloby/` and the output goes to `dist-bloby/`.
 
 ### PostCSS Configuration
 

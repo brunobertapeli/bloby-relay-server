@@ -20,7 +20,7 @@ Browser  <--  WsClient  <--  Supervisor WebSocket  <--  Events
 
 The client-side `WsClient` class (`supervisor/chat/src/lib/ws-client.ts`) maintains a persistent WebSocket connection with automatic reconnection (exponential backoff from 1s to 8s max -- line 19). Messages are sent as JSON with a `{ type, data }` envelope (line 89-97).
 
-When the user types a message, the `useFluxyChat` hook (line 211) calls `ws.send('user:message', payload)` with the content, optional attachments, and current conversation ID.
+When the user types a message, the `useBlobyChat` hook (line 211) calls `ws.send('user:message', payload)` with the content, optional attachments, and current conversation ID.
 
 ### 6.3 Step 2: Supervisor Message Handling
 
@@ -35,7 +35,7 @@ For the Anthropic provider path (line 446), a comprehensive async flow begins:
    - If not, looks up the current conversation from the worker API (`/api/context/current`).
    - If none exists, creates a new conversation via `POST /api/conversations`.
    - Saves the user message to the database via `POST /api/conversations/{id}/messages`.
-   - Broadcasts the user message to other connected clients via `broadcastFluxyExcept()`.
+   - Broadcasts the user message to other connected clients via `broadcastBlobyExcept()`.
 
 3. **Name resolution** (lines 503-526): Fetches the configured agent and user names from `/api/onboard/status`, and the last 20 messages from the conversation for history injection.
 
@@ -43,16 +43,16 @@ For the Anthropic provider path (line 446), a comprehensive async flow begins:
 
 Before the agent is invoked, the context is assembled (described in Section 2):
 
-1. Base system prompt read from `fluxy-system-prompt.txt` with `$BOT`/`$HUMAN` replaced.
+1. Base system prompt read from `bloby-system-prompt.txt` with `$BOT`/`$HUMAN` replaced.
 2. Memory files (MYSELF.md, MYHUMAN.md, MEMORY.md, PULSE.json, CRONS.json) appended.
 3. Recent conversation history (up to 19 previous messages, excluding the current one) appended.
 
 ### 6.5 Step 4: Agent Invocation
 
-The `startFluxyAgentQuery()` function is called (line 532 of `supervisor/index.ts`):
+The `startBlobyAgentQuery()` function is called (line 532 of `supervisor/index.ts`):
 
 ```ts
-startFluxyAgentQuery(convId, content, freshConfig.ai.model, (type, eventData) => {
+startBlobyAgentQuery(convId, content, freshConfig.ai.model, (type, eventData) => {
   // event handler
 }, data.attachments, savedFiles, { botName, humanName }, recentMessages);
 ```
@@ -67,7 +67,7 @@ The function:
 
 ### 6.6 Step 5: Streaming Response
 
-The streaming loop in `startFluxyAgentQuery()` (lines 215-258) handles three SDK message types:
+The streaming loop in `startBlobyAgentQuery()` (lines 215-258) handles three SDK message types:
 
 **`assistant` messages** (line 219): Contain content blocks. Text blocks are accumulated into `fullText` and emitted token-by-token via `bot:token`. Tool-use blocks are tracked and emitted as `bot:tool` events with the tool name and input.
 

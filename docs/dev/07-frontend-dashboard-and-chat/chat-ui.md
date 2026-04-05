@@ -8,21 +8,21 @@ The Chat UI is a self-contained single-page application that provides the AI cha
 
 ## Vite Configuration
 
-The chat's Vite config is at the project root: `vite.fluxy.config.ts`.
+The chat's Vite config is at the project root: `vite.bloby.config.ts`.
 
 ```ts
 export default defineConfig({
   root: 'supervisor/chat',
-  base: '/fluxy/',
+  base: '/bloby/',
   resolve: {
     alias: { '@': path.resolve(__dirname, 'supervisor/chat/src') },
   },
   build: {
-    outDir: '../../dist-fluxy',
+    outDir: '../../dist-bloby',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        fluxy: path.resolve(__dirname, 'supervisor/chat/fluxy.html'),
+        bloby: path.resolve(__dirname, 'supervisor/chat/bloby.html'),
         onboard: path.resolve(__dirname, 'supervisor/chat/onboard.html'),
       },
     },
@@ -33,22 +33,22 @@ export default defineConfig({
 
 Key differences from the dashboard config:
 
-- **Base path** is `/fluxy/` so all assets are served under that prefix.
-- **Multiple entry points** via Rollup's `input` -- `fluxy.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
-- **Build output** goes to `dist-fluxy/` at the project root, which is committed to the npm package. The supervisor serves these files statically -- no Vite dev server.
+- **Base path** is `/bloby/` so all assets are served under that prefix.
+- **Multiple entry points** via Rollup's `input` -- `bloby.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
+- **Build output** goes to `dist-bloby/` at the project root, which is committed to the npm package. The supervisor serves these files statically -- no Vite dev server.
 - **Dep optimization** includes `react-markdown`, `remark-gfm`, and `react-syntax-highlighter` for markdown rendering in chat messages.
 
-The build is triggered via `npm run build:fluxy` (or as part of `npm run build`). The resulting `dist-fluxy/` directory is pre-shipped in the npm package so users do not need to build it.
+The build is triggered via `npm run build:bloby` (or as part of `npm run build`). The resulting `dist-bloby/` directory is pre-shipped in the npm package so users do not need to build it.
 
 ## Entry Points
 
-### `fluxy.html` + `fluxy-main.tsx` (Chat)
+### `bloby.html` + `bloby-main.tsx` (Chat)
 
-The main chat interface. `fluxy.html` is minimal -- a `#root` div, the module script entry, and a service worker registration (`/fluxy/sw.js`). The `FluxyApp` component in `fluxy-main.tsx` is a large root component that handles:
+The main chat interface. `bloby.html` is minimal -- a `#root` div, the module script entry, and a service worker registration (`/bloby/sw.js`). The `BlobyApp` component in `bloby-main.tsx` is a large root component that handles:
 
 1. **Authentication gate** -- Checks `/api/onboard/status` to determine if a password is configured. If yes, validates the stored JWT token. Shows `LoginScreen` if authentication fails.
-2. **WebSocket connection** -- Creates a `WsClient` instance connecting to `/fluxy/ws` with the auth token appended as a query parameter.
-3. **Chat UI** -- Renders `MessageList` and `InputBar` with the `useFluxyChat` hook managing message state.
+2. **WebSocket connection** -- Creates a `WsClient` instance connecting to `/bloby/ws` with the auth token appended as a query parameter.
+3. **Chat UI** -- Renders `MessageList` and `InputBar` with the `useBlobyChat` hook managing message state.
 4. **Settings loading** -- Fetches `/api/settings` to get the bot name and whisper (voice) configuration.
 5. **Push notification management** -- Subscribe/unsubscribe UI for Web Push using VAPID. Checks `PushManager` availability and permission state.
 6. **PWA install flow** -- Mobile-only "Install App" menu option. On Android, triggers `beforeinstallprompt`. On iOS, shows manual instructions (share -> add to home screen).
@@ -57,13 +57,13 @@ The main chat interface. `fluxy.html` is minimal -- a `#root` div, the module sc
 
 ### `onboard.html` + `onboard-main.tsx` (Onboarding)
 
-The initial setup wizard, displayed as a full-screen iframe over the dashboard on first run. `onboard-main.tsx` simply renders `<OnboardWizard isInitialSetup />` and notifies the parent window on completion via `postMessage({ type: 'fluxy:onboard-complete' })`.
+The initial setup wizard, displayed as a full-screen iframe over the dashboard on first run. `onboard-main.tsx` simply renders `<OnboardWizard isInitialSetup />` and notifies the parent window on completion via `postMessage({ type: 'bloby:onboard-complete' })`.
 
 ## Component Hierarchy
 
 ### Chat Components (`src/components/Chat/`)
 
-**`ChatView`** -- Wrapper component that wires `useChat` to `MessageList` and `InputBar`. Used by the dashboard-embedded variant (using the simpler `useChat` hook). The standalone Fluxy app (`fluxy-main.tsx`) uses `useFluxyChat` directly instead.
+**`ChatView`** -- Wrapper component that wires `useChat` to `MessageList` and `InputBar`. Used by the dashboard-embedded variant (using the simpler `useChat` hook). The standalone Bloby app (`bloby-main.tsx`) uses `useBlobyChat` directly instead.
 
 **`MessageList`** -- Scrollable message container with:
 
@@ -85,7 +85,7 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 - File attachments (`Paperclip` button) supporting images and PDFs. Camera capture button (`Camera`) for mobile.
 - Image paste handling from clipboard.
 - Image compression (`compressImage()`) that scales images down to 1600px max dimension and compresses JPEG quality to stay under 4MB.
-- Draft persistence to `localStorage` (debounced, key `fluxy_draft`).
+- Draft persistence to `localStorage` (debounced, key `bloby_draft`).
 - Voice recording via `MediaRecorder` API (hold-to-record with slide-to-cancel gesture). Records WebM audio, sends to Whisper for transcription.
 - Three button states: microphone (no text), send arrow (has text), stop square (streaming).
 - Desktop: Enter sends, Shift+Enter inserts newline. Mobile: Enter always inserts newline.
@@ -134,9 +134,9 @@ The simpler of the two chat hooks. Used by `ChatView` for the dashboard-embedded
 - `sendMessage()` with optimistic UI (adds user message immediately before server confirms).
 - `clearContext()` to reset conversation state.
 
-### `useFluxyChat` (`src/hooks/useFluxyChat.ts`)
+### `useBlobyChat` (`src/hooks/useBlobyChat.ts`)
 
-The full-featured hook used by the standalone Fluxy chat app. Extends `useChat` with:
+The full-featured hook used by the standalone Bloby chat app. Extends `useChat` with:
 
 - **Authenticated fetching** via `authFetch()` for all API calls.
 - **Cursor-based pagination** (`loadOlder()`) -- fetches 20 messages before the oldest visible message.
@@ -187,7 +187,7 @@ WebSocket events used:
 
 ## Auth Library (`src/lib/auth.ts`)
 
-Manages JWT tokens in `localStorage` (key: `fluxy_token`):
+Manages JWT tokens in `localStorage` (key: `bloby_token`):
 
 - `getAuthToken()` / `setAuthToken()` / `clearAuthToken()` -- Simple localStorage accessors.
 - `authFetch(url, options)` -- Drop-in `fetch()` replacement that injects `Authorization: Bearer <token>` headers and handles 401 responses by clearing the token and triggering the auth failure callback.
@@ -207,15 +207,15 @@ Push states: `loading`, `unsupported`, `denied`, `subscribed`, `unsubscribed`.
 
 The chat UI uses the same Tailwind v4 setup as the dashboard, with an identical `globals.css` theme. The dark color scheme (`#212121` background, `#3C8FFF` primary, `#FD486B` destructive) provides visual consistency. Custom classes include `.text-gradient`, `.bg-gradient-brand`, `.glow-border`, `.animated-border`, and `.input-glow`.
 
-## How dist-fluxy/ Works
+## How dist-bloby/ Works
 
 The chat UI is pre-built and shipped as static files:
 
-1. `npm run build:fluxy` runs `vite build --config vite.fluxy.config.ts`.
-2. Output goes to `dist-fluxy/` with hashed JS/CSS asset filenames.
-3. Two HTML entry points: `fluxy.html` and `onboard.html`.
-4. The supervisor serves these files statically for any request matching `/fluxy/*`.
-5. The `dist-fluxy/` directory is included in the npm package's `files` array.
-6. If `dist-fluxy/` is missing at startup (e.g., first run after clone), the supervisor auto-builds it.
+1. `npm run build:bloby` runs `vite build --config vite.bloby.config.ts`.
+2. Output goes to `dist-bloby/` with hashed JS/CSS asset filenames.
+3. Two HTML entry points: `bloby.html` and `onboard.html`.
+4. The supervisor serves these files statically for any request matching `/bloby/*`.
+5. The `dist-bloby/` directory is included in the npm package's `files` array.
+6. If `dist-bloby/` is missing at startup (e.g., first run after clone), the supervisor auto-builds it.
 
 This approach means the chat never depends on a dev server being alive -- it works even if Vite crashes, the Node process is restarting, or the dashboard is rebuilding.

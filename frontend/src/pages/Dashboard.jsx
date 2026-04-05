@@ -63,13 +63,13 @@ function DashNavbar({ user, onLogout }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <motion.img
-              src="/assets/images/fluxy.png"
-              alt="Fluxy"
+              src="/assets/images/bloby.png"
+              alt="Bloby"
               className="h-8 w-auto"
               whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
-            <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
+            <span className="text-lg font-bold font-display text-foreground">Bloby</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -134,8 +134,8 @@ function DashNavbar({ user, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-7 w-auto" />
-                  <span className="font-bold font-display text-foreground">Fluxy</span>
+                  <img src="/assets/images/bloby.png" alt="Bloby" className="h-7 w-auto" />
+                  <span className="font-bold font-display text-foreground">Bloby</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />
@@ -202,7 +202,7 @@ function DashNavbar({ user, onLogout }) {
   )
 }
 
-function ClaimFluxyCard({ onClaimed }) {
+function ClaimBlobyCard({ onClaimed }) {
   const [claimCode, setClaimCode] = useState(null)
   const [timeLeft, setTimeLeft] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -227,7 +227,7 @@ function ClaimFluxyCard({ onClaimed }) {
     setLoading(true)
 
     try {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       const res = await fetch(`${API_URL}/api/claim/generate`, {
         method: 'POST',
         headers: {
@@ -267,7 +267,7 @@ function ClaimFluxyCard({ onClaimed }) {
             const status = await statusRes.json()
             if (status.claimed) {
               cleanup()
-              setClaimed(status.fluxy)
+              setClaimed(status.bloby)
               onClaimed?.()
             }
           }
@@ -283,7 +283,7 @@ function ClaimFluxyCard({ onClaimed }) {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
   const premadeMessage = claimCode
-    ? `I need you to link yourself to my fluxy.bot dashboard. Use this claim code to verify: ${claimCode}`
+    ? `I need you to link yourself to my bloby.bot dashboard. Use this claim code to verify: ${claimCode}`
     : ''
 
   if (claimed) {
@@ -291,7 +291,7 @@ function ClaimFluxyCard({ onClaimed }) {
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-2">
         <div className="flex items-center gap-2">
           <HiCheckCircle className="w-5 h-5 text-emerald-400" />
-          <p className="text-sm font-medium font-display text-emerald-400">Fluxy claimed successfully!</p>
+          <p className="text-sm font-medium font-display text-emerald-400">Bloby claimed successfully!</p>
         </div>
         <p className="text-xs text-muted-foreground font-display">
           <span className="text-foreground font-medium">{claimed.username}</span> is now linked to your dashboard.
@@ -302,7 +302,7 @@ function ClaimFluxyCard({ onClaimed }) {
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
-      <p className="text-xs text-muted-foreground font-display">Generate a claim code and send it to your Fluxy. Once verified, it will appear here.</p>
+      <p className="text-xs text-muted-foreground font-display">Generate a claim code and send it to your Bloby. Once verified, it will appear here.</p>
       {error && <p className="text-xs text-red-400 font-display">{error}</p>}
       {!claimCode ? (
         <Button
@@ -328,7 +328,7 @@ function ClaimFluxyCard({ onClaimed }) {
             </div>
           </div>
           <div className="rounded-xl bg-background border border-border/50 p-4">
-            <p className="text-xs text-muted-foreground mb-2 font-display">Copy and paste this to your Fluxy</p>
+            <p className="text-xs text-muted-foreground mb-2 font-display">Copy and paste this to your Bloby</p>
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-foreground/80 font-display flex-1">{premadeMessage}</p>
               <CopyButton text={premadeMessage} className="shrink-0 mt-0.5" />
@@ -348,7 +348,7 @@ function ClaimFluxyCard({ onClaimed }) {
 
 const fundPresets = [5, 10, 25]
 
-function FundWalletModal({ fluxy, onClose, onFunded }) {
+function FundWalletModal({ bloby, onClose, onFunded }) {
   const [selected, setSelected] = useState(null)
   const [custom, setCustom] = useState('')
   const [showCustom, setShowCustom] = useState(false)
@@ -382,14 +382,14 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
     setError(null)
 
     try {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       const res = await fetch(`${API_URL}/api/stripe/onramp-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fluxyId: fluxy.id, amount: activeAmount }),
+        body: JSON.stringify({ blobyId: bloby.id, amount: activeAmount }),
       })
 
       if (!res.ok) {
@@ -449,7 +449,7 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
               <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
               <div>
                 <h3 className="text-base font-bold font-display text-foreground">Fund Wallet</h3>
-                <p className="text-xs text-muted-foreground">{fluxy.name} &middot; USDC</p>
+                <p className="text-xs text-muted-foreground">{bloby.name} &middot; USDC</p>
               </div>
             </div>
           </div>
@@ -544,7 +544,7 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
                 <div className="text-center">
                   <p className="text-sm font-semibold font-display text-foreground mb-1">Funds delivered!</p>
                   <p className="text-xs text-muted-foreground font-display">
-                    ${activeAmount.toFixed(2)} USDC has been sent to {fluxy.name}'s wallet.
+                    ${activeAmount.toFixed(2)} USDC has been sent to {bloby.name}'s wallet.
                   </p>
                 </div>
                 <button
@@ -562,12 +562,12 @@ function FundWalletModal({ fluxy, onClose, onFunded }) {
   )
 }
 
-function FluxyCard({ fluxy, onAddFunds }) {
-  const hasWallet = !!fluxy.walletAddress
+function BlobyCard({ bloby, onAddFunds }) {
+  const hasWallet = !!bloby.walletAddress
   const truncatedWallet = hasWallet
-    ? `${fluxy.walletAddress.slice(0, 6)}...${fluxy.walletAddress.slice(-4)}`
+    ? `${bloby.walletAddress.slice(0, 6)}...${bloby.walletAddress.slice(-4)}`
     : null
-  const balanceNum = parseFloat(fluxy.balance || '0')
+  const balanceNum = parseFloat(bloby.balance || '0')
   const formattedBalance = balanceNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
@@ -577,16 +577,16 @@ function FluxyCard({ fluxy, onAddFunds }) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
-              src="/assets/images/fluxy.png"
-              alt={fluxy.name}
+              src="/assets/images/bloby.png"
+              alt={bloby.name}
               className="w-9 h-9 object-contain"
               style={{ filter: 'grayscale(1) opacity(0.55)' }}
             />
-            <span className={`absolute bottom-1.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${fluxy.isOnline ? 'bg-emerald-400' : 'bg-muted-foreground/30'}`} />
+            <span className={`absolute bottom-1.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${bloby.isOnline ? 'bg-emerald-400' : 'bg-muted-foreground/30'}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{fluxy.name}</h3>
-            <p className="text-[11px] text-muted-foreground/60 font-mono truncate mt-0.5">{fluxy.url}</p>
+            <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{bloby.name}</h3>
+            <p className="text-[11px] text-muted-foreground/60 font-mono truncate mt-0.5">{bloby.url}</p>
           </div>
         </div>
       </div>
@@ -602,7 +602,7 @@ function FluxyCard({ fluxy, onAddFunds }) {
             </div>
           </div>
           <button
-            onClick={() => onAddFunds(fluxy)}
+            onClick={() => onAddFunds(bloby)}
             className="flex items-center gap-1.5 h-7 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-[11px] font-medium font-display"
           >
             <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
@@ -629,7 +629,7 @@ function FluxyCard({ fluxy, onAddFunds }) {
           <span className={`text-[11px] font-mono flex-1 ${hasWallet ? 'text-muted-foreground/60' : 'text-muted-foreground/30'}`}>
             {truncatedWallet || '0x0000...0000'}
           </span>
-          {hasWallet && <CopyButton text={fluxy.walletAddress} />}
+          {hasWallet && <CopyButton text={bloby.walletAddress} />}
         </div>
       </div>
     </div>
@@ -640,7 +640,7 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b border-border/30 last:border-b-0 gap-2 sm:gap-4">
       <span className="font-mono text-sm text-foreground">
-        fluxy.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AF27E3] to-[#04D1FE] font-semibold">{handle.handle}</span>
+        bloby.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AF27E3] to-[#04D1FE] font-semibold">{handle.handle}</span>
       </span>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
@@ -661,19 +661,30 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
 
 const typeStyles = {
   skill: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  service: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  blueprint: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   bundle: 'bg-primary/10 text-primary border-primary/20',
   wallet: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   handle: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   hosting: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
 }
 
-function OrderCard({ order }) {
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatPrice(amount) {
+  if (amount === 0) return 'Free'
+  return `$${amount.toFixed(2)}`
+}
+
+function PurchaseCard({ tx }) {
   const [expanded, setExpanded] = useState(false)
 
-  const itemCount = order.items.length
-  const summary = order.items.length <= 2
-    ? order.items.map(i => i.name).join(', ')
-    : `${order.items[0].name} + ${order.items.length - 1} more`
+  const summary = tx.items?.length <= 2
+    ? tx.items.map(i => i.name).join(', ')
+    : `${tx.items[0].name} + ${tx.items.length - 1} more`
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:border-border">
@@ -683,14 +694,16 @@ function OrderCard({ order }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold font-display text-foreground">Order #{order.id}</span>
-            <span className="text-[11px] text-muted-foreground font-display">{order.date}</span>
+            <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[tx.productType] || typeStyles.skill}`}>
+              {tx.productType}
+            </span>
+            <span className="text-sm font-semibold font-display text-foreground">{tx.productName}</span>
           </div>
           <p className="text-xs text-muted-foreground font-display truncate">{summary}</p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {order.redeemed ? (
+          {tx.redeemed ? (
             <span className="text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
               Redeemed
             </span>
@@ -699,7 +712,7 @@ function OrderCard({ order }) {
               Pending
             </span>
           )}
-          <span className="text-sm font-semibold font-display text-foreground">{order.total}</span>
+          <span className="text-sm font-semibold font-display text-foreground">{formatPrice(tx.totalSpent)}</span>
           <HiChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
         </div>
       </button>
@@ -717,21 +730,19 @@ function OrderCard({ order }) {
               <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/[0.01]">
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-display shrink-0">Redeem Code</p>
-                  {order.redeemed ? (
-                    <span className="text-xs text-muted-foreground/40 font-mono line-through">{order.redeemCode}</span>
+                  {tx.redeemed ? (
+                    <span className="text-xs text-muted-foreground/40 font-mono line-through">{tx.redeemCode}</span>
                   ) : (
                     <>
-                      <code className="text-xs font-mono font-semibold text-foreground">{order.redeemCode}</code>
-                      <CopyButton text={order.redeemCode} />
+                      <code className="text-xs font-mono font-semibold text-foreground">{tx.redeemCode}</code>
+                      <CopyButton text={tx.redeemCode} />
                     </>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground font-display">
-                  Fluxy: <span className="text-foreground font-medium">{order.fluxy}</span>
-                </span>
+                <span className="text-[11px] text-muted-foreground/50 font-display">{formatDate(tx.firstAt)}</span>
               </div>
 
-              {order.items.map((item, i) => (
+              {tx.items?.map((item, i) => (
                 <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-border/20">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[item.type] || typeStyles.skill}`}>
@@ -739,7 +750,7 @@ function OrderCard({ order }) {
                     </span>
                     <span className="text-sm text-foreground font-display truncate">{item.name}</span>
                   </div>
-                  <span className="text-sm font-medium font-display text-muted-foreground shrink-0 ml-4">{item.amount}</span>
+                  <span className="text-sm font-medium font-display text-muted-foreground shrink-0 ml-4">{formatPrice(item.price)}</span>
                 </div>
               ))}
             </div>
@@ -750,72 +761,58 @@ function OrderCard({ order }) {
   )
 }
 
-const mockOrders = [
-  {
-    id: '1042',
-    date: 'Mar 28, 2026',
-    fluxy: 'Jarvis',
-    total: '$77.00',
-    redeemCode: 'RDM-7K4P-X9BN-Q2LF',
-    redeemed: false,
-    items: [
-      { type: 'bundle', name: 'Fluxy for Lawyers', amount: '$49.00' },
-      { type: 'skill', name: 'Gmail Integration', amount: '$3.00' },
-      { type: 'wallet', name: 'Wallet Top-up', amount: '$25.00' },
-    ],
-  },
-  {
-    id: '1038',
-    date: 'Mar 20, 2026',
-    fluxy: 'Jarvis',
-    total: '$10.00',
-    redeemCode: 'RDM-2NVT-8HCW-J5MR',
-    redeemed: true,
-    items: [
-      { type: 'skill', name: 'WhatsApp Business', amount: '$5.00' },
-      { type: 'handle', name: 'fluxy.bot/jarvis', amount: '$5.00' },
-    ],
-  },
-  {
-    id: '1031',
-    date: 'Mar 15, 2026',
-    fluxy: 'Atlas',
-    total: '$69.00',
-    redeemCode: 'RDM-5FGY-3KPL-W8DN',
-    redeemed: true,
-    items: [
-      { type: 'bundle', name: 'Fluxy for Hotels', amount: '$69.00' },
-    ],
-  },
-  {
-    id: '1025',
-    date: 'Mar 8, 2026',
-    fluxy: 'Nova',
-    total: '$29.00/mo',
-    redeemCode: 'RDM-9QAZ-6TBX-M4JR',
-    redeemed: true,
-    items: [
-      { type: 'hosting', name: 'Starter Instance (NA)', amount: '$29.00/mo' },
-      { type: 'skill', name: 'Slack Integration', amount: 'Free' },
-    ],
-  },
-]
+function BotTransactionCard({ tx }) {
+  const isService = tx.productType === 'service'
+
+  return (
+    <div className="rounded-2xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:border-border px-5 py-4 flex items-center gap-4">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`text-[10px] font-semibold font-display uppercase px-2 py-0.5 rounded-md border shrink-0 ${typeStyles[tx.productType] || typeStyles.skill}`}>
+            {tx.productType}
+          </span>
+          <span className="text-sm font-semibold font-display text-foreground">{tx.productName}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-muted-foreground font-display">{tx.botUsername}</span>
+          <span className="text-[11px] text-muted-foreground/50 font-display">{formatDate(tx.lastAt)}</span>
+          {isService && tx.usageCount > 0 && (
+            <span className="text-[11px] text-muted-foreground font-display">
+              {tx.usageCount} {tx.usageCount === 1 ? 'use' : 'uses'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="text-sm font-semibold font-display text-foreground">
+          {isService && tx.usageCount > 1 ? formatPrice(tx.totalSpent) : formatPrice(tx.unitPrice)}
+        </span>
+        {isService && tx.unitPrice > 0 && (
+          <span className="text-[10px] text-muted-foreground font-display">
+            {formatPrice(tx.unitPrice)}/use
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [reservedHandles, setReservedHandles] = useState([])
-  const [fluxies, setFluxies] = useState([])
-  const [orders] = useState(mockOrders)
+  const [blobies, setBlobies] = useState([])
+  const [transactions, setTransactions] = useState([])
   const [visibleHashes, setVisibleHashes] = useState({})
   const [showClaim, setShowClaim] = useState(false)
-  const [fundingFluxy, setFundingFluxy] = useState(null)
+  const [fundingBloby, setFundingBloby] = useState(null)
   const [loading, setLoading] = useState(true)
   const tokenClientRef = useRef(null)
   const loginResolveRef = useRef(null)
 
   const fetchReservedHandles = async () => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       const res = await fetch(`${API_URL}/api/stripe/handles`, {
@@ -830,24 +827,40 @@ export default function Dashboard() {
     }
   }
 
-  const fetchFluxies = async () => {
-    const token = localStorage.getItem('fluxy_token')
+  const fetchBlobies = async () => {
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
-      const res = await fetch(`${API_URL}/api/claim/fluxies`, {
+      const res = await fetch(`${API_URL}/api/claim/blobies`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
         const data = await res.json()
-        setFluxies(data.fluxies || [])
+        setBlobies(data.blobies || [])
       }
     } catch (err) {
-      console.error('[fluxies] fetch failed:', err)
+      console.error('[blobies] fetch failed:', err)
+    }
+  }
+
+  const fetchTransactions = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/marketplace/transactions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTransactions(data || [])
+      }
+    } catch (err) {
+      console.error('[transactions] fetch failed:', err)
     }
   }
 
   useEffect(() => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) {
       setLoading(false)
       navigate('/')
@@ -861,21 +874,22 @@ export default function Dashboard() {
         if (data.user) {
           setUser(data.user)
           fetchReservedHandles()
-          fetchFluxies()
+          fetchBlobies()
+          fetchTransactions()
         } else {
           navigate('/')
         }
         setLoading(false)
       })
       .catch(() => {
-        localStorage.removeItem('fluxy_token')
+        localStorage.removeItem('bloby_token')
         setLoading(false)
         navigate('/')
       })
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('fluxy_token')
+    localStorage.removeItem('bloby_token')
     setUser(null)
     setReservedHandles([])
     if (window.google?.accounts?.id) {
@@ -909,13 +923,13 @@ export default function Dashboard() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 sm:space-y-14">
         <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Fluxies</h2>
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Blobies</h2>
             <button
               onClick={() => setShowClaim(!showClaim)}
               className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
             >
               <HiPlus className="w-4 h-4" />
-              Claim a Fluxy
+              Claim a Bloby
             </button>
           </div>
           <AnimatePresence>
@@ -927,24 +941,24 @@ export default function Dashboard() {
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 className="overflow-hidden mb-4"
               >
-                <ClaimFluxyCard onClaimed={fetchFluxies} />
+                <ClaimBlobyCard onClaimed={fetchBlobies} />
               </motion.div>
             )}
           </AnimatePresence>
-          {fluxies.length > 0 ? (
+          {blobies.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {fluxies.map((fluxy) => (
-                <FluxyCard key={fluxy.id} fluxy={fluxy} onAddFunds={setFundingFluxy} />
+              {blobies.map((bloby) => (
+                <BlobyCard key={bloby.id} bloby={bloby} onAddFunds={setFundingBloby} />
               ))}
             </div>
           ) : !showClaim && (
             <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-8 text-center">
-              <p className="text-sm text-muted-foreground font-display mb-3">No fluxies linked yet.</p>
+              <p className="text-sm text-muted-foreground font-display mb-3">No Blobies linked yet.</p>
               <button
                 onClick={() => setShowClaim(true)}
                 className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium font-display transition-colors duration-200"
               >
-                Claim your first Fluxy
+                Claim your first Bloby
                 <span className="text-xs">-&gt;</span>
               </button>
             </div>
@@ -979,23 +993,25 @@ export default function Dashboard() {
             </div>
           )}
           <p className="text-xs text-muted-foreground/60 mt-3 font-display">
-            Use the activation code during <code className="text-foreground/50">fluxy init</code> to claim your handle
+            Use the activation code during <code className="text-foreground/50">bloby init</code> to claim your handle
           </p>
         </motion.section>
 
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2}>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Purchase History</h2>
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Transaction History</h2>
           </div>
-          {orders.length > 0 ? (
+          {transactions.length > 0 ? (
             <div className="space-y-3">
-              {orders.map((order) => (
-                <OrderCard key={order.id} order={order} />
+              {transactions.map((tx) => (
+                tx.source === 'purchase'
+                  ? <PurchaseCard key={`purchase-${tx.redeemCode}`} tx={tx} />
+                  : <BotTransactionCard key={`bot-${tx.botUsername}-${tx.productId}`} tx={tx} />
               ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-8 text-center">
-              <p className="text-sm text-muted-foreground font-display mb-3">No purchases yet.</p>
+              <p className="text-sm text-muted-foreground font-display mb-3">No transactions yet.</p>
               <Link
                 to="/marketplace"
                 className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium font-display transition-colors duration-200"
@@ -1009,11 +1025,11 @@ export default function Dashboard() {
       </main>
 
       <AnimatePresence>
-        {fundingFluxy && (
+        {fundingBloby && (
           <FundWalletModal
-            fluxy={fundingFluxy}
-            onClose={() => setFundingFluxy(null)}
-            onFunded={fetchFluxies}
+            bloby={fundingBloby}
+            onClose={() => setFundingBloby(null)}
+            onFunded={fetchBlobies}
           />
         )}
       </AnimatePresence>

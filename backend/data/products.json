@@ -4,9 +4,9 @@
       "id": "whatsapp",
       "name": "WhatsApp",
       "version": "1.0.0",
-      "vendor": "Fluxy",
+      "vendor": "Bloby",
       "description": "WhatsApp channel via Baileys — QR auth, messaging, voice transcription, channel and business modes",
-      "longDescription": "Gives your Fluxy a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.",
+      "longDescription": "Gives your Bloby a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.",
       "depends": [],
       "price": 0,
       "file": "whatsapp-1.0.0.tar.gz",
@@ -17,9 +17,9 @@
       "id": "whatsapp-clinic-secretary",
       "name": "Clinic Secretary",
       "version": "1.0.0",
-      "vendor": "Fluxy",
+      "vendor": "Bloby",
       "description": "Virtual secretary for medical clinics — scheduling, payments, patient memory, follow-ups via WhatsApp",
-      "longDescription": "Turns your Fluxy into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they're talking to AI.",
+      "longDescription": "Turns your Bloby into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they're talking to AI.",
       "depends": ["whatsapp"],
       "price": 19.90,
       "file": "whatsapp-clinic-secretary-1.0.0.tar.gz",
@@ -32,10 +32,34 @@
       "id": "doctors-secretary-bundle",
       "name": "Doctor's Secretary Bundle",
       "description": "WhatsApp channel + virtual clinic secretary in one package",
-      "longDescription": "Everything your Fluxy needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Fluxy handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
+      "longDescription": "Everything your Bloby needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Bloby handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
       "skills": ["whatsapp", "whatsapp-clinic-secretary"],
       "price": 19.90,
       "tags": ["whatsapp", "healthcare", "bundle"]
+    }
+  ],
+  "blueprints": [
+    {
+      "id": "standard-workspace-light",
+      "name": "Standard Workspace (Light Theme)",
+      "version": "1.0.0",
+      "vendor": "Bloby",
+      "description": "Light/dark theme toggle with full design system for your workspace",
+      "longDescription": "A comprehensive design blueprint that adds a light/dark theme toggle to your sidebar. Includes a full color palette for both themes, a React ThemeProvider, flash-prevention scripts, and theme-aware CSS utilities. Your Bloby reads the instructions, applies them once, and your workspace gets a polished dual-theme system.",
+      "depends": [],
+      "price": 0,
+      "file": "standard-workspace-light-1.0.0.tar.gz",
+      "sha256": "7aa33ee2ce19bd62423e60122fda5f13e8a011a724f1933b81e5fa5586840995",
+      "tags": ["blueprint", "theme", "design", "workspace", "light-mode"]
+    }
+  ],
+  "services": [
+    {
+      "id": "test",
+      "name": "Test Service",
+      "description": "Returns a random markdown message. For testing the services system.",
+      "price": 0,
+      "tags": ["test", "free"]
     }
   ]
 }

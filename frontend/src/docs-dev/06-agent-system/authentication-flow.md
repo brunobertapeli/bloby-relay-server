@@ -18,6 +18,6 @@ The flow:
 
 Token refresh is handled transparently. `getClaudeAccessToken()` (line 121 of `claude-auth.ts`) checks if the token is expired and attempts a refresh before returning null.
 
-The access token is injected into the SDK environment as `CLAUDE_CODE_OAUTH_TOKEN` (line 207 of `supervisor/fluxy-agent.ts`).
+The access token is injected into the SDK environment as `CLAUDE_CODE_OAUTH_TOKEN` (line 207 of `supervisor/bloby-agent.ts`).
 
 ---

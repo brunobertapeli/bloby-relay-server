@@ -4,6 +4,7 @@ import { getDb } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { terminateInstance, restartInstance, describeInstance } from '../lib/aws.js';
 import { buildRelayUrl } from '../lib/validate.js';
+import { instanceCallbackLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.get('/instances/:id/status', jwtAuth, async (req, res) => {
 // in backend/routes/stripe.js. This endpoint is kept as a stub for reference.
 
 // ─── Provisioning callback (called by the instance's provision.sh) ──────────
-router.post('/instances/callback', async (req, res) => {
+router.post('/instances/callback', instanceCallbackLimiter, async (req, res) => {
   try {
     const { instanceId, status, tunnelUrl } = req.body;
     if (!instanceId || !status) {
@@ -137,7 +138,7 @@ router.post('/instances/:id/restart', jwtAuth, async (req, res) => {
       const instId = req.params.id;
       restartInstance(instance.ec2InstanceId, instance.region)
         .then(async () => {
-          // Give fluxy/cloudflared ~15s to start after EC2 is running
+          // Give bloby/cloudflared ~15s to start after EC2 is running
           await new Promise(r => setTimeout(r, 15000));
           await db.collection('accounts').updateOne(
             { 'instances.id': instId },

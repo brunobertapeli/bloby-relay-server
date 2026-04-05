@@ -2,12 +2,12 @@
 title: "Core Framework"
 ---
 
-Fluxy is not a typical Express app. It uses a **tri-process architecture** orchestrated by a supervisor:
+Bloby is not a typical Express app. It uses a **tri-process architecture** orchestrated by a supervisor:
 
 ```
                  http.createServer (supervisor)
                  /       |        \          \
-           Vite HMR   /fluxy/*   /api/*    /app/api/*
+           Vite HMR   /bloby/*   /api/*    /app/api/*
            (dashboard)  (static)  (proxy)   (proxy)
                                     |          |
                               Worker         Backend
@@ -21,11 +21,11 @@ Fluxy is not a typical Express app. It uses a **tri-process architecture** orche
 - Routes requests by URL prefix:
   - `/api/*` -- reverse-proxied to the **worker** (Express v5, port + 1).
   - `/app/api/*` -- reverse-proxied to the **user's backend** (port + 4).
-  - `/fluxy/*` -- served as static files from `dist-fluxy/` (pre-built chat UI).
-  - `/fluxy/widget.js` -- served directly from `supervisor/widget.js`.
+  - `/bloby/*` -- served as static files from `dist-bloby/` (pre-built chat UI).
+  - `/bloby/widget.js` -- served directly from `supervisor/widget.js`.
   - `/sw.js` -- service worker served from an embedded string constant.
   - Everything else -- proxied to the **Vite dev server** (dashboard, port + 2).
-- Manages **WebSocket** connections for real-time chat (`/fluxy/ws`).
+- Manages **WebSocket** connections for real-time chat (`/bloby/ws`).
 - Spawns and supervises child processes: worker, backend, tunnel, Vite dev servers.
 - Implements a **file watcher** on `workspace/backend/` for auto-restart on code changes.
 - Includes a **tunnel watchdog** with sleep/wake detection and periodic health checks.

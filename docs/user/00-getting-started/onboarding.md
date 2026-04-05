@@ -4,7 +4,7 @@ title: Onboarding Wizard
 
 # Onboarding Wizard
 
-After `fluxy init`, the chat bubble opens with a step-by-step wizard. This is where you connect an AI provider and set up remote access.
+After `bloby init`, the chat bubble opens with a step-by-step wizard. This is where you connect an AI provider and set up remote access.
 
 ## Steps
 
@@ -14,7 +14,7 @@ A quick intro. Hit continue.
 ### 2. AI Provider
 Choose between **Claude** (Anthropic) or **OpenAI Codex**.
 
-Claude is recommended — it uses the Claude Agent SDK under the hood, which gives Fluxy full tool access (reading, writing, editing files, running commands). OpenAI works too, but with simpler chat-only capabilities.
+Claude is recommended — it uses the Claude Agent SDK under the hood, which gives Bloby full tool access (reading, writing, editing files, running commands). OpenAI works too, but with simpler chat-only capabilities.
 
 ### 3. Model
 Pick the specific model to use. For Claude: Opus, Sonnet, or Haiku. For OpenAI: the available GPT/Codex models.
@@ -27,9 +27,9 @@ Two options depending on provider:
 For Claude: you'll be redirected to Anthropic's login page, get a code, and paste it back. For OpenAI: the browser handles it automatically — no code to copy.
 
 ### 5. Handle (optional)
-Register a public username with the Fluxy Relay. This gives you a permanent URL like:
-- `username.my.fluxy.bot` (free)
-- `fluxy.bot/username` (premium, $5)
+Register a public username with the Bloby Relay. This gives you a permanent URL like:
+- `username.my.bloby.bot` (free)
+- `bloby.bot/username` (premium, $5)
 
 Skip this if you're using a named tunnel or private network.
 
@@ -47,7 +47,7 @@ You can enable TOTP-based 2FA right from this step. It's recommended if your bot
 You can also enable or disable 2FA later by re-running the onboarding wizard.
 
 ### 8. Voice (optional)
-Add an OpenAI API key for Whisper voice transcription. This lets you send voice messages to Fluxy.
+Add an OpenAI API key for Whisper voice transcription. This lets you send voice messages to Bloby.
 
 ### 9. Done
 You're ready to go. Start chatting.

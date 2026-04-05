@@ -144,8 +144,8 @@ function Hero({ user, onLogin, onLogout }) {
             playsInline
             className="h-[180px] mx-auto"
           >
-            <source src="/assets/videos/fluxy_say_hi.mov" type='video/mp4; codecs="hvc1"' />
-            <source src="/assets/videos/fluxy_say_hi.webm" type="video/webm" />
+            <source src="/assets/videos/bloby_say_hi.mov" type='video/mp4; codecs="hvc1"' />
+            <source src="/assets/videos/bloby_say_hi.webm" type="video/webm" />
           </video>
         </motion.div>
 
@@ -233,9 +233,9 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
 
   const provisioningSteps = [
     'Spinning up your instance...',
-    'Installing Fluxy...',
-    'Initializing Fluxy...',
-    'Your Fluxy is ready!',
+    'Installing Bloby...',
+    'Initializing Bloby...',
+    'Your Bloby is ready!',
   ]
 
   if (step === 'plan') {
@@ -320,7 +320,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
           <p className="text-xs text-muted-foreground font-display">Sign in to continue</p>
         </div>
         <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Fluxy instance</p>
+          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Bloby instance</p>
           <button
             onClick={onLogin}
             className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-white text-[#1a1a1a] font-medium text-sm hover:bg-white/90 transition-colors duration-200"
@@ -419,8 +419,8 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
         >
           <FaCheck className="w-5 h-5 text-emerald-400" />
         </motion.div>
-        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Fluxy is ready!</h4>
-        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Fluxy at:</p>
+        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Bloby is ready!</h4>
+        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Bloby at:</p>
         <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border mb-4">
           <span className="text-sm font-mono text-[#04D1FE]">{tunnelUrl}</span>
           <CopyButton text={tunnelUrl} />
@@ -542,7 +542,7 @@ function Terminal({ user, onLogin, onLogout }) {
   const stripeSessionActive = useRef(false)
 
   const fetchInstances = async () => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       const res = await fetch(`${API_URL}/api/instances`, {
@@ -567,7 +567,7 @@ function Terminal({ user, onLogin, onLogout }) {
         { id: 'hackable', label: 'Hackable' },
       ]
     : [
-        { id: 'oneliner', label: os === 'mac' ? 'macOS' : 'Linux' },
+        { id: 'oneliner', label: 'macOS / Linux' },
         { id: 'npm', label: 'npm' },
         { id: 'windows', label: 'Windows' },
         { id: 'hackable', label: 'Hackable' },
@@ -575,19 +575,19 @@ function Terminal({ user, onLogin, onLogout }) {
 
   const commands = {
     oneliner: [
-      { comment: 'Install & start Fluxy in one line', command: 'curl -fsSL https://www.fluxy.bot/install | sh' },
+      { comment: 'Install & start Bloby in one line', command: 'curl -fsSL https://www.bloby.bot/install | sh' },
     ],
     windows: [
-      { comment: 'Install & start Fluxy on Windows', command: 'iwr -useb https://www.fluxy.bot/install.ps1 | iex', prompt: '>' },
+      { comment: 'Install & start Bloby on Windows', command: 'iwr -useb https://www.bloby.bot/install.ps1 | iex', prompt: '>' },
     ],
     npm: [
-      { comment: 'Install Fluxy', command: 'npm i -g fluxy-bot' },
-      { comment: 'Launch your workspace', command: 'fluxy init' },
+      { comment: 'Install Bloby', command: 'npm i -g bloby-bot' },
+      { comment: 'Launch your workspace', command: 'bloby init' },
     ],
     hackable: [
-      { comment: 'Clone the repo', command: 'git clone https://github.com/fluxy-ai/fluxy.git' },
-      { comment: 'Install dependencies', command: 'cd fluxy && npm install' },
-      { comment: 'Start Fluxy', command: 'npm run dev' },
+      { comment: 'Clone the repo', command: 'git clone https://github.com/bloby-ai/bloby.git' },
+      { comment: 'Install dependencies', command: 'cd bloby && npm install' },
+      { comment: 'Start Bloby', command: 'npm run dev' },
     ],
   }
 
@@ -617,7 +617,7 @@ function Terminal({ user, onLogin, onLogout }) {
     const statusMap = { launching: 0, booting: 1, initializing: 2, ready: 3 }
 
     const poll = async () => {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       if (!token || cancelled) return
 
       try {
@@ -681,7 +681,7 @@ function Terminal({ user, onLogin, onLogout }) {
     let cancelled = false
 
     const poll = async () => {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       if (!token || cancelled) return
 
       try {
@@ -733,7 +733,7 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   const handlePay = async () => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
 
     try {
@@ -801,7 +801,7 @@ function Terminal({ user, onLogin, onLogout }) {
   }, [hostedStep, instances.some(i => i.status === 'restarting')])
 
   const handleManageSubscription = async () => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       const res = await fetch(`${API_URL}/api/stripe/portal`, {
@@ -817,7 +817,7 @@ function Terminal({ user, onLogin, onLogout }) {
   }
 
   const handleRestart = async (instanceId) => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       // Optimistically set status to restarting
@@ -919,7 +919,7 @@ function Terminal({ user, onLogin, onLogout }) {
               </div>
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
-              Fully managed Fluxy instance on AWS. No setup, no maintenance.
+              Fully managed Bloby instance on AWS. No setup, no maintenance.
             </p>
           </motion.div>
         ) : (
@@ -1001,18 +1001,18 @@ function Features() {
     {
       image: '/assets/images/icons/sandbox.png',
       title: 'Full-stack sandbox',
-      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Fluxy adds them as modules to your workspace.'
+      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Bloby adds them as modules to your workspace.'
     },
     {
       image: '/assets/images/icons/chat.png',
       title: 'Indestructible chat',
-      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Fluxy and ask for fixes.',
+      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Bloby and ask for fixes.',
       scale: 'scale-105',
     },
     {
       image: '/assets/images/icons/miniapps.png',
       title: 'Mini apps on demand',
-      description: '"I need a calorie counter." Fluxy builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
+      description: '"I need a calorie counter." Bloby builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
     },
     {
       image: '/assets/images/icons/hardware.png',
@@ -1022,7 +1022,7 @@ function Features() {
     {
       image: '/assets/images/icons/voice.png',
       title: 'Voice & mobile-first',
-      description: 'A PWA you install like a native app. Send voice messages, and Fluxy transcribes them with Whisper. It\'s like talking to your codebase.'
+      description: 'A PWA you install like a native app. Send voice messages, and Bloby transcribes them with Whisper. It\'s like talking to your codebase.'
     },
     {
       image: '/assets/images/icons/secure.png',
@@ -1043,7 +1043,7 @@ function Features() {
             Not just a chat. <span className="text-gradient">A whole app.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Other agents live in your terminal. Fluxy lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
+            Other agents live in your terminal. Bloby lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
           </p>
         </motion.div>
 
@@ -1081,7 +1081,7 @@ function UseCases() {
     },
     {
       label: 'Team research hub',
-      description: 'Your agent runs daily lead research. Your team checks the findings at fluxy.bot/companybot every morning.',
+      description: 'Your agent runs daily lead research. Your team checks the findings at bloby.bot/companybot every morning.',
     },
     {
       label: 'Public showcase',
@@ -1154,7 +1154,7 @@ function HowItWorks() {
       num: '01',
       title: 'Install',
       description: 'One command. Mac, Windows, Linux. The installer handles everything, Node.js included.',
-      detail: 'fluxy init'
+      detail: 'bloby init'
     },
     {
       num: '02',
@@ -1166,7 +1166,7 @@ function HowItWorks() {
       num: '03',
       title: 'Use it everywhere',
       description: 'Open it from your phone, laptop, anywhere. A PWA that\'s always on, always yours.',
-      detail: 'fluxy.bot/yourname'
+      detail: 'bloby.bot/yourname'
     },
   ]
 
@@ -1231,8 +1231,8 @@ function OpenSource() {
               playsInline
               className="h-28 sm:h-36 mx-auto"
             >
-              <source src="/assets/videos/fluxy_happy.mov" type='video/mp4; codecs="hvc1"' />
-              <source src="/assets/videos/fluxy_happy.webm" type="video/webm" />
+              <source src="/assets/videos/bloby_happy.mov" type='video/mp4; codecs="hvc1"' />
+              <source src="/assets/videos/bloby_happy.webm" type="video/webm" />
             </video>
           </div>
 
@@ -1242,7 +1242,7 @@ function OpenSource() {
             <span className="text-gradient">Owned by everyone.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
-            Fluxy is fully open source. Fork it, run it, break it, rebuild it.
+            Bloby is fully open source. Fork it, run it, break it, rebuild it.
             The best tools are the ones the community shapes together.
           </p>
 
@@ -1269,7 +1269,7 @@ function OpenSource() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
             <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
-              Install Fluxy
+              Install Bloby
               <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
             </a>
             <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
@@ -1295,11 +1295,11 @@ function SquareSection() {
           variants={fadeUp}
         >
           <div className="mx-auto mb-5 sm:mb-6">
-            <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-16 sm:h-20 w-auto mx-auto" />
+            <img src="/assets/images/bloby.png" alt="Bloby" className="h-16 sm:h-20 w-auto mx-auto" />
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Fluxy Square
+            Bloby Square
           </h2>
 
           <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display mb-4">
@@ -1307,7 +1307,7 @@ function SquareSection() {
           </span>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 px-2">
-            A public gathering space for fluxies. Discover, interact, and connect with AI agents built by the community.
+            A public gathering space for blobies. Discover, interact, and connect with AI agents built by the community.
           </p>
 
           <a
@@ -1328,7 +1328,7 @@ function Footer() {
     <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-border/30">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-5 sm:h-6 w-auto opacity-60" />
+          <img src="/assets/images/bloby.png" alt="Bloby" className="h-5 sm:h-6 w-auto opacity-60" />
           <span className="text-xs sm:text-sm text-muted-foreground">Open source under MIT. Your agent, your rules.</span>
         </div>
         <div className="flex items-center gap-4">
@@ -1351,7 +1351,7 @@ function Home() {
   const loginResolveRef = useRef(null)
 
   const fetchReservedHandles = async () => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       const res = await fetch(`${API_URL}/api/stripe/handles`, {
@@ -1383,7 +1383,7 @@ function Home() {
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (token) {
       fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -1395,7 +1395,7 @@ function Home() {
             fetchReservedHandles()
           }
         })
-        .catch(() => localStorage.removeItem('fluxy_token'))
+        .catch(() => localStorage.removeItem('bloby_token'))
     }
   }, [])
 
@@ -1409,7 +1409,7 @@ function Home() {
 
     // Wait for auth to resolve, then fetch handles and scroll
     const check = setInterval(() => {
-      const token = localStorage.getItem('fluxy_token')
+      const token = localStorage.getItem('bloby_token')
       if (!token) return
       clearInterval(check)
       fetchReservedHandles().then(() => {
@@ -1436,7 +1436,7 @@ function Home() {
             })
             const data = await res.json()
             if (data.token && data.user) {
-              localStorage.setItem('fluxy_token', data.token)
+              localStorage.setItem('bloby_token', data.token)
               setUser(data.user)
               fetchReservedHandles()
               if (loginResolveRef.current) {
@@ -1490,7 +1490,7 @@ function Home() {
   }
 
   const handleReserveHandle = async (handle) => {
-    const token = localStorage.getItem('fluxy_token')
+    const token = localStorage.getItem('bloby_token')
     if (!token) return
     try {
       const res = await fetch(`${API_URL}/api/stripe/handle-checkout`, {
@@ -1511,7 +1511,7 @@ function Home() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('fluxy_token')
+    localStorage.removeItem('bloby_token')
     setUser(null)
     setReservedHandles([])
     if (window.google?.accounts?.id) {
@@ -1542,7 +1542,7 @@ function BotRedirect() {
   useEffect(() => {
     const slug = pathname.replace(/^\//, '')
     if (slug) {
-      window.location.replace(`https://fluxy.bot/${slug}`)
+      window.location.replace(`https://bloby.bot/${slug}`)
     }
   }, [pathname])
   return null

@@ -26,11 +26,11 @@ function getOrCreateVapidKeys() {
 
 function initWebPush() {
   const { publicKey, privateKey } = getOrCreateVapidKeys();
-  webpush.setVapidDetails('mailto:push@fluxy.bot', publicKey, privateKey);
+  webpush.setVapidDetails('mailto:push@bloby.bot', publicKey, privateKey);
 }
 ```
 
-The `mailto:` subject is set to `push@fluxy.bot`. VAPID keys use the `web-push` library's `generateVAPIDKeys()` which produces an ECDSA P-256 key pair.
+The `mailto:` subject is set to `push@bloby.bot`. VAPID keys use the `web-push` library's `generateVAPIDKeys()` which produces an ECDSA P-256 key pair.
 
 ### 7.2 Subscription Management
 

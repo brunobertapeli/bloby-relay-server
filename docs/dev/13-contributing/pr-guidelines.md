@@ -54,7 +54,7 @@ the tunnel is alive.
 1. Ensure your branch is up to date with `main`
 2. Run `npm run build` locally to verify both builds succeed (dashboard + chat)
 3. Test your changes manually on at least one platform
-4. If you changed `supervisor/chat/` source, run `npm run build:fluxy` and include the updated `dist-fluxy/` in your commit
+4. If you changed `supervisor/chat/` source, run `npm run build:bloby` and include the updated `dist-bloby/` in your commit
 5. Open a PR against `main` with a clear description
 6. Address review feedback with new commits (do not force-push during review)
 
@@ -67,5 +67,5 @@ the tunnel is alive.
 - [ ] No database logic in the supervisor
 - [ ] No new default exports (use named exports)
 - [ ] Import paths use `.js` extension for server-side ESM imports
-- [ ] If chat UI was modified, `dist-fluxy/` is rebuilt and included
+- [ ] If chat UI was modified, `dist-bloby/` is rebuilt and included
 - [ ] Commit messages are descriptive and in imperative mood

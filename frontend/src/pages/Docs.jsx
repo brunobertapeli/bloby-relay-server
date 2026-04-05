@@ -37,7 +37,7 @@ const docSets = {
         items: [
           { slug: 'introduction', title: 'Introduction' },
           { slug: 'installation', title: 'Installation' },
-          { slug: 'setup', title: 'Setup (fluxy init)' },
+          { slug: 'setup', title: 'Setup (bloby init)' },
           { slug: 'onboarding', title: 'Onboarding Wizard' },
           { slug: 'first-conversation', title: 'First Conversation' },
         ],
@@ -56,7 +56,7 @@ const docSets = {
         group: 'Connectivity',
         items: [
           { slug: 'tunnels', title: 'Tunnels & Remote Access' },
-          { slug: 'relay', title: 'Fluxy Relay' },
+          { slug: 'relay', title: 'Bloby Relay' },
         ],
       },
       {
@@ -189,7 +189,7 @@ const docSets = {
         group: 'Networking & Tunnels',
         items: [
           { slug: 'cloudflare-tunnel', title: 'Cloudflare Tunnel' },
-          { slug: 'fluxy-relay', title: 'Fluxy Relay' },
+          { slug: 'bloby-relay', title: 'Bloby Relay' },
           { slug: 'https-tls', title: 'HTTPS & TLS' },
         ],
       },
@@ -400,8 +400,8 @@ export default function Docs() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <img src="/assets/images/fluxy.png" alt="Fluxy" className="h-8 w-auto" />
-              <span className="text-lg font-bold font-display text-foreground">Fluxy</span>
+              <img src="/assets/images/bloby.png" alt="Bloby" className="h-8 w-auto" />
+              <span className="text-lg font-bold font-display text-foreground">Bloby</span>
             </Link>
             <HiChevronRight className="w-4 h-4 text-muted-foreground/40 hidden sm:block" />
             <span className="text-sm text-muted-foreground hidden sm:block">Docs</span>

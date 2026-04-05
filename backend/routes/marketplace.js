@@ -4,8 +4,11 @@ import jwt from 'jsonwebtoken';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
+import { optionalAuth } from '../middleware/auth.js';
+import { recordTransaction } from '../lib/transactions.js';
 import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter } from '../middleware/rateLimiter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +17,12 @@ const router = Router();
 // ─── Product catalog ────────────────────────────────────────────────────────
 const productsPath = path.join(__dirname, '..', 'data', 'products.json');
 const catalog = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+
+// Lookup across skills and blueprints (both are downloadable products)
+function findDownloadable(id) {
+  return catalog.skills.find((s) => s.id === id)
+    || (catalog.blueprints || []).find((b) => b.id === id);
+}
 
 const REDEEM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const DOWNLOAD_TOKEN_TTL = 3600; // 1 hour
@@ -31,6 +40,12 @@ function generateRedeemCode() {
  * Bundles are expanded to their individual skills.
  * Dependencies are included automatically.
  */
+/**
+ * Resolve cart items to a deduplicated list of skill IDs.
+ * Bundles expand to their listed skills. Individual skills resolve to themselves only.
+ * Dependencies are NOT auto-included — bundles are the packaging mechanism.
+ * The skill's SKILL.md documents what dependencies are needed.
+ */
 function resolveSkills(items) {
   const skillIds = new Set();
 
@@ -40,10 +55,7 @@ function resolveSkills(items) {
       if (bundle) bundle.skills.forEach((id) => skillIds.add(id));
     } else if (item.type === 'skill') {
       const skill = catalog.skills.find((s) => s.id === item.id);
-      if (skill) {
-        skillIds.add(skill.id);
-        if (skill.depends) skill.depends.forEach((id) => skillIds.add(id));
-      }
+      if (skill) skillIds.add(skill.id);
     }
   }
 
@@ -183,9 +195,46 @@ async function handleRedeem(purchase, req, res) {
   res.json({ skills });
 }
 
+// ─── GET /api/marketplace/download/free/:skillId ────────────────────────────
+// Direct download for free skills/blueprints. Optional bot auth to record the transaction.
+// IMPORTANT: Must be registered BEFORE the :token/:skillId route,
+// otherwise Express matches "free" as a token parameter.
+router.get('/marketplace/download/free/:skillId', optionalAuth, (req, res) => {
+  const { skillId } = req.params;
+
+  const product = findDownloadable(skillId);
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+
+  if (product.price > 0) {
+    return res.status(402).json({ error: 'This product requires purchase' });
+  }
+
+  const filePath = path.join(__dirname, '..', 'static', 'skills', product.file);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Product file not available' });
+  }
+
+  // Record transaction if bot identified itself
+  if (req.user) {
+    const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
+    recordTransaction({
+      productId: product.id,
+      productType: isBlueprint ? 'blueprint' : 'skill',
+      productName: product.name,
+      botUsername: req.user.username,
+      accountId: req.user.accountId || null,
+      unitPrice: 0,
+    }).catch((err) => console.error('[marketplace/download/free] tx error:', err.message));
+  }
+
+  res.download(filePath, product.file);
+});
+
 // ─── GET /api/marketplace/download/:token/:skillId ──────────────────────────
 // Serves .tar.gz. Token must be valid and include this skill.
-router.get('/marketplace/download/:token/:skillId', (req, res) => {
+router.get('/marketplace/download/:token/:skillId', optionalAuth, (req, res) => {
   try {
     const { token, skillId } = req.params;
 
@@ -195,17 +244,30 @@ router.get('/marketplace/download/:token/:skillId', (req, res) => {
       return res.status(403).json({ error: 'Skill not included in this purchase' });
     }
 
-    const skill = catalog.skills.find((s) => s.id === skillId);
-    if (!skill) {
-      return res.status(404).json({ error: 'Skill not found' });
+    const product = findDownloadable(skillId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
     }
 
-    const filePath = path.join(__dirname, '..', 'static', 'skills', skill.file);
+    const filePath = path.join(__dirname, '..', 'static', 'skills', product.file);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Skill file not available' });
+      return res.status(404).json({ error: 'Product file not available' });
     }
 
-    res.download(filePath, skill.file);
+    // Record transaction if bot identified itself
+    if (req.user) {
+      const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
+      recordTransaction({
+        productId: product.id,
+        productType: isBlueprint ? 'blueprint' : 'skill',
+        productName: product.name,
+        botUsername: req.user.username,
+        accountId: req.user.accountId || null,
+        unitPrice: product.price,
+      }).catch((err) => console.error('[marketplace/download] tx error:', err.message));
+    }
+
+    res.download(filePath, product.file);
   } catch (error) {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Download link expired or invalid — redeem the code again for a fresh link' });
@@ -215,32 +277,106 @@ router.get('/marketplace/download/:token/:skillId', (req, res) => {
   }
 });
 
-// ─── GET /api/marketplace/download/free/:skillId ────────────────────────────
-// Direct download for free skills. No auth needed — used by agents.
-router.get('/marketplace/download/free/:skillId', (req, res) => {
-  const { skillId } = req.params;
+// ─── GET /api/marketplace/products ──────────────────────────────────────────
+// Public product catalog (JSON). Enriches skills with free flag + direct download URL.
+router.get('/marketplace/products', (req, res) => {
+  const baseUrl = process.env.RELAY_DOMAIN
+    ? `https://${process.env.RELAY_DOMAIN}`
+    : `${req.protocol}://${req.get('host')}`;
 
-  const skill = catalog.skills.find((s) => s.id === skillId);
-  if (!skill) {
-    return res.status(404).json({ error: 'Skill not found' });
-  }
+  const enrichProduct = (p) => ({
+    ...p,
+    free: p.price === 0,
+    ...(p.price === 0 && {
+      download_url: `${baseUrl}/api/marketplace/download/free/${p.id}`,
+    }),
+  });
 
-  if (skill.price > 0) {
-    return res.status(402).json({ error: 'This skill requires purchase' });
-  }
+  const enriched = {
+    ...catalog,
+    skills: catalog.skills.map(enrichProduct),
+    blueprints: (catalog.blueprints || []).map(enrichProduct),
+  };
 
-  const filePath = path.join(__dirname, '..', 'static', 'skills', skill.file);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Skill file not available' });
-  }
-
-  res.download(filePath, skill.file);
+  res.json(enriched);
 });
 
-// ─── GET /api/marketplace/products ──────────────────────────────────────────
-// Public product catalog (JSON).
-router.get('/marketplace/products', (_req, res) => {
-  res.json(catalog);
+// ─── GET /api/marketplace/transactions ──────────────────────────────────────
+// Dashboard: merges human purchases + bot transactions into a unified history.
+router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = req.account.id;
+    const accountFilter = { $in: [id, new ObjectId(id)] };
+
+    // Bot-side: skill downloads and service usage
+    const botTx = await db
+      .collection('transactions')
+      .find({ accountId: accountFilter })
+      .sort({ lastAt: -1 })
+      .toArray();
+
+    // Human-side: marketplace purchases
+    const purchases = await db
+      .collection('purchases')
+      .find({ accountId: accountFilter })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Map purchases to the same shape as transactions, with expanded items
+    const purchaseTx = purchases.map((p) => {
+      // Build summary name from cart items
+      const cartNames = p.cartItems.map((item) => {
+        if (item.type === 'bundle') {
+          const bundle = catalog.bundles.find((b) => b.id === item.id);
+          return bundle ? bundle.name : item.id;
+        }
+        const skill = catalog.skills.find((s) => s.id === item.id);
+        return skill ? skill.name : item.id;
+      });
+
+      // Build detailed items list from resolved skills
+      const items = p.resolvedSkills.map((skillId) => {
+        const skill = catalog.skills.find((s) => s.id === skillId);
+        return {
+          id: skillId,
+          type: 'skill',
+          name: skill ? skill.name : skillId,
+          price: skill ? skill.price : 0,
+        };
+      });
+
+      return {
+        productId: p.code,
+        productType: p.cartItems.length === 1 ? p.cartItems[0].type : 'bundle',
+        productName: cartNames.join(' + '),
+        botUsername: null,
+        accountId: id,
+        unitPrice: p.total,
+        totalSpent: p.total,
+        usageCount: 1,
+        firstAt: p.createdAt,
+        lastAt: p.createdAt,
+        redeemCode: p.code,
+        redeemed: p.redemptions.length > 0,
+        items,
+        source: 'purchase',
+      };
+    });
+
+    // Tag bot transactions
+    const tagged = botTx.map((tx) => ({ ...tx, source: 'bot' }));
+
+    // Merge and sort by date descending
+    const all = [...purchaseTx, ...tagged].sort(
+      (a, b) => new Date(b.lastAt) - new Date(a.lastAt),
+    );
+
+    res.json(all);
+  } catch (error) {
+    console.error('[marketplace/transactions]', error.message);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
 });
 
 // ─── GET /api/marketplace.md ────────────────────────────────────────────────

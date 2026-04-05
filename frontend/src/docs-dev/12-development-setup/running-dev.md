@@ -52,7 +52,7 @@ reverse-proxies to the correct backend:
 
 - `/api/*` --> Worker on `:3001`
 - `/app/api/*` --> User backend on `:3004` (path rewritten: `/app/api/foo` --> `/foo`)
-- `/fluxy/*` --> Serves pre-built static files from `dist-fluxy/`
+- `/bloby/*` --> Serves pre-built static files from `dist-bloby/`
 - Everything else --> Dashboard Vite dev server on `:3002`
 
 ### Hot reloading behavior
@@ -100,21 +100,21 @@ debounce). Changes to `workspace/.env` also trigger a backend restart.
 #### Chat UI
 
 The chat UI (`supervisor/chat/`) is served as **pre-built static files** from
-`dist-fluxy/`. During normal development, changes require a rebuild:
+`dist-bloby/`. During normal development, changes require a rebuild:
 
 ```bash
-npm run build:fluxy
+npm run build:bloby
 ```
 
 Alternatively, you can run the chat UI in Vite dev mode using its dedicated
 config:
 
 ```bash
-npx vite --config vite.fluxy.config.ts
+npx vite --config vite.bloby.config.ts
 ```
 
 This starts a dev server for the chat UI with HMR. The chat UI root is
-`supervisor/chat/` and it builds two HTML entry points: `fluxy.html` and
+`supervisor/chat/` and it builds two HTML entry points: `bloby.html` and
 `onboard.html`.
 
 ---

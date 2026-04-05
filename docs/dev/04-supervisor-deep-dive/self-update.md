@@ -2,14 +2,14 @@
 title: "Self-Update"
 ---
 
-The `runDeferredUpdate()` function (lines 683-711) spawns a detached `fluxy update`
+The `runDeferredUpdate()` function (lines 683-711) spawns a detached `bloby update`
 process that survives the supervisor's own restart. Platform-specific strategies:
 
 - **Linux**: Uses `sudo systemd-run` to create a transient systemd unit
-  (`fluxy-update`) that persists even when the daemon restarts:
+  (`bloby-update`) that persists even when the daemon restarts:
 
   ```typescript
-  cpSpawn('sudo', ['systemd-run', '--quiet', '--unit=fluxy-update',
+  cpSpawn('sudo', ['systemd-run', '--quiet', '--unit=bloby-update',
     '--uid=' + user, ...env_flags,
     process.execPath, cliPath, 'update'], { detached: true, stdio: 'ignore' });
   ```

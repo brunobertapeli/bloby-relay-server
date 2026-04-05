@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button'; // resolves to workspace/client
 Note: The `@` alias resolves differently depending on which Vite config is in play:
 
 - `vite.config.ts` (dashboard): `@` = `workspace/client/src/`
-- `vite.fluxy.config.ts` (chat): `@` = `supervisor/chat/src/`
+- `vite.bloby.config.ts` (chat): `@` = `supervisor/chat/src/`
 
 **Server-side imports** use relative paths with `.js` extensions (required by ESM):
 
@@ -63,9 +63,9 @@ export function ErrorBoundary({ children }: { children: React.ReactNode }) { ...
 
 ### Naming Conventions
 
-- **Files:** `kebab-case.ts` for all source files (`fluxy-agent.ts`, `file-saver.ts`, `claude-auth.ts`)
+- **Files:** `kebab-case.ts` for all source files (`bloby-agent.ts`, `file-saver.ts`, `claude-auth.ts`)
 - **React components:** `PascalCase.tsx` (`OnboardWizard.tsx`, `ErrorBoundary.tsx`)
-- **Functions:** `camelCase` (`spawnWorker`, `loadConfig`, `startFluxyAgentQuery`)
+- **Functions:** `camelCase` (`spawnWorker`, `loadConfig`, `startBlobyAgentQuery`)
 - **Constants:** `UPPER_SNAKE_CASE` for module-level constants (`PKG_DIR`, `DATA_DIR`, `MAX_RESTARTS`, `STABLE_THRESHOLD`)
 - **Interfaces/Types:** `PascalCase` (`BotConfig`, `AiProvider`, `ChatMessage`, `RecentMessage`)
 - **Database tables:** `snake_case` (`push_subscriptions`, `trusted_devices`)

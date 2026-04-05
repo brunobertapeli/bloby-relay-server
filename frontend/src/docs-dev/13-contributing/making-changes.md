@@ -91,12 +91,12 @@ export function MyComponent({ title, className }: MyComponentProps) {
 
 Chat components live in `supervisor/chat/`.
 
-- **Main chat logic:** `supervisor/chat/fluxy-main.tsx`
+- **Main chat logic:** `supervisor/chat/bloby-main.tsx`
 - **Shared components:** `supervisor/chat/src/components/`
 - **Hooks:** `supervisor/chat/src/hooks/`
 - **Utilities:** `supervisor/chat/src/lib/`
 
-After making changes to the chat source, rebuild: `npm run build:fluxy`.
+After making changes to the chat source, rebuild: `npm run build:bloby`.
 
 Remember the relay constraint documented in `supervisor/chat/ARCHITECTURE.md`: mutations from the chat iframe must go through WebSocket, not HTTP POST. Use the WebSocket sidecar channel for any state-changing operations.
 
@@ -104,7 +104,7 @@ Remember the relay constraint documented in `supervisor/chat/ARCHITECTURE.md`: m
 
 The agent's capabilities come from three sources:
 
-1. **System prompt** (`worker/prompts/fluxy-system-prompt.txt`): Defines the agent's personality, rules, and knowledge of the workspace. Uses `$BOT` and `$HUMAN` placeholders that are replaced at runtime.
+1. **System prompt** (`worker/prompts/bloby-system-prompt.txt`): Defines the agent's personality, rules, and knowledge of the workspace. Uses `$BOT` and `$HUMAN` placeholders that are replaced at runtime.
 
 2. **Agent SDK tools**: The agent uses the Claude Agent SDK with `permissionMode: 'bypassPermissions'` and a `cwd` of `workspace/`. It gets standard tools (Read, Write, Edit, Bash, etc.) by default.
 

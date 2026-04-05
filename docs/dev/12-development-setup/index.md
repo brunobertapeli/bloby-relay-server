@@ -3,7 +3,7 @@ title: "Development Setup"
 ---
 
 This guide walks a new contributor from a clean machine to a fully running local
-Fluxy development environment. It covers every layer of the stack: the
+Bloby development environment. It covers every layer of the stack: the
 supervisor, the worker, the user backend, the dashboard UI, and the chat UI.
 
 ---

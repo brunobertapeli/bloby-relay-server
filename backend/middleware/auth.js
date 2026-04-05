@@ -2,6 +2,26 @@ import { hashToken } from '../lib/token.js';
 import { getUsers } from '../db.js';
 
 /**
+ * Optional bearer-token authentication.
+ * If the request has a valid token, attaches req.user. Otherwise continues without it.
+ * Use this when bot identity is nice-to-have (e.g. recording transactions on downloads).
+ */
+export async function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return next();
+
+  const token = header.slice(7);
+  if (!token || token.length !== 64 || !/^[a-f0-9]{64}$/.test(token)) return next();
+
+  try {
+    const tokenHash = hashToken(token);
+    const user = await getUsers().findOne({ tokenHash });
+    if (user) req.user = user;
+  } catch { /* silent — optional auth */ }
+  next();
+}
+
+/**
  * Bearer-token authentication middleware.
  * Hashes the incoming token and looks it up in the users collection.
  * Attaches the matched user document to `req.user`.

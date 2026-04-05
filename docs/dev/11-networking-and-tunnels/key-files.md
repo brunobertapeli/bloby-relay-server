@@ -5,7 +5,7 @@ title: "Key Files"
 | File                          | Purpose                                                          |
 |-------------------------------|------------------------------------------------------------------|
 | `supervisor/tunnel.ts`        | Cloudflare Tunnel management: install, start, stop, health check |
-| `shared/relay.ts`             | Fluxy Relay client: registration, heartbeat, disconnect          |
+| `shared/relay.ts`             | Bloby Relay client: registration, heartbeat, disconnect          |
 | `shared/config.ts`            | Configuration loading/saving, port and tunnel mode definitions   |
 | `supervisor/index.ts`         | HTTP server, reverse proxy, WebSocket handler, tunnel watchdog   |
 | `supervisor/vite-dev.ts`      | Vite dev server setup, HMR WebSocket attachment                  |

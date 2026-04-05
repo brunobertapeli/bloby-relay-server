@@ -1,27 +1,27 @@
 ---
-title: Fluxy Relay
+title: Bloby Relay
 ---
 
-# Fluxy Relay
+# Bloby Relay
 
-The Fluxy Relay gives you a permanent, memorable URL — even when using Quick Tunnel (which generates random URLs on every restart).
+The Bloby Relay gives you a permanent, memorable URL — even when using Quick Tunnel (which generates random URLs on every restart).
 
 ## How it works
 
 1. You register a username during onboarding (or later via settings)
-2. Fluxy sends heartbeats to the relay server every 30 seconds
+2. Bloby sends heartbeats to the relay server every 30 seconds
 3. When someone visits your relay URL, the relay proxies the request to your current tunnel URL
 
 ```
-Your phone → fluxy.bot/username → Relay → Quick Tunnel → Your machine
+Your phone → bloby.bot/username → Relay → Quick Tunnel → Your machine
 ```
 
 ## URL tiers
 
 | Tier | URL format | Cost |
 |------|-----------|------|
-| **Free** | `username.my.fluxy.bot` | Free |
-| **Premium** | `fluxy.bot/username` | $3 one-time |
+| **Free** | `username.my.bloby.bot` | Free |
+| **Premium** | `bloby.bot/username` | $3 one-time |
 
 ## When do you need it?
 
@@ -31,4 +31,4 @@ Your phone → fluxy.bot/username → Relay → Quick Tunnel → Your machine
 
 ## Offline detection
 
-If Fluxy stops sending heartbeats for 2 minutes, the relay marks your bot as offline and shows a friendly offline page to visitors.
+If Bloby stops sending heartbeats for 2 minutes, the relay marks your bot as offline and shows a friendly offline page to visitors.

@@ -46,11 +46,11 @@ the worker files and restarting manually rather than relying on `tsx watch`
 ### Editing chat UI code (`supervisor/chat/src/**`)
 
 - The chat UI is **not live-reloaded** in the default `npm run dev` setup. It
-  is served as pre-built static files from `dist-fluxy/`.
+  is served as pre-built static files from `dist-bloby/`.
 - After editing chat UI code, rebuild:
 
   ```bash
-  npm run build:fluxy
+  npm run build:bloby
   ```
 
   Then refresh the browser (the supervisor serves static files with
@@ -60,7 +60,7 @@ the worker files and restarting manually rather than relying on `tsx watch`
   directly:
 
   ```bash
-  npx vite --config vite.fluxy.config.ts
+  npx vite --config vite.bloby.config.ts
   ```
 
   This starts on a separate port with HMR. Note that the chat UI expects API
@@ -74,10 +74,10 @@ There is no automated test suite as of the current version. Testing is manual:
 1. **API testing:** Use `curl` or a tool like Postman against
    `http://localhost:3000/api/*`.
 2. **Dashboard testing:** Open `http://localhost:3000` in a browser.
-3. **Chat UI testing:** Open `http://localhost:3000/fluxy` in a browser.
+3. **Chat UI testing:** Open `http://localhost:3000/bloby` in a browser.
 4. **Backend testing:** Hit `http://localhost:3000/app/api/*` endpoints.
 5. **WebSocket testing:** The chat UI connects via
-   `ws://localhost:3000/fluxy/ws`. Browser DevTools (Network tab, WS filter)
+   `ws://localhost:3000/bloby/ws`. Browser DevTools (Network tab, WS filter)
    shows message traffic.
 
 ---

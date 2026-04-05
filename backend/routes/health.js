@@ -20,7 +20,7 @@ router.get('/health', async (req, res) => {
 
     res.json({
       status: 'ok',
-      service: 'fluxy-relay',
+      service: 'bloby-relay',
       mongo,
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
@@ -28,7 +28,7 @@ router.get('/health', async (req, res) => {
   } catch (error) {
     res.status(503).json({
       status: 'degraded',
-      service: 'fluxy-relay',
+      service: 'bloby-relay',
       mongo: 'error',
       timestamp: new Date().toISOString(),
     });

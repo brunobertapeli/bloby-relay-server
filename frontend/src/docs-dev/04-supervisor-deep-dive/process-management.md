@@ -107,7 +107,7 @@ The logic in the `exit` handler (worker.ts lines 48-62, backend.ts lines 55-72):
    - 1st retry: 1 second delay
    - 2nd retry: 2 second delay
    - 3rd retry: 3 second delay
-5. If all retries exhausted, log a fatal error: "failed too many times. Use Fluxy
+5. If all retries exhausted, log a fatal error: "failed too many times. Use Bloby
    chat to debug."
 
 ### 6.4 Tunnel Management (`tunnel.ts`)
@@ -118,7 +118,7 @@ the local server to the internet.
 **Binary discovery** (`findBinary`, lines 12-25):
 
 1. First checks for a system-wide `cloudflared` install via `which`/`where`.
-2. Falls back to a local install at `~/.fluxy/bin/cloudflared`.
+2. Falls back to a local install at `~/.bloby/bin/cloudflared`.
 3. Validates local binaries by file size (must be >= 10 MB, line 10). If undersized
    (corrupt download), the file is deleted and treated as missing.
 

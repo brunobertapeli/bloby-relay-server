@@ -26,7 +26,7 @@ processes. Look for these prefixes to identify the source:
 | `[worker]` | `worker/index.ts` -- API routes, database |
 | `[backend]` | `workspace/backend/index.ts` -- user's custom backend |
 | `[watcher]` | Supervisor file watcher -- `.env` and backend file changes |
-| `[fluxy]` | `supervisor/fluxy-agent.ts` -- AI agent interactions |
+| `[bloby]` | `supervisor/bloby-agent.ts` -- AI agent interactions |
 
 The user backend also writes logs to `workspace/.backend.log` (cleared on each
 restart).
@@ -65,7 +65,7 @@ This starts on port `5173` with proxying to `localhost:3000` (API) and
 **Chat UI Vite dev server only**:
 
 ```bash
-npx vite --config vite.fluxy.config.ts
+npx vite --config vite.bloby.config.ts
 ```
 
 ### Common issues and fixes
@@ -73,7 +73,7 @@ npx vite --config vite.fluxy.config.ts
 #### `Error: Port 3000 is already in use`
 
 Another process is occupying the port. Either stop it or change `port` in
-`~/.fluxy/config.json`.
+`~/.bloby/config.json`.
 
 Find the process:
 
@@ -85,16 +85,16 @@ lsof -i :3000
 netstat -ano | findstr :3000
 ```
 
-#### `No config. Run 'fluxy init'.`
+#### `No config. Run 'bloby init'.`
 
-The supervisor cannot find `~/.fluxy/config.json`. Create it manually:
+The supervisor cannot find `~/.bloby/config.json`. Create it manually:
 
 ```bash
-mkdir -p ~/.fluxy
-echo '{"port":3000,"username":"","ai":{"provider":"","model":"","apiKey":""},"tunnel":{"mode":"off"},"relay":{"token":"","tier":"","url":""}}' > ~/.fluxy/config.json
+mkdir -p ~/.bloby
+echo '{"port":3000,"username":"","ai":{"provider":"","model":"","apiKey":""},"tunnel":{"mode":"off"},"relay":{"token":"","tier":"","url":""}}' > ~/.bloby/config.json
 ```
 
-Or run `fluxy init` once to generate it interactively.
+Or run `bloby init` once to generate it interactively.
 
 #### `better-sqlite3` build errors
 
@@ -132,18 +132,18 @@ dashboard through a cloudflare tunnel, HMR uses the same origin (no separate
 WebSocket port). This should work out of the box. If it does not, check that
 WebSocket upgrade requests are not being blocked.
 
-#### `dist-fluxy/` missing
+#### `dist-bloby/` missing
 
 If the chat UI build artifacts are missing, the supervisor tries to build them
 on first run:
 
 ```js
-if (!fs.existsSync(DIST_FLUXY)) {
-  execSync('npx vite build --config vite.fluxy.config.ts', { cwd: PKG_DIR });
+if (!fs.existsSync(DIST_BLOBY)) {
+  execSync('npx vite build --config vite.bloby.config.ts', { cwd: PKG_DIR });
 }
 ```
 
-You can also build manually: `npm run build:fluxy`.
+You can also build manually: `npm run build:bloby`.
 
 ### Port conflicts
 

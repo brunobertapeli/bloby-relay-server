@@ -87,8 +87,8 @@ export async function lookupBot(username, tier) {
 
 // ─── Subdomain middleware ───────────────────────────────────────────────────
 // Intercepts:
-//   bruno.fluxy.bot/*        → premium (username from subdomain)
-//   bruno.at.fluxy.bot/*     → free "at" tier (username from subdomain)
+//   bruno.bloby.bot/*        → premium (username from subdomain)
+//   bruno.at.bloby.bot/*     → free "at" tier (username from subdomain)
 
 export function subdomainResolver(req, res, next) {
   const domain = process.env.RELAY_DOMAIN;
@@ -114,8 +114,8 @@ export function subdomainResolver(req, res, next) {
 
 // ─── Path-based shortcut: GET /:username ─────────────────────────────────────
 // Redirects:
-//   fluxy.bot/bruno      →  bruno.fluxy.bot       (premium)
-//   my.fluxy.bot/bruno   →  bruno.my.fluxy.bot    (free)
+//   bloby.bot/bruno      →  bruno.bloby.bot       (premium)
+//   my.bloby.bot/bruno   →  bruno.my.bloby.bot    (free)
 
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
@@ -131,7 +131,7 @@ router.get('/:username', redirectLimiter, async (req, res) => {
       return res.redirect(301, `https://www.${domain}/${username}`);
     }
 
-    // Determine tier from host: my.fluxy.bot → free ("at"), fluxy.bot → premium
+    // Determine tier from host: my.bloby.bot → free ("at"), bloby.bot → premium
     const host = req.hostname;
     const tier = (domain && host === `my.${domain}`) ? 'at' : 'premium';
 
@@ -170,7 +170,7 @@ function shell(title, body) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} | Fluxy</title>
+  <title>${title} | Bloby</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -215,7 +215,7 @@ function offlinePage(username) {
      <p><strong>${esc(username)}</strong>'s bot is currently unreachable.
         It may be restarting or the host machine is powered off.</p>
      <p class="sub" id="status">Retrying...</p>
-     <span class="badge">Powered by Fluxy</span>
+     <span class="badge">Powered by Bloby</span>
      <script>
      (function(){
        var a=0;
@@ -236,9 +236,9 @@ function offlinePage(username) {
 }
 
 function notFoundPage(username) {
-  const domain = process.env.RELAY_DOMAIN || 'fluxy.bot';
+  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
   const wwwUrl = `https://www.${domain}`;
-  const videoBase = `${wwwUrl}/assets/videos/fluxy_what_happened`;
+  const videoBase = `${wwwUrl}/assets/videos/bloby_what_happened`;
   const msg = username
     ? `The bot <strong>${esc(username)}</strong> doesn't exist — maybe it was never created, or the name is misspelled.`
     : 'The page you are looking for does not exist.';

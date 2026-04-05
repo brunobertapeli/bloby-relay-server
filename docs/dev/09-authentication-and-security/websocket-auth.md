@@ -6,14 +6,14 @@ title: "WebSocket Authentication"
 
 ### 5.1 Token Passed as Query Parameter
 
-WebSocket connections to `/fluxy/ws` carry the session token as a query parameter:
+WebSocket connections to `/bloby/ws` carry the session token as a query parameter:
 
 **File:** `supervisor/index.ts`, lines 634--657
 
 ```typescript
 server.on('upgrade', async (req, socket: net.Socket, head) => {
-  if (!req.url?.startsWith('/fluxy/ws')) {
-    return; // Let Vite handle non-Fluxy upgrades (HMR)
+  if (!req.url?.startsWith('/bloby/ws')) {
+    return; // Let Vite handle non-Bloby upgrades (HMR)
   }
 
   const needsAuth = await isAuthRequired();
@@ -27,7 +27,7 @@ server.on('upgrade', async (req, socket: net.Socket, head) => {
     }
   }
 
-  fluxyWss.handleUpgrade(req, socket, head, (ws) => fluxyWss.emit('connection', ws, req));
+  blobyWss.handleUpgrade(req, socket, head, (ws) => blobyWss.emit('connection', ws, req));
 });
 ```
 
@@ -35,4 +35,4 @@ server.on('upgrade', async (req, socket: net.Socket, head) => {
 
 The token validation uses the same `validateToken()` function as HTTP requests (with the same in-memory cache). If validation fails, the raw TCP socket receives a `401 Unauthorized` HTTP response and is destroyed -- no WebSocket connection is established.
 
-Note: WebSocket upgrade requests that do not target `/fluxy/ws` are passed through to Vite for HMR handling (line 639).
+Note: WebSocket upgrade requests that do not target `/bloby/ws` are passed through to Vite for HMR handling (line 639).

@@ -2,10 +2,10 @@
 title: "Runtime Data"
 ---
 
-When installed globally (`npm install -g fluxy-bot`) or via the curl installer, Fluxy copies its source to `~/.fluxy/` and operates from there. This directory also stores all runtime data.
+When installed globally (`npm install -g bloby-bot`) or via the curl installer, Bloby copies its source to `~/.bloby/` and operates from there. This directory also stores all runtime data.
 
 ```
-~/.fluxy/
+~/.bloby/
   config.json               Bot configuration (port, username, AI provider, tunnel mode, relay token)
   memory.db                 SQLite database (conversations, messages, settings, sessions, push subs, trusted devices)
   bin/
@@ -31,12 +31,12 @@ When installed globally (`npm install -g fluxy-bot`) or via the curl installer, 
   worker/                   Application code (overwritten on upgrade)
   shared/                   Application code (overwritten on upgrade)
   scripts/                  Application code (overwritten on upgrade)
-  dist-fluxy/               Pre-built chat UI (overwritten on upgrade)
+  dist-bloby/               Pre-built chat UI (overwritten on upgrade)
   node_modules/             Production dependencies (installed by postinstall)
   package.json              Package manifest (overwritten on upgrade)
   tsconfig.json             TypeScript config (overwritten on upgrade)
   vite.config.ts            Dashboard Vite config (overwritten on upgrade)
-  vite.fluxy.config.ts      Chat Vite config (overwritten on upgrade)
+  vite.bloby.config.ts      Chat Vite config (overwritten on upgrade)
   postcss.config.js         PostCSS config (overwritten on upgrade)
   components.json           shadcn/ui config (overwritten on upgrade)
 ```

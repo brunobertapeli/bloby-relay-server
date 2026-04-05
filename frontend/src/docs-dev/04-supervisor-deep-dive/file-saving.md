@@ -3,7 +3,7 @@ title: "File Saving"
 ---
 
 The file saver handles persistence of attachments (images, documents) sent through
-the Fluxy chat interface.
+the Bloby chat interface.
 
 ### 8.1 Directory Structure
 

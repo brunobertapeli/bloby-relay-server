@@ -10,7 +10,7 @@ This traces the full path of a user message from phone to agent response.
 User types message in chat SPA (supervisor/chat/)
   |
   v
-useFluxyChat.ts sends via WebSocket:
+useBlobyChat.ts sends via WebSocket:
   { type: 'user:message', data: { content: "Hello", conversationId: "abc123" } }
   |
   v
@@ -22,7 +22,7 @@ ws-client.ts sends over WebSocket connection
 ### Step 2: Supervisor receives message
 
 ```plain
-fluxyWss 'message' event fires               supervisor/index.ts:384
+blobyWss 'message' event fires               supervisor/index.ts:384
   |
   v
 Parse JSON, check msg.type === 'user:message'
@@ -53,11 +53,11 @@ Fetch agent/user names + recent messages (in parallel):
   GET /api/conversations/{id}/messages/recent?limit=20
   |
   v
-startFluxyAgentQuery()            supervisor/fluxy-agent.ts:116
+startBlobyAgentQuery()            supervisor/bloby-agent.ts:116
   |
   v
 Build enriched system prompt:
-  base prompt (worker/prompts/fluxy-system-prompt.txt)
+  base prompt (worker/prompts/bloby-system-prompt.txt)
   + MYSELF.md content
   + MYHUMAN.md content
   + MEMORY.md content
@@ -82,12 +82,12 @@ Claude Agent SDK query():
 for await (const msg of claudeQuery):
   |
   +-- msg.type === 'assistant'
-  |     +-- block.type === 'text'     -> broadcastFluxy('bot:token', { token })
-  |     +-- block.type === 'tool_use' -> broadcastFluxy('bot:tool', { name, input })
+  |     +-- block.type === 'text'     -> broadcastBloby('bot:token', { token })
+  |     +-- block.type === 'tool_use' -> broadcastBloby('bot:tool', { name, input })
   |
-  +-- msg.type === 'tool_progress'    -> broadcastFluxy('bot:tool', { status: 'running' })
+  +-- msg.type === 'tool_progress'    -> broadcastBloby('bot:tool', { status: 'running' })
   |
-  +-- msg.type === 'result'           -> broadcastFluxy('bot:response', { content })
+  +-- msg.type === 'result'           -> broadcastBloby('bot:response', { content })
   |
   v
 finally:
@@ -110,7 +110,7 @@ Supervisor receives bot:done callback:
 
 ### Step 5: Multi-device sync
 
-All connected WebSocket clients receive every event via `broadcastFluxy()`. When a user sends a message, `broadcastFluxyExcept(sender, ...)` sends a `chat:sync` event to all OTHER connected clients with the user message. The assistant response streams to ALL clients (including the sender).
+All connected WebSocket clients receive every event via `broadcastBloby()`. When a user sends a message, `broadcastBlobyExcept(sender, ...)` sends a `chat:sync` event to all OTHER connected clients with the user message. The assistant response streams to ALL clients (including the sender).
 
 Reconnecting clients receive a `chat:state` event containing the current stream buffer so they can catch up on any tokens they missed during disconnection (line 373-381).
 

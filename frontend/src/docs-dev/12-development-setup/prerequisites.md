@@ -38,7 +38,7 @@ variables.
 
 | Provider | Required? | How to obtain |
 |----------|-----------|---------------|
-| **Anthropic** | Recommended | <https://console.anthropic.com/> -- or use the built-in OAuth flow (`fluxy` supports Claude Agent SDK with OAuth tokens) |
+| **Anthropic** | Recommended | <https://console.anthropic.com/> -- or use the built-in OAuth flow (`bloby` supports Claude Agent SDK with OAuth tokens) |
 | **OpenAI** | Optional | <https://platform.openai.com/api-keys> |
 | **Ollama** | Optional | Install Ollama locally (<https://ollama.com/>) -- no key needed, uses `baseUrl` |
 

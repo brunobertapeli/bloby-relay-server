@@ -18,6 +18,7 @@ import instanceRoutes from './routes/instances.js';
 import stripeRoutes, { stripeWebhookHandler } from './routes/stripe.js';
 import claimRoutes from './routes/claim.js';
 import marketplaceRoutes from './routes/marketplace.js';
+import serviceRoutes from './routes/services.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -45,7 +46,7 @@ app.use(
       if (!origin) return cb(null, true); // non-browser requests
       if (origin.includes('.up.railway.app')) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
-      // Allow any subdomain of the relay domain (e.g. www.fluxy.bot)
+      // Allow any subdomain of the relay domain (e.g. www.bloby.bot)
       if (relayDomain && origin.endsWith(`.${relayDomain}`)) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
@@ -57,7 +58,7 @@ app.use(
 await connect();
 
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
-// Intercepts  username.fluxy.bot  →  reverse-proxies to tunnel
+// Intercepts  username.bloby.bot  →  reverse-proxies to tunnel
 // MUST run before body parsing — express.json() consumes the request stream,
 // which prevents http-proxy from forwarding POST bodies to bot tunnels.
 app.use(subdomainResolver);
@@ -79,11 +80,12 @@ app.use('/api', instanceRoutes);
 app.use('/api', stripeRoutes);
 app.use('/api', claimRoutes);
 app.use('/api', marketplaceRoutes);
+app.use('/api', serviceRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
-// curl -fsSL https://fluxy.bot/install | sh
-// irm https://fluxy.bot/install.ps1 | iex
+// curl -fsSL https://bloby.bot/install | sh
+// irm https://bloby.bot/install.ps1 | iex
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -96,7 +98,7 @@ app.get('/install.ps1', (_req, res) => {
 });
 
 // ─── Bare domain → www redirect ──────────────────────────────────────────────
-// fluxy.bot  →  www.fluxy.bot  (so visitors see the website, not "Cannot GET /")
+// bloby.bot  →  www.bloby.bot  (so visitors see the website, not "Cannot GET /")
 app.get('/', (req, res, next) => {
   const domain = process.env.RELAY_DOMAIN;
   if (domain && req.hostname === domain) {
@@ -106,7 +108,7 @@ app.get('/', (req, res, next) => {
 });
 
 // ─── Path-based fallback (must be last) ──────────────────────────────────────
-// Handles  relay.fluxy.bot/username  →  reverse-proxies to tunnel
+// Handles  relay.bloby.bot/username  →  reverse-proxies to tunnel
 app.use('/', resolveRoutes);
 
 // ─── Global error handler ────────────────────────────────────────────────────
@@ -159,7 +161,7 @@ server.on('upgrade', async (req, socket, head) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[relay] Fluxy relay server listening on :${PORT}`);
+  console.log(`[relay] Bloby relay server listening on :${PORT}`);
 });
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────
