@@ -61,15 +61,14 @@ export default function Navbar({ user, onLogin, onLogout }) {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="group">
             <motion.img
-              src="/assets/images/bloby.png"
+              src="/assets/images/bloby_logo.png"
               alt="Bloby"
-              className="h-8 w-auto"
-              whileHover={{ rotate: 12, scale: 1.1 }}
+              className="w-[53px] h-auto"
+              whileHover={{ scale: 1.05 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
-            <span className="text-lg font-bold font-display text-foreground">Bloby</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -144,9 +143,8 @@ export default function Navbar({ user, onLogin, onLogout }) {
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/bloby.png" alt="Bloby" className="h-7 w-auto" />
-                  <span className="font-bold font-display text-foreground">Bloby</span>
+                <div className="flex items-center">
+                  <img src="/assets/images/bloby_logo.png" alt="Bloby" className="w-[48px] h-auto" />
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />
