@@ -63,9 +63,9 @@ export default function Navbar({ user, onLogin, onLogout }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="group">
             <motion.img
-              src="/assets/images/bloby_logo.png"
+              src="/assets/images/bloby_mascot.png"
               alt="Bloby"
-              className="w-[53px] h-auto"
+              className="h-[50px] w-auto"
               whileHover={{ scale: 1.05 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
@@ -144,7 +144,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <img src="/assets/images/bloby_logo.png" alt="Bloby" className="w-[48px] h-auto" />
+                  <img src="/assets/images/bloby_mascot.png" alt="Bloby" className="h-[44px] w-auto" />
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />
