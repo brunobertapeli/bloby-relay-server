@@ -27,7 +27,7 @@
       "depends": [],
       "price": 0,
       "file": "google-workspace-1.0.0.tar.gz",
-      "sha256": "528940a7cdad73597deed5108936c094f852dc5db2aa45ea07d38c978bd9cba3",
+      "sha256": "3fd335781a2fd63860742e91b7fc01ce4190f30967434c4718d63f1059d1e63c",
       "tags": ["google", "gmail", "calendar", "drive", "sheets", "docs", "oauth", "productivity"],
       "categories": ["Productivity"],
       "featured": true,

@@ -35,6 +35,8 @@ Tell the user what's happening and what they need to do on their side. Send this
 >    - Application type: **Desktop app** (not Web!)
 >    - Create → **Download the JSON file**
 >
+> If you need help, here's a short video walkthrough: [How to get Google credentials](https://youtu.be/kHId5vcgqsI)
+>
 > When you have the JSON file, **paste its contents here** in chat.
 
 **Do NOT proceed until the user sends the JSON contents.** Wait for their response.

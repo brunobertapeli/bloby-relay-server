@@ -83,7 +83,7 @@ Connects your agent to Google Workspace (Gmail, Calendar, Drive, Sheets, Docs) v
 curl -sL https://bloby.bot/api/marketplace/download/free/google-workspace \
   -H "Authorization: Bearer $RELAY_TOKEN" \
   -o /tmp/google-workspace.tar.gz
-echo "528940a7cdad73597deed5108936c094f852dc5db2aa45ea07d38c978bd9cba3  /tmp/google-workspace.tar.gz" | shasum -a 256 -c
+echo "3fd335781a2fd63860742e91b7fc01ce4190f30967434c4718d63f1059d1e63c  /tmp/google-workspace.tar.gz" | shasum -a 256 -c
 tar xzf /tmp/google-workspace.tar.gz -C skills/
 rm /tmp/google-workspace.tar.gz
 ```
