@@ -291,6 +291,8 @@ This prevents URL sharing — a leaked URL stops working after 1 hour, and the r
 | POST | `/api/marketplace/redeem` | None (code = auth) | Redeem code → download URLs |
 | GET | `/api/marketplace/download/:token/:skillId` | Token in URL | Download paid skill tar.gz |
 | GET | `/api/marketplace/download/free/:skillId` | None | Download free skill tar.gz |
+| GET | `/api/marketplace/balance/bot` | Bearer (bot token) | Bot checks owner's credit balance |
+| POST | `/api/marketplace/checkout/bot` | Bearer (bot token) | Bot purchases using owner's credits |
 
 ---
 
@@ -373,13 +375,15 @@ For marketplace organization. Non-exhaustive:
 
 **Doctor's Secretary Bundle** — Bundle containing `whatsapp` + `whatsapp-clinic-secretary`. $19.90.
 
+**standard-workspace-light** — Blueprint (not skill). Light/dark theme toggle with full design system. Agent reads instructions, adapts to workspace, applies once, archives. Free.
+
+**workspace-lock** — Blueprint. Adds a PIN code or password lock screen to the workspace. Includes React components, backend routes, scrypt hashing, localStorage sessions, and agent-triggered reset. Free.
+
 ### Planned
 
 **nano-banana-image-gen** — Creative skill. Google image gen API. Agent asks human for API key, stores in `.env`. Instructions for generating, saving, serving images.
 
 **ad-creative-crafter** — Creative skill. Depends on `nano-banana-image-gen`. Bundles or fetches ffmpeg. Image manipulation, text overlays, ad template composition.
-
-**light-theme-design-for-workspace** — Workspace skill. Contains React components in `assets/components/`. Instructions for agent to apply theme without touching user data.
 
 **home-assistant-skill** — IoT skill. Network discovery, token auth, dashboard widget creation instructions.
 
@@ -388,3 +392,83 @@ For marketplace organization. Non-exhaustive:
 **bloby-tesla** — Hardware skill. Tesla API for car data queries.
 
 **python-mailer** — Utility skill. Bundled Python script for Google Workspace email. Rate limiting, spam avoidance, email list management.
+
+---
+
+## Blueprints
+
+Blueprints are **one-time knowledge packages**. Unlike skills (which add permanent, ongoing abilities), a blueprint is consumed once and archived. The agent reads the instructions, adapts them to the workspace's current state, executes, and moves on.
+
+Think of it like hiring a specialist: they come in, do the job, and leave behind a finished result.
+
+### When to use a blueprint instead of a skill
+
+| Use a **skill** when... | Use a **blueprint** when... |
+|---|---|
+| The agent needs ongoing instructions (how to handle WhatsApp messages) | The agent needs to do something once (set up a theme system) |
+| The agent will refer back to the instructions repeatedly | The instructions are consumed and no longer needed |
+| The capability is permanent (messaging, scheduling) | The result is permanent but the instructions aren't (a redesigned workspace) |
+
+### Lifecycle
+
+1. Human or agent downloads the blueprint (same flow as skills)
+2. Agent extracts to `skills/<blueprint-id>/`
+3. Agent reads `SKILL.md`, adapts to the workspace, executes all steps
+4. Human confirms the result works
+5. Agent archives: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`
+
+**Blueprints MUST NOT remain in `skills/`.** They are consumed, not persistent.
+
+### Folder structure
+
+Same as skills:
+
+```
+blueprint-name/
+  .claude-plugin/
+    plugin.json
+  skill.json
+  SKILL.md            # The execution guide
+  assets/             # Optional supporting files
+```
+
+### Writing blueprint instructions (SKILL.md)
+
+Blueprints are **LLM-native installation guides**. The agent is the adapter layer — it reads intent, understands the workspace's current state, and bridges the gap. This is fundamentally different from traditional package installation.
+
+**The golden rule: describe intent and design decisions, not exact code replacements.**
+
+| Do this | Not this |
+|---|---|
+| "All surface backgrounds should use the `bg-surface` token" | "Replace `bg-[#1A1A1A]` in `DashboardLayout.tsx` line 42" |
+| "Add a toggle button near the bottom of the sidebar" | "Insert this JSX at line 87 of `Sidebar.tsx`" |
+| "Create a ThemeProvider that syncs to localStorage and updates both html and body" | "Create `client/src/lib/theme.tsx` with this exact content: ..." |
+
+The first column works regardless of workspace state. The second column breaks if someone changed their layout, renamed a file, or customized anything.
+
+**What makes a good blueprint:**
+
+1. **Intent-first instructions.** Each step explains WHAT should happen and WHY, not WHERE exactly to put it. The agent figures out the where.
+
+2. **Design decisions explained.** Why is the light background `#F7F7F7` instead of `#FFFFFF`? Why do both `html` and `body` need updating? The agent needs to understand the reasoning to make good adaptation choices.
+
+3. **Pitfalls and gotchas.** Document what went wrong during development. These save the agent hours of debugging. Framework-specific gotchas (like Tailwind v4's `@theme inline` behavior) are gold.
+
+4. **A verification checklist.** Concrete, testable checks the agent can run after execution. `grep` commands, visual checks, behavioral tests.
+
+5. **Complete token/value reference tables.** Give the agent all the data it needs in structured form — color palettes, token mappings, spacing scales. Tables are easier for agents to parse than prose.
+
+6. **Human interaction scripts.** Tell the agent what to say to the human before starting and after finishing. This sets expectations.
+
+7. **Mandatory cleanup instructions.** End with the archive command. Make it unmistakable that the blueprint must be moved out of `skills/`.
+
+**What to avoid:**
+
+- Hardcoded file paths (every workspace is different)
+- Line-number references (code changes constantly)
+- Exact code blocks that must be copy-pasted verbatim (unless they're framework-required boilerplate)
+- Assumptions about existing component structure or naming
+
+### Distribution
+
+Blueprints are distributed identically to skills — `.tar.gz` via the marketplace. They live in `products.json` under the `blueprints` array and use the same download endpoints. The `type: "blueprint"` in the marketplace frontend controls how they're displayed.

@@ -11,7 +11,28 @@
       "price": 0,
       "file": "whatsapp-1.0.0.tar.gz",
       "sha256": "8b18d633a8239c58dceaae08a8b104d9e0e8132059466b433c435b356b1a3958",
-      "tags": ["whatsapp", "channel", "messaging"]
+      "tags": ["whatsapp", "channel", "messaging"],
+      "categories": ["Productivity", "Communication", "Channel"],
+      "featured": true,
+      "popular": true,
+      "createdAt": "2026-04-05"
+    },
+    {
+      "id": "google-workspace",
+      "name": "Google Workspace",
+      "version": "1.0.0",
+      "vendor": "Bloby",
+      "description": "Connects your Bloby to Google Workspace — Gmail, Calendar, Drive, Sheets, Docs via OAuth and the gws CLI",
+      "longDescription": "A setup skill that walks your Bloby through connecting to your Google account via OAuth 2.0. After a guided conversational setup (create a GCP project, paste credentials, pick services, authorize), your Bloby can read and send emails, manage calendar events, browse Drive, edit Sheets and Docs — all through the gws CLI. Credentials stay local on your device.",
+      "depends": [],
+      "price": 0,
+      "file": "google-workspace-1.0.0.tar.gz",
+      "sha256": "528940a7cdad73597deed5108936c094f852dc5db2aa45ea07d38c978bd9cba3",
+      "tags": ["google", "gmail", "calendar", "drive", "sheets", "docs", "oauth", "productivity"],
+      "categories": ["Productivity"],
+      "featured": true,
+      "popular": false,
+      "createdAt": "2026-04-06"
     },
     {
       "id": "whatsapp-clinic-secretary",
@@ -24,7 +45,11 @@
       "price": 19.90,
       "file": "whatsapp-clinic-secretary-1.0.0.tar.gz",
       "sha256": "0abd393d6668f34fce2b7c24051fa398df0d1e7c0fa60f1e3df6f9eacba63191",
-      "tags": ["whatsapp", "healthcare", "commerce", "scheduling"]
+      "tags": ["whatsapp", "healthcare", "commerce", "scheduling"],
+      "categories": ["Support", "Automation"],
+      "featured": true,
+      "popular": true,
+      "createdAt": "2026-04-05"
     }
   ],
   "bundles": [
@@ -35,7 +60,11 @@
       "longDescription": "Everything your Bloby needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Bloby handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
       "skills": ["whatsapp", "whatsapp-clinic-secretary"],
       "price": 19.90,
-      "tags": ["whatsapp", "healthcare", "bundle"]
+      "tags": ["whatsapp", "healthcare", "bundle"],
+      "categories": ["Healthcare", "Support"],
+      "featured": true,
+      "popular": true,
+      "createdAt": "2026-04-05"
     }
   ],
   "blueprints": [
@@ -49,17 +78,43 @@
       "depends": [],
       "price": 0,
       "file": "standard-workspace-light-1.0.0.tar.gz",
-      "sha256": "7aa33ee2ce19bd62423e60122fda5f13e8a011a724f1933b81e5fa5586840995",
-      "tags": ["blueprint", "theme", "design", "workspace", "light-mode"]
+      "sha256": "86e291c15611121b7ccf4dc75cae612be46520f1893c00541220c685bcf092ce",
+      "tags": ["blueprint", "theme", "design", "workspace", "light-mode"],
+      "categories": ["Workspace", "UI/Design"],
+      "featured": true,
+      "popular": false,
+      "createdAt": "2026-04-05"
+    },
+    {
+      "id": "workspace-lock",
+      "name": "Workspace Lock",
+      "version": "1.0.0",
+      "vendor": "Bloby",
+      "description": "Add a PIN code or password lock screen to the workspace with localStorage sessions and agent-triggered reset",
+      "longDescription": "A lock screen blueprint for your workspace. Choose between a 6-digit PIN or a password. Once set, every new browser or device must enter the code to access the workspace. Known devices are remembered via localStorage so the user doesn't re-enter every time. If the user forgets, they can ask their Bloby to reset it. Includes ready-to-use React components, backend routes, scrypt hashing, and CSS animations.",
+      "depends": [],
+      "price": 0,
+      "file": "workspace-lock.tar.gz",
+      "sha256": "2a1cf8d013c3976f040dd9f92718109de44ffd51ba00e5760fdf500eb9521e94",
+      "tags": ["blueprint", "workspace", "security", "lock", "pin", "password"],
+      "categories": ["Workspace", "Security"],
+      "featured": true,
+      "popular": false,
+      "createdAt": "2026-04-06"
     }
   ],
   "services": [
     {
       "id": "test",
       "name": "Test Service",
+      "vendor": "Bloby",
       "description": "Returns a random markdown message. For testing the services system.",
       "price": 0,
-      "tags": ["test", "free"]
+      "tags": ["test", "free"],
+      "categories": ["Test"],
+      "featured": false,
+      "popular": false,
+      "createdAt": "2026-04-05"
     }
   ]
 }

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
-import { optionalAuth } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter } from '../middleware/rateLimiter.js';
 
@@ -56,6 +56,9 @@ function resolveSkills(items) {
     } else if (item.type === 'skill') {
       const skill = catalog.skills.find((s) => s.id === item.id);
       if (skill) skillIds.add(skill.id);
+    } else if (item.type === 'blueprint') {
+      const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
+      if (bp) skillIds.add(bp.id);
     }
   }
 
@@ -82,6 +85,15 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
         if (!catalog.skills.find((s) => s.id === item.id)) {
           return res.status(400).json({ error: `Unknown skill: ${item.id}` });
         }
+      } else if (item.type === 'blueprint') {
+        if (!(catalog.blueprints || []).find((b) => b.id === item.id)) {
+          return res.status(400).json({ error: `Unknown blueprint: ${item.id}` });
+        }
+      } else if (item.type === 'credit') {
+        const amount = parseFloat(item.amount);
+        if (!amount || amount < 1) {
+          return res.status(400).json({ error: 'Credit amount must be at least $1' });
+        }
       } else {
         return res.status(400).json({ error: `Invalid item type: ${item.type}` });
       }
@@ -95,16 +107,27 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
       if (item.type === 'bundle') {
         const bundle = catalog.bundles.find((b) => b.id === item.id);
         total += bundle.price;
+      } else if (item.type === 'blueprint') {
+        const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
+        total += bp.price;
+      } else if (item.type === 'credit') {
+        total += parseFloat(item.amount);
       } else {
         const skill = catalog.skills.find((s) => s.id === item.id);
         total += skill.price;
       }
     }
 
+    // Separate credit items from product items
+    const creditItems = items.filter((i) => i.type === 'credit');
+    const productItems = items.filter((i) => i.type !== 'credit');
+    const creditAmount = creditItems.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
     const code = generateRedeemCode();
     const now = new Date();
-
     const db = getDb();
+
+    // Create purchase record (for product items, or credit-only)
     await db.collection('purchases').insertOne({
       code,
       accountId: req.account.id,
@@ -115,11 +138,26 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
       redemptions: [],
     });
 
+    // Add credits to account balance
+    if (creditAmount > 0) {
+      await db.collection('accounts').updateOne(
+        { _id: new ObjectId(req.account.id) },
+        { $inc: { balance: creditAmount } },
+      );
+    }
+
     // Build response with item details for the frontend
     const itemDetails = items.map((item) => {
       if (item.type === 'bundle') {
         const bundle = catalog.bundles.find((b) => b.id === item.id);
         return { id: bundle.id, type: 'bundle', name: bundle.name, price: bundle.price };
+      }
+      if (item.type === 'blueprint') {
+        const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
+        return { id: bp.id, type: 'blueprint', name: bp.name, price: bp.price };
+      }
+      if (item.type === 'credit') {
+        return { id: item.id, type: 'credit', name: `$${parseFloat(item.amount).toFixed(2)} Credits`, price: parseFloat(item.amount) };
       }
       const skill = catalog.skills.find((s) => s.id === item.id);
       return { id: skill.id, type: 'skill', name: skill.name, price: skill.price };
@@ -128,6 +166,132 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
     res.json({ code, items: itemDetails, resolvedSkills, total });
   } catch (error) {
     console.error('[marketplace/checkout]', error.message);
+    res.status(500).json({ error: 'Checkout failed' });
+  }
+});
+
+// ─── POST /api/marketplace/checkout/bot ─────────────────────────────────────
+// Claimed bot purchases items using owner's credit balance.
+// Returns download URLs directly (no redeem code needed — the bot is downloading).
+router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimiter, async (req, res) => {
+  try {
+    if (!req.user.accountId) {
+      return res.status(403).json({ error: 'Not claimed — no linked account' });
+    }
+
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    // Only product items — bots don't buy credits
+    for (const item of items) {
+      if (item.type === 'bundle') {
+        if (!catalog.bundles.find((b) => b.id === item.id)) {
+          return res.status(400).json({ error: `Unknown bundle: ${item.id}` });
+        }
+      } else if (item.type === 'skill') {
+        if (!catalog.skills.find((s) => s.id === item.id)) {
+          return res.status(400).json({ error: `Unknown skill: ${item.id}` });
+        }
+      } else if (item.type === 'blueprint') {
+        if (!(catalog.blueprints || []).find((b) => b.id === item.id)) {
+          return res.status(400).json({ error: `Unknown blueprint: ${item.id}` });
+        }
+      } else {
+        return res.status(400).json({ error: `Invalid item type: ${item.type}` });
+      }
+    }
+
+    const resolvedSkills = resolveSkills(items);
+
+    // Calculate total
+    let total = 0;
+    for (const item of items) {
+      if (item.type === 'bundle') {
+        total += catalog.bundles.find((b) => b.id === item.id).price;
+      } else if (item.type === 'blueprint') {
+        total += (catalog.blueprints || []).find((b) => b.id === item.id).price;
+      } else {
+        total += catalog.skills.find((s) => s.id === item.id).price;
+      }
+    }
+
+    const db = getDb();
+    const accountId = new ObjectId(req.user.accountId);
+
+    // Atomic balance deduction — prevents overdraft and race conditions
+    if (total > 0) {
+      const result = await db.collection('accounts').updateOne(
+        { _id: accountId, balance: { $gte: total } },
+        { $inc: { balance: -total } },
+      );
+      if (result.modifiedCount === 0) {
+        return res.status(402).json({ error: 'Insufficient credit balance' });
+      }
+    }
+
+    // Create purchase record
+    const code = generateRedeemCode();
+    const now = new Date();
+    const purchase = {
+      code,
+      accountId: req.user.accountId.toString(),
+      botUsername: req.user.username,
+      cartItems: items,
+      resolvedSkills,
+      total,
+      createdAt: now,
+      redemptions: [{ at: now, bot: req.user.username }],
+    };
+    await db.collection('purchases').insertOne(purchase);
+
+    // Record transactions for each product
+    for (const skillId of resolvedSkills) {
+      const product = findDownloadable(skillId);
+      if (product) {
+        const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
+        recordTransaction({
+          productId: product.id,
+          productType: isBlueprint ? 'blueprint' : 'skill',
+          productName: product.name,
+          botUsername: req.user.username,
+          accountId: req.user.accountId.toString(),
+          unitPrice: product.price,
+        }).catch((err) => console.error('[marketplace/checkout/bot] tx error:', err.message));
+      }
+    }
+
+    // Generate download token and return URLs directly
+    const downloadToken = jwt.sign(
+      { pc: code, sk: resolvedSkills },
+      process.env.JWT_SECRET,
+      { expiresIn: DOWNLOAD_TOKEN_TTL },
+    );
+
+    const baseUrl = process.env.RELAY_DOMAIN
+      ? `https://${process.env.RELAY_DOMAIN}`
+      : `http://localhost:${process.env.PORT || 4000}`;
+
+    const skills = resolvedSkills.map((skillId) => {
+      const product = findDownloadable(skillId);
+      return {
+        name: product.id,
+        version: product.version,
+        url: `${baseUrl}/api/marketplace/download/${downloadToken}/${product.id}`,
+        sha256: product.sha256,
+      };
+    });
+
+    // Fetch remaining balance after deduction
+    const account = await db.collection('accounts').findOne(
+      { _id: accountId },
+      { projection: { balance: 1 } },
+    );
+
+    res.json({ skills, total, balanceRemaining: account?.balance || 0 });
+  } catch (error) {
+    console.error('[marketplace/checkout/bot]', error.message);
     res.status(500).json({ error: 'Checkout failed' });
   }
 });
@@ -301,6 +465,47 @@ router.get('/marketplace/products', (req, res) => {
   res.json(enriched);
 });
 
+// ─── GET /api/marketplace/balance ────────────────────────────────────────────
+// Returns the user's credit balance.
+router.get('/marketplace/balance', jwtAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const account = await db.collection('accounts').findOne(
+      { _id: new ObjectId(req.account.id) },
+      { projection: { balance: 1 } },
+    );
+    res.json({ balance: account?.balance || 0 });
+  } catch (error) {
+    console.error('[marketplace/balance]', error.message);
+    res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+// ─── GET /api/marketplace/balance/bot ───────────────────────────────────────
+// Bot queries its owner's credit balance. Requires bot auth + claimed status.
+router.get('/marketplace/balance/bot', authenticate, async (req, res) => {
+  try {
+    if (!req.user.accountId) {
+      return res.status(403).json({ error: 'Not claimed — no linked account' });
+    }
+
+    const db = getDb();
+    const account = await db.collection('accounts').findOne(
+      { _id: new ObjectId(req.user.accountId) },
+      { projection: { balance: 1 } },
+    );
+
+    if (!account) {
+      return res.status(404).json({ error: 'Linked account not found' });
+    }
+
+    res.json({ balance: account.balance || 0 });
+  } catch (error) {
+    console.error('[marketplace/balance/bot]', error.message);
+    res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
 // ─── GET /api/marketplace/transactions ──────────────────────────────────────
 // Dashboard: merges human purchases + bot transactions into a unified history.
 router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
@@ -325,31 +530,58 @@ router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
 
     // Map purchases to the same shape as transactions, with expanded items
     const purchaseTx = purchases.map((p) => {
+      const creditItems = p.cartItems.filter((i) => i.type === 'credit');
+      const productCartItems = p.cartItems.filter((i) => i.type !== 'credit');
+      const creditTotal = creditItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      const isCreditOnly = productCartItems.length === 0 && creditItems.length > 0;
+
       // Build summary name from cart items
-      const cartNames = p.cartItems.map((item) => {
+      const cartNames = productCartItems.map((item) => {
         if (item.type === 'bundle') {
           const bundle = catalog.bundles.find((b) => b.id === item.id);
           return bundle ? bundle.name : item.id;
+        }
+        if (item.type === 'blueprint') {
+          const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
+          return bp ? bp.name : item.id;
         }
         const skill = catalog.skills.find((s) => s.id === item.id);
         return skill ? skill.name : item.id;
       });
 
+      if (isCreditOnly) {
+        return {
+          productId: p.code,
+          productType: 'credit',
+          productName: `$${creditTotal.toFixed(2)} Credits`,
+          botUsername: null,
+          accountId: id,
+          unitPrice: creditTotal,
+          totalSpent: creditTotal,
+          usageCount: 1,
+          firstAt: p.createdAt,
+          lastAt: p.createdAt,
+          source: 'purchase',
+        };
+      }
+
       // Build detailed items list from resolved skills
       const items = p.resolvedSkills.map((skillId) => {
-        const skill = catalog.skills.find((s) => s.id === skillId);
+        const product = findDownloadable(skillId);
         return {
           id: skillId,
-          type: 'skill',
-          name: skill ? skill.name : skillId,
-          price: skill ? skill.price : 0,
+          type: product ? ((catalog.blueprints || []).some((b) => b.id === skillId) ? 'blueprint' : 'skill') : 'skill',
+          name: product ? product.name : skillId,
+          price: product ? product.price : 0,
         };
       });
 
+      const productName = cartNames.join(' + ') + (creditTotal > 0 ? ` + $${creditTotal.toFixed(2)} Credits` : '');
+
       return {
         productId: p.code,
-        productType: p.cartItems.length === 1 ? p.cartItems[0].type : 'bundle',
-        productName: cartNames.join(' + '),
+        productType: productCartItems.length === 1 ? productCartItems[0].type : 'bundle',
+        productName,
         botUsername: null,
         accountId: id,
         unitPrice: p.total,

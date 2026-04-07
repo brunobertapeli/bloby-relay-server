@@ -1,0 +1,12 @@
+{
+  "name": "google-workspace",
+  "version": "1.0.0",
+  "author": "bloby-official",
+  "description": "Connects Bloby to Google Workspace (Gmail, Calendar, Drive, Sheets, Docs) via OAuth. Setup skill — walks the user through GCP console setup, handles OAuth token exchange, and configures the gws CLI.",
+  "type": "setup",
+  "depends": [],
+  "env_keys": [],
+  "size": "8KB",
+  "contains_binaries": false,
+  "tags": ["google", "gmail", "calendar", "drive", "sheets", "docs", "oauth", "setup"]
+}

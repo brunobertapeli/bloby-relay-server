@@ -12,44 +12,32 @@ import {
   HiLink
 } from 'react-icons/hi2'
 
-const filterOptions = ['Featured', 'Popular', 'Newest']
+const filterOptions = ['Featured', 'Popular', 'Latest']
 
+// Normalize products.json items for the UI
+function normalizeSkill(s) {
+  return { ...s, type: 'skill', title: s.name, price: s.price === 0 ? 'Free' : `$${s.price.toFixed(2)}`, priceNum: s.price, forHumans: true, forAgents: true }
+}
+function normalizeBundle(b, allSkills) {
+  const resolvedSkills = (b.skills || []).map(id => {
+    const skill = allSkills.find(s => s.id === id)
+    return skill ? { name: skill.name, vendor: skill.vendor } : { name: id, vendor: 'Unknown' }
+  })
+  return { ...b, type: 'bundle', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true, skills: resolvedSkills }
+}
+function normalizeBlueprint(b) {
+  return { ...b, type: 'blueprint', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true }
+}
+function normalizeService(s) {
+  return { ...s, type: 'service', title: s.name, price: s.price === 0 ? 'Free' : `$${s.price}`, priceNum: s.price, forHumans: false, forAgents: true }
+}
 
-const bundles = [
-  {
-    id: 'doctors-secretary-bundle',
-    type: 'bundle',
-    title: "Doctor's Secretary Bundle",
-    description: 'WhatsApp channel + virtual clinic secretary in one package',
-    longDescription: "Everything your Bloby needs to run a medical clinic's front desk. Includes the WhatsApp channel skill for connectivity and the Clinic Secretary skill for patient management. Your Bloby handles appointment scheduling, payment collection via Stripe, patient memory, and proactive follow-ups — all through WhatsApp.",
-    skills: [
-      { name: 'WhatsApp', vendor: 'Bloby' },
-      { name: 'Clinic Secretary', vendor: 'Bloby' },
-    ],
-    price: '$19.90',
-    priceNum: 19.90,
-    forHumans: true,
-    forAgents: true,
-  },
-]
-
-const blueprints = [
-  { id: 'standard-workspace-light', type: 'blueprint', title: 'Standard Workspace (Light Theme)', vendor: 'Bloby', description: 'A clean, professional light theme with a complete design system for your workspace', longDescription: 'A comprehensive design blueprint that transforms your workspace with a polished light theme. Includes a full design system with color palette, typography scale, component library (buttons, cards, inputs, modals, tables), layout templates, and responsive breakpoints. Your Bloby reads the blueprint once and applies it across all existing and future pages — consistent, beautiful, done.', price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-]
-
-const cloudServices = [
-  { name: 'ElevenLabs TTS', vendor: 'ElevenLabs', description: 'Generate lifelike speech from text with voice cloning', longDescription: 'Convert any text to natural-sounding speech using ElevenLabs voice synthesis. Choose from dozens of preset voices or clone a custom voice from a short audio sample. Supports SSML for fine-grained control over pronunciation, pauses, and emphasis. Output in MP3, WAV, or streaming PCM.', image: '/assets/images/icons/wallet.png', calls: '412.8k', price: '$0.03 / 1k chars', forHumans: false, forAgents: true },
-  { name: 'Imagen 3', vendor: 'Google', description: 'Photorealistic image generation with strong text rendering', longDescription: 'Google Imagen 3 generates high-fidelity photorealistic images from text prompts. Excels at rendering text within images, product photography, and architectural visualization. Includes built-in safety filters and digital watermarking for responsible AI use.', calls: '287.4k', price: '$0.04 / image', forHumans: false, forAgents: true },
-  { name: 'Whisper', vendor: 'OpenAI', description: 'Transcribe audio to text with timestamps and speaker detection', longDescription: 'Upload audio in any common format and get accurate transcriptions with word-level timestamps and optional speaker diarization. Handles accents, background noise, and technical jargon across 50+ languages. Returns plain text, SRT subtitles, or structured JSON segments.', image: '/assets/images/icons/wallet.png', calls: '156.2k', price: '$0.006 / min', forHumans: false, forAgents: true },
-  { name: 'Document AI', vendor: 'Microsoft', description: 'Extract structured data from invoices, receipts, and forms', longDescription: 'Specialized document understanding that extracts key-value pairs, tables, and signatures from business documents. Pre-built models for invoices, receipts, ID cards, and tax forms. Custom model training available for unique document types. Returns structured JSON with confidence scores.', calls: '89.1k', price: '$0.01 / page', forHumans: false, forAgents: true },
-  { name: 'Firecrawl', vendor: 'Firecrawl', description: 'Scrape and crawl websites into clean, structured markdown', longDescription: 'Navigate JavaScript-rendered pages, handle authentication, bypass rate limits, and return clean markdown or structured data. Crawls entire sites following links to a specified depth. Returns LLM-ready content optimized for agent consumption.', calls: '331.2k', price: '$0.01 / page', forHumans: false, forAgents: true },
-  { name: 'DeepL API', vendor: 'DeepL', description: 'High-accuracy text translation across 30+ language pairs', longDescription: 'Translate text with exceptional quality for European and Asian languages. Preserves formatting, handles formal and informal register, supports glossary enforcement for domain-specific terms, and offers full document translation while maintaining the original layout.', calls: '528.7k', price: '$0.00002 / char', forHumans: false, forAgents: true },
-]
-
-const skills = [
-  { id: 'whatsapp', type: 'skill', name: 'WhatsApp', vendor: 'Bloby', description: 'WhatsApp channel via Baileys — QR auth, messaging, voice notes, business mode', longDescription: 'Gives your Bloby a WhatsApp number. Connect via QR code, send and receive messages, handle voice notes with automatic transcription, and switch between personal (channel) and business modes. Built on Baileys — no Meta Business API needed. Credentials stay local on your device.', rating: 5, price: 'Free', priceNum: 0, forHumans: true, forAgents: true },
-  { id: 'whatsapp-clinic-secretary', type: 'skill', name: 'Clinic Secretary', vendor: 'Bloby', description: 'Virtual secretary for medical clinics — scheduling, payments, patient memory via WhatsApp', longDescription: 'Turns your Bloby into a virtual secretary for a medical clinic. Handles patient conversations via WhatsApp: appointment scheduling, Stripe payment links, cancellations, rescheduling, and patient memory across conversations. Runs in WhatsApp business mode with full security — patients never know they\'re talking to AI.', rating: 5, price: '$19.90', priceNum: 19.90, forHumans: true, forAgents: true },
-]
+// Collect all unique categories across a product array
+function collectCategories(items) {
+  const cats = new Set()
+  items.forEach(item => (item.categories || []).forEach(c => cats.add(c)))
+  return ['All', ...Array.from(cats).sort()]
+}
 
 
 const fadeUp = {
@@ -78,19 +66,40 @@ function Stars({ rating }) {
 function ItemIcon({ name }) {
   const colors = {
     'WhatsApp': 'bg-emerald-500/20 text-emerald-400',
+    'Google Workspace': 'bg-blue-500/20 text-blue-400',
     'Clinic Secretary': 'bg-rose-500/20 text-rose-400',
     "Doctor's Secretary Bundle": 'bg-rose-500/20 text-rose-400',
-    'ElevenLabs TTS': 'bg-violet-500/20 text-violet-400',
-    'Imagen 3': 'bg-sky-500/20 text-sky-400',
-    'Whisper': 'bg-emerald-500/20 text-emerald-400',
-    'Document AI': 'bg-cyan-500/20 text-cyan-400',
-    'Firecrawl': 'bg-orange-500/20 text-orange-400',
-    'DeepL API': 'bg-cyan-500/20 text-cyan-400',
+    'Standard Workspace (Light Theme)': 'bg-amber-500/20 text-amber-400',
+    'Workspace Lock': 'bg-sky-500/20 text-sky-400',
+    'Test Service': 'bg-violet-500/20 text-violet-400',
+    'Credits': 'bg-amber-500/20 text-amber-400',
   }
   const cls = colors[name] || 'bg-primary/20 text-primary'
   return (
     <div className={`w-8 h-8 rounded-lg ${cls} flex items-center justify-center text-xs font-bold font-display shrink-0`}>
       {name.charAt(0)}
+    </div>
+  )
+}
+
+function ProductImage({ id, name }) {
+  const [exists, setExists] = useState(null)
+  const src = `/assets/marketplace_img/${id}.png`
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setExists(true)
+    img.onerror = () => setExists(false)
+    img.src = src
+  }, [src])
+
+  if (!exists) return null
+
+  return (
+    <div className="px-5 pt-5">
+      <div className="rounded-xl bg-card border border-border/30 overflow-hidden flex items-center justify-center">
+        <img src={src} alt={name} className="w-full h-auto object-contain" />
+      </div>
     </div>
   )
 }
@@ -118,6 +127,46 @@ function InfoTooltip({ text }) {
             {text}
           </div>
         </>
+      )}
+    </div>
+  )
+}
+
+function CategoryDropdown({ categories, active, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1 text-xs font-medium transition-colors duration-200 ${
+          active !== 'All' ? 'text-primary' : 'text-muted-foreground/60 hover:text-muted-foreground'
+        }`}
+      >
+        {active === 'All' ? 'Category' : active}
+        <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-1 w-44 rounded-xl border border-border/50 bg-card shadow-xl z-50 py-1 max-h-52 overflow-y-auto">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => { onChange(cat); setOpen(false) }}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors duration-150 ${
+                active === cat ? 'text-primary bg-primary/5 font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-card/80'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -316,7 +365,9 @@ function ConfettiDot({ delay, left }) {
   )
 }
 
-function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }) {
+const CREDIT_PRESETS = [5, 10, 20]
+
+function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, checkingOut }) {
   const total = cart.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
   const [copied, setCopied] = useState(false)
 
@@ -327,6 +378,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
 
   const redeemCode = success?.code || ''
   const itemNames = success ? success.items.map(i => i.name || i.title) : []
+  const creditOnly = success ? success.items.every(i => i.type === 'credit') : false
 
   const premadeMessage = redeemCode
     ? `I bought new skills for you from the Bloby Marketplace. Redeem with this code: ${redeemCode}`
@@ -411,10 +463,13 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
             >
               <h3 className="text-xl font-bold font-display text-foreground mb-2">Success!</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Send the code below to any of your Bloby agents to redeem.
+                {creditOnly
+                  ? 'Credits have been added to your account balance.'
+                  : 'Send the code below to any of your Bloby agents to redeem.'}
               </p>
             </motion.div>
 
+            {!creditOnly && (
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -443,6 +498,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
                   </div>
                 </button>
               </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -506,6 +562,22 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, success, checkingOut }
 
             {cart.length > 0 && (
               <div className="p-5 border-t border-border/50">
+                {!cart.some(c => c.type === 'credit') && (
+                  <div className="mb-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-display mb-2">Add Credits</p>
+                    <div className="flex items-center gap-2">
+                      {CREDIT_PRESETS.slice(0, 2).map(amount => (
+                        <button
+                          key={amount}
+                          onClick={() => onAddCredit(amount)}
+                          className="flex-1 h-8 rounded-lg border border-border/50 bg-card text-xs font-semibold font-display text-foreground hover:border-primary/30 hover:text-primary transition-all duration-200"
+                        >
+                          +${amount.toFixed(2)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="text-lg font-bold font-display text-foreground">
@@ -587,13 +659,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode }) {
             </button>
           </div>
 
-          {item.image && (
-            <div className="px-5 pt-5">
-              <div className="rounded-xl bg-card border border-border/30 overflow-hidden flex items-center justify-center h-40">
-                <img src={item.image} alt={item.name || item.title} className="h-20 w-auto object-contain" />
-              </div>
-            </div>
-          )}
+          <ProductImage id={item.id} name={item.name || item.title} />
 
           <div className="p-5">
             <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.longDescription || item.description}</p>
@@ -660,14 +726,29 @@ export default function Marketplace() {
   const loginResolveRef = useRef(null)
   const [mode, setMode] = useState('humans') // 'humans' | 'agents'
   const [searchQuery, setSearchQuery] = useState('')
-  const [cart, setCart] = useState([])
-  const [cartOpen, setCartOpen] = useState(false)
+  const [cart, setCart] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('bloby_cart')
+      return stored ? JSON.parse(stored) : []
+    } catch { return [] }
+  })
+  const [cartOpen, setCartOpen] = useState(() => {
+    try { return !!sessionStorage.getItem('bloby_cart') } catch { return false }
+  })
   const [checkoutSuccess, setCheckoutSuccess] = useState(null)
   const [detailItem, setDetailItem] = useState(null)
   const [bundleFilter, setBundleFilter] = useState('Featured')
   const [skillFilter, setSkillFilter] = useState('Featured')
-  const [cloudFilter, setCloudFilter] = useState('Featured')
+  const [serviceFilter, setServiceFilter] = useState('Featured')
   const [blueprintFilter, setBlueprintFilter] = useState('Featured')
+  const [bundleCat, setBundleCat] = useState('All')
+  const [skillCat, setSkillCat] = useState('All')
+  const [serviceCat, setServiceCat] = useState('All')
+  const [blueprintCat, setBlueprintCat] = useState('All')
+  const [skills, setSkills] = useState([])
+  const [bundles, setBundles] = useState([])
+  const [blueprints, setBlueprints] = useState([])
+  const [services, setServices] = useState([])
 
   useEffect(() => {
     const token = localStorage.getItem('bloby_token')
@@ -679,6 +760,29 @@ export default function Marketplace() {
         .then(data => { if (data.user) setUser(data.user) })
         .catch(() => localStorage.removeItem('bloby_token'))
     }
+  }, [])
+
+  // Sync cart to sessionStorage
+  useEffect(() => {
+    if (cart.length > 0) {
+      sessionStorage.setItem('bloby_cart', JSON.stringify(cart))
+    } else {
+      sessionStorage.removeItem('bloby_cart')
+    }
+  }, [cart])
+
+  // Fetch product catalog from API
+  useEffect(() => {
+    fetch(`${API_URL}/api/marketplace/products`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const rawSkills = data.skills || []
+        setSkills(rawSkills.map(normalizeSkill))
+        setBundles((data.bundles || []).map(b => normalizeBundle(b, rawSkills)))
+        setBlueprints((data.blueprints || []).map(normalizeBlueprint))
+        setServices((data.services || []).map(normalizeService))
+      })
+      .catch(err => console.error('[marketplace] fetch products failed:', err))
   }, [])
 
   useEffect(() => {
@@ -767,6 +871,22 @@ export default function Marketplace() {
     setCart(prev => prev.filter(c => c.id !== id))
   }
 
+  const addCredit = (amount) => {
+    setCart(prev => {
+      const existing = prev.find(c => c.type === 'credit')
+      if (existing) return prev
+      return [...prev, {
+        id: `credit-${amount}`,
+        type: 'credit',
+        name: `$${amount.toFixed(2)} Credits`,
+        title: `$${amount.toFixed(2)} Credits`,
+        price: `$${amount.toFixed(2)}`,
+        priceNum: amount,
+        qty: 1,
+      }]
+    })
+  }
+
 
   const [checkingOut, setCheckingOut] = useState(false)
 
@@ -780,7 +900,10 @@ export default function Marketplace() {
     setCheckingOut(true)
     try {
       const token = localStorage.getItem('bloby_token')
-      const items = cart.map(c => ({ id: c.id, type: c.type }))
+      const items = cart.map(c => {
+        if (c.type === 'credit') return { id: c.id, type: c.type, amount: c.priceNum }
+        return { id: c.id, type: c.type }
+      })
 
       const res = await fetch(`${API_URL}/api/marketplace/checkout`, {
         method: 'POST',
@@ -828,34 +951,33 @@ export default function Marketplace() {
 
   const sortItems = (items, filter) => {
     const sorted = [...items]
-    if (filter === 'Newest') sorted.reverse()
+    if (filter === 'Featured') return sorted.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    if (filter === 'Popular') return sorted.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0))
+    if (filter === 'Latest') return sorted.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
     return sorted
   }
 
-  const filteredBundles = sortItems(
-    bundles.filter(b => !q || b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || b.skills.some(s => s.name.toLowerCase().includes(q))),
-    bundleFilter
-  )
+  const filterByCat = (items, cat) => cat === 'All' ? items : items.filter(i => (i.categories || []).includes(cat))
+  const searchFilter = (item) => {
+    if (!q) return true
+    const fields = [item.title, item.name, item.description, item.vendor].filter(Boolean).map(s => s.toLowerCase())
+    return fields.some(f => f.includes(q))
+  }
 
-  const filteredSkills = sortItems(
-    skills.filter(s => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.vendor.toLowerCase().includes(q)),
-    skillFilter
-  )
+  const filteredBundles = sortItems(filterByCat(bundles.filter(searchFilter), bundleCat), bundleFilter)
+  const filteredSkills = sortItems(filterByCat(skills.filter(searchFilter), skillCat), skillFilter)
+  const filteredServices = sortItems(filterByCat(services.filter(searchFilter), serviceCat), serviceFilter)
+  const filteredBlueprints = sortItems(filterByCat(blueprints.filter(searchFilter), blueprintCat), blueprintFilter)
 
-  const filteredCloud = sortItems(
-    cloudServices.filter(s => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.vendor.toLowerCase().includes(q)),
-    cloudFilter
-  )
-
-  const filteredBlueprints = sortItems(
-    blueprints.filter(b => !q || b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || (b.vendor && b.vendor.toLowerCase().includes(q))),
-    blueprintFilter
-  )
+  const bundleCategories = collectCategories(bundles)
+  const skillCategories = collectCategories(skills)
+  const serviceCategories = collectCategories(services)
+  const blueprintCategories = collectCategories(blueprints)
 
   const isHumans = mode === 'humans'
   const isGrayed = (item) => isHumans ? !item.forHumans : true
 
-  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredCloud.length > 0 || filteredBlueprints.length > 0
+  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredServices.length > 0 || filteredBlueprints.length > 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -898,6 +1020,57 @@ export default function Marketplace() {
             {!isHumans && <AgentBanner key="agent-banner" />}
           </AnimatePresence>
 
+          {isHumans && (
+          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0.5} className="mb-8">
+            <div className="rounded-2xl border border-border/50 bg-card px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <img src="/assets/images/icons/wallet.png" alt="" className="w-8 h-8 object-contain" />
+                <div className="flex items-center gap-1.5">
+                  <div>
+                    <h2 className="text-sm font-semibold font-display text-foreground leading-tight">Credit Balance</h2>
+                    <p className="text-[11px] text-muted-foreground">Add to credit balance so your claimed Blobies can use the Marketplace on their own</p>
+                  </div>
+                  <InfoTooltip text="Credits are shared across your account. All Blobies linked to you can spend from the same balance to pay for cloud services, skill purchases, and any marketplace transaction." />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-1 sm:justify-end">
+                {CREDIT_PRESETS.map((amount) => {
+                  const inCart = cart.some(c => c.id === `credit-${amount}`)
+                  return (
+                    <button
+                      key={amount}
+                      onClick={() => addCredit(amount)}
+                      className={`h-9 px-4 rounded-xl text-sm font-semibold font-display transition-all duration-200 ${
+                        inCart
+                          ? 'bg-primary/10 text-primary border border-primary/30'
+                          : 'border border-border/50 text-foreground hover:border-primary/30 hover:text-primary'
+                      }`}
+                    >
+                      {inCart ? <span className="flex items-center gap-1"><HiCheckCircle className="w-3.5 h-3.5" /> ${amount}</span> : `$${amount}`}
+                    </button>
+                  )
+                })}
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 text-sm font-display">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Other"
+                    className="h-9 w-20 pl-7 pr-2 rounded-xl border border-dashed border-border/50 bg-transparent text-sm font-display text-foreground placeholder:text-muted-foreground/40 focus:border-primary/40 focus:outline-none transition-colors duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseFloat(e.target.value)
+                        if (val >= 1) { addCredit(val); e.target.value = '' }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.section>
+          )}
+
           {filteredBundles.length > 0 && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={1} className="mb-12">
             <div className="flex items-center justify-between gap-4 mb-5">
@@ -905,7 +1078,10 @@ export default function Marketplace() {
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
                 <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one install." />
               </div>
-              <FilterTabs active={bundleFilter} onChange={setBundleFilter} />
+              <div className="flex items-center gap-3">
+                <CategoryDropdown categories={bundleCategories} active={bundleCat} onChange={setBundleCat} />
+                <FilterTabs active={bundleFilter} onChange={setBundleFilter} />
+              </div>
             </div>
             <Carousel>
               <div className="flex gap-4">
@@ -977,7 +1153,10 @@ export default function Marketplace() {
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
                 <InfoTooltip text="Skills are abilities you install on your Bloby. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
               </div>
-              <FilterTabs active={skillFilter} onChange={setSkillFilter} />
+              <div className="flex items-center gap-3">
+                <CategoryDropdown categories={skillCategories} active={skillCat} onChange={setSkillCat} />
+                <FilterTabs active={skillFilter} onChange={setSkillFilter} />
+              </div>
             </div>
             <Carousel>
               <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
@@ -1037,7 +1216,10 @@ export default function Marketplace() {
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
                 <InfoTooltip text="Blueprints are single-use knowledge packages — everything your agent needs to execute a specific workflow from start to finish. Unlike skills (which add ongoing abilities), a blueprint is applied once to set up something permanent. Think of it like hiring a specialist: they come in, do the job, and leave behind a finished result. A design blueprint sets up your entire workspace theme. A migration blueprint restructures your database. One download, one execution, lasting impact." />
               </div>
-              <FilterTabs active={blueprintFilter} onChange={setBlueprintFilter} />
+              <div className="flex items-center gap-3">
+                <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} />
+                <FilterTabs active={blueprintFilter} onChange={setBlueprintFilter} />
+              </div>
             </div>
             <Carousel>
               <div className="flex gap-4">
@@ -1089,22 +1271,25 @@ export default function Marketplace() {
           </motion.section>
           )}
 
-          {filteredCloud.length > 0 && (
+          {filteredServices.length > 0 && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4}>
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Cloud Services</span></h2>
                 <InfoTooltip text="Cloud services run on our servers so your Bloby doesn't get overloaded. Just ask your Bloby to use a service and it already knows how. Charged per use from your wallet." />
               </div>
-              <FilterTabs active={cloudFilter} onChange={setCloudFilter} />
+              <div className="flex items-center gap-3">
+                <CategoryDropdown categories={serviceCategories} active={serviceCat} onChange={setServiceCat} />
+                <FilterTabs active={serviceFilter} onChange={setServiceFilter} />
+              </div>
             </div>
             <Carousel>
               <div className="flex gap-4">
-                {filteredCloud.map((service, i) => {
+                {filteredServices.map((service, i) => {
                   const grayed = isGrayed(service)
                   return (
                   <motion.div
-                    key={service.name}
+                    key={service.id}
                     variants={fadeUp}
                     custom={i * 0.5}
                     onClick={() => setDetailItem(service)}
@@ -1122,12 +1307,8 @@ export default function Marketplace() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                      <span>{service.calls} calls</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                      <span className="text-xs font-medium text-muted-foreground">{service.price}</span>
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
+                      <span className="text-sm font-semibold font-display text-foreground">{service.price}</span>
                       {grayed ? (
                         <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
                       ) : (
@@ -1184,6 +1365,7 @@ export default function Marketplace() {
             onClose={handleCloseCart}
             onRemove={removeFromCart}
             onCheckout={handleCheckout}
+            onAddCredit={addCredit}
             success={checkoutSuccess}
             checkingOut={checkingOut}
           />

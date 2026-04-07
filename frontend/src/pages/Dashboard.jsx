@@ -663,6 +663,7 @@ const typeStyles = {
   service: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   blueprint: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   bundle: 'bg-primary/10 text-primary border-primary/20',
+  credit: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   wallet: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   handle: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   hosting: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
@@ -773,7 +774,7 @@ function BotTransactionCard({ tx }) {
           <span className="text-sm font-semibold font-display text-foreground">{tx.productName}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-muted-foreground font-display">{tx.botUsername}</span>
+          {tx.botUsername && <span className="text-[11px] text-muted-foreground font-display">{tx.botUsername}</span>}
           <span className="text-[11px] text-muted-foreground/50 font-display">{formatDate(tx.lastAt)}</span>
           {isService && tx.usageCount > 0 && (
             <span className="text-[11px] text-muted-foreground font-display">
@@ -806,9 +807,26 @@ export default function Dashboard() {
   const [visibleHashes, setVisibleHashes] = useState({})
   const [showClaim, setShowClaim] = useState(false)
   const [fundingBloby, setFundingBloby] = useState(null)
+  const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
   const tokenClientRef = useRef(null)
   const loginResolveRef = useRef(null)
+
+  const fetchBalance = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/marketplace/balance`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setBalance(data.balance || 0)
+      }
+    } catch (err) {
+      console.error('[balance] fetch failed:', err)
+    }
+  }
 
   const fetchReservedHandles = async () => {
     const token = localStorage.getItem('bloby_token')
@@ -875,6 +893,7 @@ export default function Dashboard() {
           fetchReservedHandles()
           fetchBlobies()
           fetchTransactions()
+          fetchBalance()
         } else {
           navigate('/')
         }
@@ -964,6 +983,49 @@ export default function Dashboard() {
           )}
         </motion.section>
 
+        <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.5}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Credit Balance</h2>
+          </div>
+          <div className="rounded-2xl border border-border/50 bg-card px-5 py-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <img src="/assets/images/icons/wallet.png" alt="" className="w-10 h-10 object-contain" />
+                <div>
+                  <p className="text-2xl font-bold font-display text-foreground leading-tight">
+                    {balance !== null ? `$${balance.toFixed(2)}` : '...'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Available credits</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {[5, 10, 20].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => {
+                      const creditItem = {
+                        id: `credit-${amount}`,
+                        type: 'credit',
+                        amount,
+                        name: `$${amount.toFixed(2)} Credits`,
+                        title: `$${amount.toFixed(2)} Credits`,
+                        price: `$${amount.toFixed(2)}`,
+                        priceNum: amount,
+                        qty: 1,
+                      }
+                      sessionStorage.setItem('bloby_cart', JSON.stringify([creditItem]))
+                      navigate('/marketplace')
+                    }}
+                    className="h-9 px-4 rounded-xl text-sm font-semibold font-display border border-border/50 text-foreground hover:border-primary/30 hover:text-primary transition-all duration-200 flex items-center"
+                  >
+                    +${amount}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Handles</h2>
@@ -1003,9 +1065,11 @@ export default function Dashboard() {
           {transactions.length > 0 ? (
             <div className="space-y-3">
               {transactions.map((tx) => (
-                tx.source === 'purchase'
-                  ? <PurchaseCard key={`purchase-${tx.redeemCode}`} tx={tx} />
-                  : <BotTransactionCard key={`bot-${tx.botUsername}-${tx.productId}`} tx={tx} />
+                tx.productType === 'credit'
+                  ? <BotTransactionCard key={`credit-${tx.productId}`} tx={{ ...tx, botUsername: null }} />
+                  : tx.source === 'purchase'
+                    ? <PurchaseCard key={`purchase-${tx.redeemCode}`} tx={tx} />
+                    : <BotTransactionCard key={`bot-${tx.botUsername}-${tx.productId}`} tx={tx} />
               ))}
             </div>
           ) : (
