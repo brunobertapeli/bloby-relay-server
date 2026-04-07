@@ -305,7 +305,16 @@ Example:
 - `ad-creative-crafter` depends on `nano-banana-image-gen` ✓
 - A depends on B which depends on C ✗ (C must be declared directly by A if needed)
 
-Before installing, the agent checks `skill.json` → `depends` and verifies each dependency exists in `workspace/skills/`. If missing, the agent tells the human what needs to be purchased/installed first.
+### Dependency policy: inform, don't force
+
+Dependencies are **informational, not blocking**. The agent MUST NOT auto-download or force-install dependencies. Instead:
+
+1. **On install**, the agent checks `skill.json` → `depends` and verifies each dependency exists in `workspace/skills/`.
+2. **If missing**, the agent tells the human clearly: "This skill needs [dependency] to work. You can download it from the marketplace." The agent does NOT download it on the human's behalf.
+3. **The skill's SKILL.md** documents what works without the dependency (if anything) and what requires it. Some dependencies are hard requirements (e.g., WhatsApp for Clinic Secretary — nothing works without it). Others are optional enhancements (e.g., Google Workspace for Bloby Backup — local backups still work without it).
+4. **The marketplace UI** shows dependencies clearly on the product detail page so users know what they're getting into before purchasing.
+
+The human always decides when and whether to install dependencies. Skills should be written to degrade gracefully when optional dependencies are missing — check for their presence and offer reduced functionality rather than failing outright.
 
 ---
 
@@ -378,6 +387,10 @@ For marketplace organization. Non-exhaustive:
 **standard-workspace-light** — Blueprint (not skill). Light/dark theme toggle with full design system. Agent reads instructions, adapts to workspace, applies once, archives. Free.
 
 **workspace-lock** — Blueprint. Adds a PIN code or password lock screen to the workspace. Includes React components, backend routes, scrypt hashing, localStorage sessions, and agent-triggered reset. Free.
+
+**bloby-backup** — Blueprint. Automated workspace backups via cron. Conversational setup gathers schedule and destinations (Google Drive, email, local download). Optionally depends on `google-workspace` for Drive/email features — local backups work without it. Includes restore flow that warns about memory file overwrite. Free.
+
+**google-workspace** — Setup skill. Connects the agent to Google Workspace (Gmail, Calendar, Drive, Sheets, Docs) via OAuth. Guided conversational setup. Stays installed (not archived) for re-auth and command reference. Free.
 
 ### Planned
 

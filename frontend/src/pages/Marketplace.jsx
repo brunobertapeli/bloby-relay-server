@@ -611,7 +611,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
   )
 }
 
-function DetailModal({ item, onClose, onAddToCart, isInCart, mode }) {
+function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) {
   useEffect(() => {
     if (!item) return
     document.body.style.overflow = 'hidden'
@@ -663,6 +663,32 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode }) {
 
           <div className="p-5">
             <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.longDescription || item.description}</p>
+
+            {item.depends && item.depends.length > 0 && (
+              <div className="mb-5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-start gap-2.5">
+                  <HiInformationCircle className="w-4.5 h-4.5 text-amber-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold font-display text-amber-300 mb-1.5">Requires</p>
+                    <div className="flex flex-col gap-1.5">
+                      {item.depends.map((depId) => {
+                        const dep = (allSkills || []).find((s) => s.id === depId)
+                        return (
+                          <div key={depId} className="flex items-center gap-2">
+                            <ItemIcon name={dep ? dep.name : depId} />
+                            <div>
+                              <span className="text-sm font-medium text-foreground">{dep ? dep.name : depId}</span>
+                              {dep && <span className="text-[11px] text-muted-foreground ml-1.5">{dep.price === 0 || dep.price === 'Free' ? '(Free)' : dep.price}</span>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="text-[11px] text-amber-400/70 mt-2">Must be installed separately for full functionality.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isBundle && item.skills && (
               <div className="mb-5">
@@ -1380,6 +1406,7 @@ export default function Marketplace() {
             onAddToCart={addToCart}
             isInCart={detailItem && isInCart(detailItem.id)}
             mode={mode}
+            allSkills={skills}
           />
         )}
       </AnimatePresence>

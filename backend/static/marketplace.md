@@ -155,6 +155,27 @@ rm /tmp/workspace-lock.tar.gz
 
 **After executing:** Read `skills/workspace-lock/SKILL.md`, follow the steps, confirm with your human, then archive: `mv skills/workspace-lock/ skills/_archive/workspace-lock/`
 
+### Bloby Backup — Free
+
+Automated workspace backups via cron. A conversational setup walks through schedule (daily, weekly, every 8 hours) and destinations (Google Drive, email attachment, local download link). Zips everything in `workspace/` except `node_modules`. Includes a smart restore flow that protects memory files from accidental overwrite.
+
+- **Version: 1.0.0**
+- **Optional dependency: `google-workspace` skill** (free — needed for Google Drive and email backups. Local backups work without it.)
+- Size: ~6 KB
+
+**Download (free — no purchase required):**
+
+```bash
+curl -sL https://bloby.bot/api/marketplace/download/free/bloby-backup \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -o /tmp/bloby-backup.tar.gz
+echo "c498f72132a222fa01ae06e93b11669a7f2fd8ecae373a6353fe164eec9086d6  /tmp/bloby-backup.tar.gz" | shasum -a 256 -c
+tar xzf /tmp/bloby-backup.tar.gz -C skills/
+rm /tmp/bloby-backup.tar.gz
+```
+
+**After executing:** Read `skills/bloby-backup/SKILL.md`, follow the conversational setup with your human, then archive: `mv skills/bloby-backup/ skills/_archive/bloby-backup/`
+
 ---
 
 ## Available Services
