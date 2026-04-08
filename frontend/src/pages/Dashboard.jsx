@@ -63,9 +63,9 @@ function DashNavbar({ user, onLogout }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="group">
             <motion.img
-              src="/assets/images/bloby_logo.png"
+              src="/assets/images/bloby_mascot.png"
               alt="Bloby"
-              className="w-[53px] h-auto"
+              className="h-[35px] w-auto"
               whileHover={{ scale: 1.05 }}
               transition={{ type: 'spring', stiffness: 300 }}
             />
