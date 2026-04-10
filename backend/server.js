@@ -49,6 +49,8 @@ app.use(
       if (allowedOrigins.includes(origin)) return cb(null, true);
       // Allow any subdomain of the relay domain (e.g. www.bloby.bot)
       if (relayDomain && origin.endsWith(`.${relayDomain}`)) return cb(null, true);
+      // Allow Chrome extension origins
+      if (origin.startsWith('chrome-extension://')) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
