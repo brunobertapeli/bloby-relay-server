@@ -8,7 +8,7 @@ import { getDb } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
-import { upload, getFile } from '../lib/r2.js';
+import { upload as r2Upload, getFile } from '../lib/r2.js';
 import multer from 'multer';
 import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter, marketplaceSubmitLimiter } from '../middleware/rateLimiter.js';
 
@@ -679,7 +679,7 @@ router.post(
 
       // ── Upload tarball to R2 ─────────────────────────────────────────
       const r2Key = `${folder}/${filename}`;
-      await upload(r2Key, req.file.buffer);
+      await r2Upload(r2Key, req.file.buffer);
 
       const sha256 = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
 
