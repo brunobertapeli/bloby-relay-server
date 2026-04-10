@@ -947,7 +947,7 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
             >
               <HiPlus className="w-4 h-4" />
-              Claim a Bloby
+              Claim your Bloby
             </button>
           </div>
           <AnimatePresence>

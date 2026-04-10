@@ -1,6 +1,0 @@
-{
-  "name": "google-workspace",
-  "version": "1.0.0",
-  "description": "Google Workspace setup — OAuth flow for Gmail, Calendar, Drive, Sheets, Docs via gws CLI",
-  "skills": "./"
-}

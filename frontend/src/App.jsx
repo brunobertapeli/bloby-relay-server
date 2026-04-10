@@ -17,6 +17,8 @@ import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
 import Dashboard from './pages/Dashboard'
 import Square from './pages/Square'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 import { API_URL } from './api'
 
 function detectOS() {
@@ -1325,19 +1327,70 @@ function SquareSection() {
 
 function Footer() {
   return (
-    <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-border/30">
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <img src="/assets/images/bloby.png" alt="Bloby" className="h-5 sm:h-6 w-auto opacity-60" />
-          <span className="text-xs sm:text-sm text-muted-foreground">Open source under MIT. Your agent, your rules.</span>
+    <footer className="relative border-t border-border/30 overflow-hidden">
+      {/* Subtle gradient glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-gradient-to-t from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-12 mb-12">
+          {/* Brand column */}
+          <div className="col-span-2 sm:col-span-1">
+            <div className="flex items-center gap-3 mb-4">
+              <img src="/assets/images/bloby_mascot.png" alt="Bloby" className="h-8 w-auto" />
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+              AI agent platform under BSL. Your agent, your rules.
+            </p>
+            <div className="flex items-center gap-3">
+              <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
+                <FaDiscord className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
+                <FaGithub className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Product column */}
+          <div>
+            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Product</h4>
+            <ul className="space-y-2.5">
+              <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+              <li><a href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Marketplace</a></li>
+              <li><a href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Docs</a></li>
+              <li><a href="/square" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Square</a></li>
+            </ul>
+          </div>
+
+          {/* Legal column */}
+          <div>
+            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Legal</h4>
+            <ul className="space-y-2.5">
+              <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Use</a></li>
+              <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+            </ul>
+          </div>
+
+          {/* Community column */}
+          <div>
+            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Community</h4>
+            <ul className="space-y-2.5">
+              <li><a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">GitHub</a></li>
+            </ul>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <FaDiscord className="w-4 h-4" />
-          </a>
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <FaGithub className="w-4 h-4" />
-          </a>
+
+        {/* Bottom bar */}
+        <div className="pt-6 border-t border-border/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground/60">
+            &copy; {new Date().getFullYear()} Bloby. Licensed under BSL.
+          </p>
+          <div className="flex items-center gap-4">
+            <a href="/terms" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Terms</a>
+            <span className="text-muted-foreground/30">|</span>
+            <a href="/privacy" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Privacy</a>
+          </div>
         </div>
       </div>
     </footer>
@@ -1557,6 +1610,8 @@ function App() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/square" element={<Square />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<BotRedirect />} />
       </Routes>
     </BrowserRouter>

@@ -118,3 +118,13 @@ export const claimBlobiesLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests — try again later' },
 });
+
+/** Marketplace submission — 5 per bot per hour */
+export const marketplaceSubmitLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many submissions — try again later' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});

@@ -1,16 +1,9 @@
 import { Router } from 'express';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { authenticate } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
+import { getDb } from '../db.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
-
-// Load catalog
-const productsPath = path.join(__dirname, '..', 'data', 'products.json');
-const catalog = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
 
 // ─── Service handlers ───────────────────────────────────────────────────────
 // Each service ID maps to a handler function that returns the result.
@@ -34,7 +27,7 @@ const serviceHandlers = {
 router.post('/services/:serviceId/use', authenticate, async (req, res) => {
   const { serviceId } = req.params;
 
-  const service = catalog.services?.find((s) => s.id === serviceId);
+  const service = await getDb().collection('products').findOne({ id: serviceId, type: 'service' });
   if (!service) {
     return res.status(404).json({ error: 'Service not found' });
   }
@@ -70,8 +63,14 @@ router.post('/services/:serviceId/use', authenticate, async (req, res) => {
 
 // ─── GET /api/services ──────────────────────────────────────────────────────
 // List available services (public).
-router.get('/services', (_req, res) => {
-  res.json(catalog.services || []);
+router.get('/services', async (_req, res) => {
+  try {
+    const services = await getDb().collection('products').find({ type: 'service' }).toArray();
+    res.json(services);
+  } catch (error) {
+    console.error('[services]', error.message);
+    res.status(500).json({ error: 'Failed to load services' });
+  }
 });
 
 export default router;

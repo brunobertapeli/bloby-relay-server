@@ -2,26 +2,45 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import path from 'node:path';
-import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
-import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter } from '../middleware/rateLimiter.js';
+import { upload, getFile } from '../lib/r2.js';
+import multer from 'multer';
+import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter, marketplaceSubmitLimiter } from '../middleware/rateLimiter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const staticDir = path.join(__dirname, '..', 'static');
 const router = Router();
 
-// ─── Product catalog ────────────────────────────────────────────────────────
-const productsPath = path.join(__dirname, '..', 'data', 'products.json');
-const catalog = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+// ─── Product catalog (live from MongoDB) ─────────────────────────────────────
 
-// Lookup across skills and blueprints (both are downloadable products)
-function findDownloadable(id) {
-  return catalog.skills.find((s) => s.id === id)
-    || (catalog.blueprints || []).find((b) => b.id === id);
+const approved = { $or: [{ status: 'approved' }, { status: { $exists: false } }] };
+
+async function getLiveCatalog() {
+  const col = getDb().collection('products');
+  const all = await col.find(approved).toArray();
+  return {
+    skills: all.filter((p) => p.type === 'skill' || p.type === 'setup'),
+    blueprints: all.filter((p) => p.type === 'blueprint'),
+    bundles: all.filter((p) => p.type === 'bundle'),
+    services: all.filter((p) => p.type === 'service'),
+  };
+}
+
+async function findDownloadable(id) {
+  return getDb().collection('products').findOne({ id, ...approved });
+}
+
+async function findBundle(id) {
+  return getDb().collection('products').findOne({ id, type: 'bundle', ...approved });
+}
+
+async function findProduct(id, type) {
+  return getDb().collection('products').findOne({ id, type, ...approved });
 }
 
 const REDEEM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -37,32 +56,63 @@ function generateRedeemCode() {
 
 /**
  * Resolve cart items to a deduplicated list of skill IDs.
- * Bundles are expanded to their individual skills.
- * Dependencies are included automatically.
- */
-/**
- * Resolve cart items to a deduplicated list of skill IDs.
  * Bundles expand to their listed skills. Individual skills resolve to themselves only.
  * Dependencies are NOT auto-included — bundles are the packaging mechanism.
- * The skill's SKILL.md documents what dependencies are needed.
  */
-function resolveSkills(items) {
+async function resolveSkills(items) {
   const skillIds = new Set();
 
   for (const item of items) {
     if (item.type === 'bundle') {
-      const bundle = catalog.bundles.find((b) => b.id === item.id);
-      if (bundle) bundle.skills.forEach((id) => skillIds.add(id));
-    } else if (item.type === 'skill') {
-      const skill = catalog.skills.find((s) => s.id === item.id);
-      if (skill) skillIds.add(skill.id);
-    } else if (item.type === 'blueprint') {
-      const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
-      if (bp) skillIds.add(bp.id);
+      const bundle = await findBundle(item.id);
+      if (bundle) (bundle.items || bundle.skills || []).forEach((id) => skillIds.add(id));
+    } else if (item.type === 'skill' || item.type === 'blueprint') {
+      const product = await findDownloadable(item.id);
+      if (product) skillIds.add(product.id);
     }
   }
 
   return [...skillIds];
+}
+
+/**
+ * Validate that all cart items exist. Returns null on success, or an error string.
+ */
+async function validateCartItems(items) {
+  for (const item of items) {
+    if (item.type === 'bundle') {
+      if (!(await findBundle(item.id))) return `Unknown bundle: ${item.id}`;
+    } else if (item.type === 'skill') {
+      if (!(await findProduct(item.id, 'skill')) && !(await findProduct(item.id, 'setup'))) return `Unknown skill: ${item.id}`;
+    } else if (item.type === 'blueprint') {
+      if (!(await findProduct(item.id, 'blueprint'))) return `Unknown blueprint: ${item.id}`;
+    } else if (item.type === 'credit') {
+      const amount = parseFloat(item.amount);
+      if (!amount || amount < 1) return 'Credit amount must be at least $1';
+    } else {
+      return `Invalid item type: ${item.type}`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Calculate total price for cart items from MongoDB.
+ */
+async function calculateTotal(items) {
+  let total = 0;
+  for (const item of items) {
+    if (item.type === 'bundle') {
+      const bundle = await findBundle(item.id);
+      total += bundle.price;
+    } else if (item.type === 'credit') {
+      total += parseFloat(item.amount);
+    } else {
+      const product = await findDownloadable(item.id);
+      if (product) total += product.price;
+    }
+  }
+  return total;
 }
 
 // ─── POST /api/marketplace/checkout ─────────────────────────────────────────
@@ -75,59 +125,19 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
-    // Validate all items exist
-    for (const item of items) {
-      if (item.type === 'bundle') {
-        if (!catalog.bundles.find((b) => b.id === item.id)) {
-          return res.status(400).json({ error: `Unknown bundle: ${item.id}` });
-        }
-      } else if (item.type === 'skill') {
-        if (!catalog.skills.find((s) => s.id === item.id)) {
-          return res.status(400).json({ error: `Unknown skill: ${item.id}` });
-        }
-      } else if (item.type === 'blueprint') {
-        if (!(catalog.blueprints || []).find((b) => b.id === item.id)) {
-          return res.status(400).json({ error: `Unknown blueprint: ${item.id}` });
-        }
-      } else if (item.type === 'credit') {
-        const amount = parseFloat(item.amount);
-        if (!amount || amount < 1) {
-          return res.status(400).json({ error: 'Credit amount must be at least $1' });
-        }
-      } else {
-        return res.status(400).json({ error: `Invalid item type: ${item.type}` });
-      }
-    }
+    const validationError = await validateCartItems(items);
+    if (validationError) return res.status(400).json({ error: validationError });
 
-    const resolvedSkills = resolveSkills(items);
+    const resolvedSkills = await resolveSkills(items);
+    const total = await calculateTotal(items);
 
-    // Calculate total from cart line items
-    let total = 0;
-    for (const item of items) {
-      if (item.type === 'bundle') {
-        const bundle = catalog.bundles.find((b) => b.id === item.id);
-        total += bundle.price;
-      } else if (item.type === 'blueprint') {
-        const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
-        total += bp.price;
-      } else if (item.type === 'credit') {
-        total += parseFloat(item.amount);
-      } else {
-        const skill = catalog.skills.find((s) => s.id === item.id);
-        total += skill.price;
-      }
-    }
-
-    // Separate credit items from product items
     const creditItems = items.filter((i) => i.type === 'credit');
-    const productItems = items.filter((i) => i.type !== 'credit');
     const creditAmount = creditItems.reduce((sum, i) => sum + parseFloat(i.amount), 0);
 
     const code = generateRedeemCode();
     const now = new Date();
     const db = getDb();
 
-    // Create purchase record (for product items, or credit-only)
     await db.collection('purchases').insertOne({
       code,
       accountId: req.account.id,
@@ -138,7 +148,6 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
       redemptions: [],
     });
 
-    // Add credits to account balance
     if (creditAmount > 0) {
       await db.collection('accounts').updateOne(
         { _id: new ObjectId(req.account.id) },
@@ -147,21 +156,15 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
     }
 
     // Build response with item details for the frontend
-    const itemDetails = items.map((item) => {
-      if (item.type === 'bundle') {
-        const bundle = catalog.bundles.find((b) => b.id === item.id);
-        return { id: bundle.id, type: 'bundle', name: bundle.name, price: bundle.price };
-      }
-      if (item.type === 'blueprint') {
-        const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
-        return { id: bp.id, type: 'blueprint', name: bp.name, price: bp.price };
-      }
+    const itemDetails = [];
+    for (const item of items) {
       if (item.type === 'credit') {
-        return { id: item.id, type: 'credit', name: `$${parseFloat(item.amount).toFixed(2)} Credits`, price: parseFloat(item.amount) };
+        itemDetails.push({ id: item.id, type: 'credit', name: `$${parseFloat(item.amount).toFixed(2)} Credits`, price: parseFloat(item.amount) });
+      } else {
+        const product = item.type === 'bundle' ? await findBundle(item.id) : await findDownloadable(item.id);
+        if (product) itemDetails.push({ id: product.id, type: item.type, name: product.name, price: product.price });
       }
-      const skill = catalog.skills.find((s) => s.id === item.id);
-      return { id: skill.id, type: 'skill', name: skill.name, price: skill.price };
-    });
+    }
 
     res.json({ code, items: itemDetails, resolvedSkills, total });
   } catch (error) {
@@ -184,38 +187,12 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
-    // Only product items — bots don't buy credits
-    for (const item of items) {
-      if (item.type === 'bundle') {
-        if (!catalog.bundles.find((b) => b.id === item.id)) {
-          return res.status(400).json({ error: `Unknown bundle: ${item.id}` });
-        }
-      } else if (item.type === 'skill') {
-        if (!catalog.skills.find((s) => s.id === item.id)) {
-          return res.status(400).json({ error: `Unknown skill: ${item.id}` });
-        }
-      } else if (item.type === 'blueprint') {
-        if (!(catalog.blueprints || []).find((b) => b.id === item.id)) {
-          return res.status(400).json({ error: `Unknown blueprint: ${item.id}` });
-        }
-      } else {
-        return res.status(400).json({ error: `Invalid item type: ${item.type}` });
-      }
-    }
+    // Bots don't buy credits — filter out credit type
+    const validationError = await validateCartItems(items.filter((i) => i.type !== 'credit'));
+    if (validationError) return res.status(400).json({ error: validationError });
 
-    const resolvedSkills = resolveSkills(items);
-
-    // Calculate total
-    let total = 0;
-    for (const item of items) {
-      if (item.type === 'bundle') {
-        total += catalog.bundles.find((b) => b.id === item.id).price;
-      } else if (item.type === 'blueprint') {
-        total += (catalog.blueprints || []).find((b) => b.id === item.id).price;
-      } else {
-        total += catalog.skills.find((s) => s.id === item.id).price;
-      }
-    }
+    const resolvedSkills = await resolveSkills(items);
+    const total = await calculateTotal(items);
 
     const db = getDb();
     const accountId = new ObjectId(req.user.accountId);
@@ -231,10 +208,9 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       }
     }
 
-    // Create purchase record
     const code = generateRedeemCode();
     const now = new Date();
-    const purchase = {
+    await db.collection('purchases').insertOne({
       code,
       accountId: req.user.accountId.toString(),
       botUsername: req.user.username,
@@ -243,17 +219,15 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       total,
       createdAt: now,
       redemptions: [{ at: now, bot: req.user.username }],
-    };
-    await db.collection('purchases').insertOne(purchase);
+    });
 
     // Record transactions for each product
     for (const skillId of resolvedSkills) {
-      const product = findDownloadable(skillId);
+      const product = await findDownloadable(skillId);
       if (product) {
-        const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
         recordTransaction({
           productId: product.id,
-          productType: isBlueprint ? 'blueprint' : 'skill',
+          productType: product.type === 'blueprint' ? 'blueprint' : 'skill',
           productName: product.name,
           botUsername: req.user.username,
           accountId: req.user.accountId.toString(),
@@ -262,7 +236,6 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       }
     }
 
-    // Generate download token and return URLs directly
     const downloadToken = jwt.sign(
       { pc: code, sk: resolvedSkills },
       process.env.JWT_SECRET,
@@ -273,17 +246,19 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       ? `https://${process.env.RELAY_DOMAIN}`
       : `http://localhost:${process.env.PORT || 4000}`;
 
-    const skills = resolvedSkills.map((skillId) => {
-      const product = findDownloadable(skillId);
-      return {
-        name: product.id,
-        version: product.version,
-        url: `${baseUrl}/api/marketplace/download/${downloadToken}/${product.id}`,
-        sha256: product.sha256,
-      };
-    });
+    const skills = [];
+    for (const skillId of resolvedSkills) {
+      const product = await findDownloadable(skillId);
+      if (product) {
+        skills.push({
+          name: product.id,
+          version: product.version,
+          url: `${baseUrl}/api/marketplace/download/${downloadToken}/${product.id}`,
+          sha256: product.sha256,
+        });
+      }
+    }
 
-    // Fetch remaining balance after deduction
     const account = await db.collection('accounts').findOne(
       { _id: accountId },
       { projection: { balance: 1 } },
@@ -346,15 +321,18 @@ async function handleRedeem(purchase, req, res) {
     ? `https://${process.env.RELAY_DOMAIN}`
     : `http://localhost:${process.env.PORT || 4000}`;
 
-  const skills = purchase.resolvedSkills.map((skillId) => {
-    const skill = catalog.skills.find((s) => s.id === skillId);
-    return {
-      name: skill.id,
-      version: skill.version,
-      url: `${baseUrl}/api/marketplace/download/${downloadToken}/${skill.id}`,
-      sha256: skill.sha256,
-    };
-  });
+  const skills = [];
+  for (const skillId of purchase.resolvedSkills) {
+    const product = await findDownloadable(skillId);
+    if (product) {
+      skills.push({
+        name: product.id,
+        version: product.version,
+        url: `${baseUrl}/api/marketplace/download/${downloadToken}/${product.id}`,
+        sha256: product.sha256,
+      });
+    }
+  }
 
   res.json({ skills });
 }
@@ -363,10 +341,10 @@ async function handleRedeem(purchase, req, res) {
 // Direct download for free skills/blueprints. Optional bot auth to record the transaction.
 // IMPORTANT: Must be registered BEFORE the :token/:skillId route,
 // otherwise Express matches "free" as a token parameter.
-router.get('/marketplace/download/free/:skillId', optionalAuth, (req, res) => {
+router.get('/marketplace/download/free/:skillId', optionalAuth, async (req, res) => {
   const { skillId } = req.params;
 
-  const product = findDownloadable(skillId);
+  const product = await findDownloadable(skillId);
   if (!product) {
     return res.status(404).json({ error: 'Product not found' });
   }
@@ -375,17 +353,18 @@ router.get('/marketplace/download/free/:skillId', optionalAuth, (req, res) => {
     return res.status(402).json({ error: 'This product requires purchase' });
   }
 
-  const filePath = path.join(__dirname, '..', 'static', 'skills', product.file);
-  if (!fs.existsSync(filePath)) {
+  const r2Key = `${product.folder || 'skills'}/${product.file}`;
+  let tarball;
+  try {
+    tarball = await getFile(r2Key);
+  } catch {
     return res.status(404).json({ error: 'Product file not available' });
   }
 
-  // Record transaction if bot identified itself
   if (req.user) {
-    const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
     recordTransaction({
       productId: product.id,
-      productType: isBlueprint ? 'blueprint' : 'skill',
+      productType: product.type === 'blueprint' ? 'blueprint' : 'skill',
       productName: product.name,
       botUsername: req.user.username,
       accountId: req.user.accountId || null,
@@ -393,12 +372,15 @@ router.get('/marketplace/download/free/:skillId', optionalAuth, (req, res) => {
     }).catch((err) => console.error('[marketplace/download/free] tx error:', err.message));
   }
 
-  res.download(filePath, product.file);
+  res.set('Content-Type', 'application/gzip');
+  res.set('Content-Disposition', `attachment; filename="${product.file}"`);
+  if (tarball.contentLength) res.set('Content-Length', String(tarball.contentLength));
+  tarball.stream.pipe(res);
 });
 
 // ─── GET /api/marketplace/download/:token/:skillId ──────────────────────────
 // Serves .tar.gz. Token must be valid and include this skill.
-router.get('/marketplace/download/:token/:skillId', optionalAuth, (req, res) => {
+router.get('/marketplace/download/:token/:skillId', optionalAuth, async (req, res) => {
   try {
     const { token, skillId } = req.params;
 
@@ -408,22 +390,23 @@ router.get('/marketplace/download/:token/:skillId', optionalAuth, (req, res) => 
       return res.status(403).json({ error: 'Skill not included in this purchase' });
     }
 
-    const product = findDownloadable(skillId);
+    const product = await findDownloadable(skillId);
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const filePath = path.join(__dirname, '..', 'static', 'skills', product.file);
-    if (!fs.existsSync(filePath)) {
+    const r2Key = `${product.folder || 'skills'}/${product.file}`;
+    let tarball;
+    try {
+      tarball = await getFile(r2Key);
+    } catch {
       return res.status(404).json({ error: 'Product file not available' });
     }
 
-    // Record transaction if bot identified itself
     if (req.user) {
-      const isBlueprint = (catalog.blueprints || []).some((b) => b.id === skillId);
       recordTransaction({
         productId: product.id,
-        productType: isBlueprint ? 'blueprint' : 'skill',
+        productType: product.type === 'blueprint' ? 'blueprint' : 'skill',
         productName: product.name,
         botUsername: req.user.username,
         accountId: req.user.accountId || null,
@@ -431,7 +414,10 @@ router.get('/marketplace/download/:token/:skillId', optionalAuth, (req, res) => 
       }).catch((err) => console.error('[marketplace/download] tx error:', err.message));
     }
 
-    res.download(filePath, product.file);
+    res.set('Content-Type', 'application/gzip');
+    res.set('Content-Disposition', `attachment; filename="${product.file}"`);
+    if (tarball.contentLength) res.set('Content-Length', String(tarball.contentLength));
+    tarball.stream.pipe(res);
   } catch (error) {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Download link expired or invalid — redeem the code again for a fresh link' });
@@ -443,26 +429,32 @@ router.get('/marketplace/download/:token/:skillId', optionalAuth, (req, res) => 
 
 // ─── GET /api/marketplace/products ──────────────────────────────────────────
 // Public product catalog (JSON). Enriches skills with free flag + direct download URL.
-router.get('/marketplace/products', (req, res) => {
-  const baseUrl = process.env.RELAY_DOMAIN
-    ? `https://${process.env.RELAY_DOMAIN}`
-    : `${req.protocol}://${req.get('host')}`;
+router.get('/marketplace/products', async (req, res) => {
+  try {
+    const catalog = await getLiveCatalog();
 
-  const enrichProduct = (p) => ({
-    ...p,
-    free: p.price === 0,
-    ...(p.price === 0 && {
-      download_url: `${baseUrl}/api/marketplace/download/free/${p.id}`,
-    }),
-  });
+    const baseUrl = process.env.RELAY_DOMAIN
+      ? `https://${process.env.RELAY_DOMAIN}`
+      : `${req.protocol}://${req.get('host')}`;
 
-  const enriched = {
-    ...catalog,
-    skills: catalog.skills.map(enrichProduct),
-    blueprints: (catalog.blueprints || []).map(enrichProduct),
-  };
+    const enrichProduct = (p) => ({
+      ...p,
+      free: p.price === 0,
+      ...(p.price === 0 && {
+        download_url: `${baseUrl}/api/marketplace/download/free/${p.id}`,
+      }),
+    });
 
-  res.json(enriched);
+    res.json({
+      skills: catalog.skills.map(enrichProduct),
+      blueprints: catalog.blueprints.map(enrichProduct),
+      bundles: catalog.bundles,
+      services: catalog.services,
+    });
+  } catch (error) {
+    console.error('[marketplace/products]', error.message);
+    res.status(500).json({ error: 'Failed to load catalog' });
+  }
 });
 
 // ─── GET /api/marketplace/balance ────────────────────────────────────────────
@@ -528,6 +520,10 @@ router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .toArray();
 
+    // Pre-fetch all products into a lookup map (avoids N+1 queries)
+    const allProducts = await db.collection('products').find({}).toArray();
+    const productMap = new Map(allProducts.map((p) => [p.id, p]));
+
     // Map purchases to the same shape as transactions, with expanded items
     const purchaseTx = purchases.map((p) => {
       const creditItems = p.cartItems.filter((i) => i.type === 'credit');
@@ -535,18 +531,9 @@ router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
       const creditTotal = creditItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
       const isCreditOnly = productCartItems.length === 0 && creditItems.length > 0;
 
-      // Build summary name from cart items
       const cartNames = productCartItems.map((item) => {
-        if (item.type === 'bundle') {
-          const bundle = catalog.bundles.find((b) => b.id === item.id);
-          return bundle ? bundle.name : item.id;
-        }
-        if (item.type === 'blueprint') {
-          const bp = (catalog.blueprints || []).find((b) => b.id === item.id);
-          return bp ? bp.name : item.id;
-        }
-        const skill = catalog.skills.find((s) => s.id === item.id);
-        return skill ? skill.name : item.id;
+        const prod = productMap.get(item.id);
+        return prod ? prod.name : item.id;
       });
 
       if (isCreditOnly) {
@@ -565,12 +552,11 @@ router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
         };
       }
 
-      // Build detailed items list from resolved skills
-      const items = p.resolvedSkills.map((skillId) => {
-        const product = findDownloadable(skillId);
+      const items = (p.resolvedSkills || []).map((skillId) => {
+        const product = productMap.get(skillId);
         return {
           id: skillId,
-          type: product ? ((catalog.blueprints || []).some((b) => b.id === skillId) ? 'blueprint' : 'skill') : 'skill',
+          type: product ? product.type : 'skill',
           name: product ? product.name : skillId,
           price: product ? product.price : 0,
         };
@@ -611,11 +597,163 @@ router.get('/marketplace/transactions', jwtAuth, async (req, res) => {
   }
 });
 
+// ─── POST /api/marketplace/submit ──────────────────────────────────────────
+// Claimed bots from verified accounts submit skill/blueprint tarballs.
+// The tarball is uploaded to R2 and a product entry with status "pending"
+// is created in MongoDB.
+const MAX_TARBALL_SIZE = 200 * 1024 * 1024; // 200 MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_TARBALL_SIZE },
+});
+
+const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+router.post(
+  '/marketplace/submit',
+  authenticate,
+  marketplaceSubmitLimiter,
+  upload.single('tarball'),
+  async (req, res) => {
+    try {
+      // ── Auth checks ──────────────────────────────────────────────────
+      if (!req.user.accountId) {
+        return res.status(403).json({ error: 'Bot must be claimed to submit products' });
+      }
+
+      const db = getDb();
+      const account = await db.collection('accounts').findOne(
+        { _id: new ObjectId(req.user.accountId) },
+        { projection: { verified: 1, name: 1 } },
+      );
+
+      if (!account) {
+        return res.status(403).json({ error: 'Linked account not found' });
+      }
+      if (!account.verified) {
+        return res.status(403).json({ error: 'Account must be verified to submit products' });
+      }
+
+      // ── File check ───────────────────────────────────────────────────
+      if (!req.file) {
+        return res.status(400).json({ error: 'Missing tarball file. Send as multipart field "tarball".' });
+      }
+      if (!req.file.originalname.endsWith('.tar.gz')) {
+        return res.status(400).json({ error: 'File must be a .tar.gz archive' });
+      }
+
+      // ── Type & name ──────────────────────────────────────────────────
+      const type = req.body.type;
+      if (!type || !['skill', 'blueprint'].includes(type)) {
+        return res.status(400).json({ error: 'Field "type" is required and must be "skill" or "blueprint".' });
+      }
+
+      const name = req.body.name;
+      if (!name || !NAME_RE.test(name)) {
+        return res.status(400).json({
+          error: 'Field "name" is required and must be lowercase-hyphenated (e.g., "my-cool-skill").',
+        });
+      }
+
+      const { description, long_description, version } = req.body;
+      if (!description) {
+        return res.status(400).json({ error: 'Field "description" is required.' });
+      }
+      if (!long_description) {
+        return res.status(400).json({ error: 'Field "long_description" is required.' });
+      }
+      if (!version) {
+        return res.status(400).json({ error: 'Field "version" is required (semver, e.g., "1.0.0").' });
+      }
+
+      // ── Determine key (handle collisions with _1, _2, etc.) ────────
+      const folder = type === 'blueprint' ? 'blueprints' : 'skills';
+
+      let filename = `${name}.tar.gz`;
+      let suffix = 0;
+      const col = db.collection('products');
+      while (await col.findOne({ file: filename, folder })) {
+        suffix++;
+        filename = `${name}_${suffix}.tar.gz`;
+      }
+
+      // ── Upload tarball to R2 ─────────────────────────────────────────
+      const r2Key = `${folder}/${filename}`;
+      await upload(r2Key, req.file.buffer);
+
+      const sha256 = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+      // ── Create pending product entry ─────────────────────────────────
+      // Display name: derive from name (e.g., "my-cool-skill" → "My Cool Skill")
+      const displayName = name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+      const submission = {
+        id: suffix > 0 ? `${name}_${suffix}` : name,
+        name: displayName,
+        version,
+        vendor: req.user.username,
+        bloby_human: account.name || '',
+        bloby: req.user.username,
+        description,
+        longDescription: long_description,
+        type,
+        depends: [],
+        has_telemetry: false,
+        price: 0,
+        file: filename,
+        folder,
+        sha256,
+        tags: [],
+        categories: [],
+        featured: false,
+        popular: false,
+        status: 'pending',
+        submittedBy: {
+          botUsername: req.user.username,
+          accountId: req.user.accountId.toString(),
+          accountName: account.name || '',
+        },
+        submittedAt: new Date(),
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+
+      await db.collection('products').insertOne(submission);
+
+      console.log(`[marketplace/submit] ${req.user.username} submitted ${type} "${name}" → ${folder}/${filename}`);
+
+      res.status(201).json({
+        message: 'Submission received. It will be reviewed and approved manually.',
+        id: submission.id,
+        file: filename,
+        status: 'pending',
+      });
+    } catch (error) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: `File too large. Maximum is ${MAX_TARBALL_SIZE / (1024 * 1024)}MB.` });
+      }
+      console.error('[marketplace/submit]', error.message);
+      res.status(500).json({ error: 'Submission failed' });
+    }
+  },
+);
+
 // ─── GET /api/marketplace.md ────────────────────────────────────────────────
 // Agent-readable markdown catalog with download and redeem instructions.
 router.get('/marketplace.md', (_req, res) => {
-  const mdPath = path.join(__dirname, '..', 'static', 'marketplace.md');
-  res.type('text/markdown').sendFile(mdPath);
+  res.type('text/markdown').sendFile(path.join(staticDir, 'marketplace.md'));
+});
+
+// ─── GET /api/marketplace/docs/:type ───────────────────────────────────────
+// Public — serves the marketplace docs (SKILLS.md / BLUEPRINTS.md).
+// Any agent can read these to learn how to build and submit products.
+const docsMap = { skills: 'SKILLS.md', blueprints: 'BLUEPRINTS.md' };
+
+router.get('/marketplace/docs/:type', (req, res) => {
+  const file = docsMap[req.params.type];
+  if (!file) {
+    return res.status(404).json({ error: 'Unknown doc type. Use "skills" or "blueprints".' });
+  }
+  res.type('text/markdown').sendFile(path.join(staticDir, 'marketplace_docs', file));
 });
 
 export default router;

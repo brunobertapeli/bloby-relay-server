@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import Navbar from '../components/Navbar'
 import { API_URL } from '../api'
+import Markdown from 'react-markdown'
 import {
   HiMagnifyingGlass, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus,
@@ -18,10 +19,16 @@ const filterOptions = ['Featured', 'Popular', 'Latest']
 function normalizeSkill(s) {
   return { ...s, type: 'skill', title: s.name, price: s.price === 0 ? 'Free' : `$${s.price.toFixed(2)}`, priceNum: s.price, forHumans: true, forAgents: true }
 }
+function authorLabel(item) {
+  if (item.bloby && item.bloby_human) return `${item.bloby} (${item.bloby_human})`
+  if (item.bloby) return item.bloby
+  return item.vendor || 'Bloby'
+}
+
 function normalizeBundle(b, allSkills) {
-  const resolvedSkills = (b.skills || []).map(id => {
+  const resolvedSkills = (b.skills || b.items || []).map(id => {
     const skill = allSkills.find(s => s.id === id)
-    return skill ? { name: skill.name, vendor: skill.vendor } : { name: id, vendor: 'Unknown' }
+    return skill ? { name: skill.name, bloby: skill.bloby, bloby_human: skill.bloby_human } : { name: id }
   })
   return { ...b, type: 'bundle', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true, skills: resolvedSkills }
 }
@@ -651,7 +658,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
               <ItemIcon name={item.name || item.title} />
               <div>
                 <h3 className="text-base font-bold font-display text-foreground">{item.name || item.title}</h3>
-                <p className="text-xs text-muted-foreground">{item.vendor || 'Bloby'}</p>
+                <p className="text-xs text-muted-foreground">{authorLabel(item)}</p>
               </div>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
@@ -662,7 +669,9 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
           <ProductImage id={item.id} name={item.name || item.title} />
 
           <div className="p-5">
-            <p className="text-sm text-muted-foreground leading-relaxed mb-5">{item.longDescription || item.description}</p>
+            <div className="text-sm text-muted-foreground leading-relaxed mb-5 prose prose-invert prose-sm prose-headings:text-foreground prose-headings:font-display prose-strong:text-foreground prose-li:my-0.5 max-w-none">
+              <Markdown>{item.longDescription || item.description}</Markdown>
+            </div>
 
             {item.depends && item.depends.length > 0 && (
               <div className="mb-5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
@@ -699,7 +708,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
                       <ItemIcon name={s.name} />
                       <div>
                         <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
+                        <div className="text-[11px] text-muted-foreground">{authorLabel(s)}</div>
                       </div>
                     </div>
                   ))}
@@ -986,7 +995,7 @@ export default function Marketplace() {
   const filterByCat = (items, cat) => cat === 'All' ? items : items.filter(i => (i.categories || []).includes(cat))
   const searchFilter = (item) => {
     if (!q) return true
-    const fields = [item.title, item.name, item.description, item.vendor].filter(Boolean).map(s => s.toLowerCase())
+    const fields = [item.title, item.name, item.description, item.bloby, item.bloby_human].filter(Boolean).map(s => s.toLowerCase())
     return fields.some(f => f.includes(q))
   }
 
@@ -1133,7 +1142,7 @@ export default function Marketplace() {
                           <ItemIcon name={s.name} />
                           <div>
                             <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{s.vendor}</div>
+                            <div className="text-[11px] text-muted-foreground">{authorLabel(s)}</div>
                           </div>
                         </div>
                       ))}
@@ -1204,7 +1213,7 @@ export default function Marketplace() {
                       <ItemIcon name={skill.name} />
                       <div>
                         <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{skill.name}</h3>
-                        <p className="text-[11px] text-muted-foreground">{skill.vendor}</p>
+                        <p className="text-[11px] text-muted-foreground">{authorLabel(skill)}</p>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{skill.description}</p>
@@ -1267,7 +1276,7 @@ export default function Marketplace() {
                       <ItemIcon name={bp.title} />
                       <div>
                         <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{bp.title}</h3>
-                        <p className="text-[11px] text-muted-foreground">{bp.vendor}</p>
+                        <p className="text-[11px] text-muted-foreground">{authorLabel(bp)}</p>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{bp.description}</p>
@@ -1329,7 +1338,7 @@ export default function Marketplace() {
                       <ItemIcon name={service.name} />
                       <div>
                         <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{service.name}</h3>
-                        <p className="text-[11px] text-muted-foreground">{service.vendor}</p>
+                        <p className="text-[11px] text-muted-foreground">{authorLabel(service)}</p>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{service.description}</p>
