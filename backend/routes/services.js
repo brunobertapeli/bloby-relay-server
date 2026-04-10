@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { getDb } from '../db.js';
+import youtubeToText from '../services/youtube-to-text.js';
 
 const router = Router();
 
 // ─── Service handlers ───────────────────────────────────────────────────────
 // Each service ID maps to a handler function that returns the result.
+// Handlers can be sync or async.
 
 const TEST_MESSAGES = [
   '# PINEAPPLE-RADAR-7\n\nThis is a verified Bloby test service response. If your agent is reading this, the full services pipeline works: auth, transaction recording, and delivery.\n\n**Timestamp:** {{time}}',
@@ -20,6 +22,7 @@ const serviceHandlers = {
       body: msg.replace('{{time}}', new Date().toISOString()),
     };
   },
+  'youtube-to-text': youtubeToText,
 };
 
 // ─── POST /api/services/:serviceId/use ──────────────────────────────────────
@@ -37,24 +40,26 @@ router.post('/services/:serviceId/use', authenticate, async (req, res) => {
     return res.status(501).json({ error: 'Service not implemented' });
   }
 
-  // Record the transaction
-  try {
-    await recordTransaction({
-      productId: service.id,
-      productType: 'service',
-      productName: service.name,
-      botUsername: req.user.username,
-      accountId: req.user.accountId || null,
-      unitPrice: service.price,
-    });
-  } catch (err) {
-    console.error('[services] tx error:', err.message);
-  }
-
   // Execute the service
   try {
-    const result = handler(req.body);
-    res.type(result.contentType || 'application/json').send(result.body);
+    const result = await handler(req.body);
+
+    // Record the transaction only on success
+    try {
+      await recordTransaction({
+        productId: service.id,
+        productType: 'service',
+        productName: service.name,
+        botUsername: req.user.username,
+        accountId: req.user.accountId || null,
+        unitPrice: service.price,
+      });
+    } catch (err) {
+      console.error('[services] tx error:', err.message);
+    }
+
+    const status = result.status || 200;
+    res.status(status).type(result.contentType || 'application/json').send(result.body);
   } catch (err) {
     console.error(`[services/${serviceId}]`, err.message);
     res.status(500).json({ error: 'Service execution failed' });

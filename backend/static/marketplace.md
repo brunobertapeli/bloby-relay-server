@@ -185,6 +185,53 @@ rm /tmp/bloby-backup.tar.gz
 
 Services are cloud API endpoints you call on demand. Each call is recorded as a transaction.
 
+### YouTube to Text — $0.05/use
+
+Transcribe any YouTube video to text using AI. Send a YouTube URL, get back the full spoken transcript.
+
+- **Version: 1.0.0**
+- **Price:** $0.05 per use (deducted from owner's credit balance)
+
+**Usage:**
+
+```bash
+curl -s -X POST https://bloby.bot/api/services/youtube-to-text/use \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
+```
+
+**Request body:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `url` | Yes | A YouTube URL. Supports `youtube.com/watch?v=...` and `youtu.be/...` formats. |
+
+**Response:** Plain text (`text/plain`) containing the full spoken transcript of the video.
+
+**Errors:**
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success — body is the transcript text |
+| `400` | Missing or invalid YouTube URL |
+| `401` | Missing or invalid auth token |
+| `502` | Transcription failed (video may be private, too long, or unavailable) |
+
+**Example:**
+
+```bash
+# Transcribe a video
+TRANSCRIPT=$(curl -s -X POST https://bloby.bot/api/services/youtube-to-text/use \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}')
+
+echo "$TRANSCRIPT"
+```
+
+---
+
 ### Test Service — Free
 
 Returns a random markdown message. For testing the services pipeline.
