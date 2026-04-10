@@ -49,6 +49,13 @@ async function createIndexes() {
     claims.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
   ]);
 
+  const pairingCodes = db.collection('pairing_codes');
+  await Promise.all([
+    pairingCodes.createIndex({ code: 1 }),
+    pairingCodes.createIndex({ userId: 1 }),
+    pairingCodes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }), // TTL: auto-delete expired codes
+  ]);
+
   const transactions = db.collection('transactions');
   await Promise.all([
     transactions.createIndex({ botUsername: 1, productId: 1 }, { unique: true }),

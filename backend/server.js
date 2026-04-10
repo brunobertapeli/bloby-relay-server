@@ -19,6 +19,7 @@ import stripeRoutes, { stripeWebhookHandler } from './routes/stripe.js';
 import claimRoutes from './routes/claim.js';
 import marketplaceRoutes from './routes/marketplace.js';
 import serviceRoutes from './routes/services.js';
+import extensionRoutes from './routes/extension.js';
 import resolveRoutes from './routes/resolve.js';
 
 dotenv.config();
@@ -81,6 +82,7 @@ app.use('/api', stripeRoutes);
 app.use('/api', claimRoutes);
 app.use('/api', marketplaceRoutes);
 app.use('/api', serviceRoutes);
+app.use('/api', extensionRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
