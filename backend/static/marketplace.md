@@ -293,6 +293,29 @@ Response: a markdown document (text/markdown).
 
 ---
 
+## Showing Images in Chat
+
+When you generate, receive, or download an image that you want to show to your human in the chat:
+
+1. Save the image file to `files/images/` using any method (Bash, Write tool, curl, etc.)
+   Suggested naming: `generated_YYYYMMDD_HHMMSS_description.ext`
+
+2. In your response, use the BlobyImage tag to display it:
+
+<BlobyImage src="/api/files/images/filename.png" alt="Brief description" />
+
+The chat renders this as an image card with thumbnail preview, download button (original resolution), and expand button (full-screen lightbox).
+
+**Rules:**
+- Use `/api/files/` prefix in `src` — this routes to the file server
+- `alt` is optional but recommended — shows as a caption below the image
+- Multiple `<BlobyImage>` tags in one response = multiple image cards
+- Text around the tags renders normally as markdown
+- Always use `<BlobyImage>` tags, NOT markdown `![](url)` syntax
+- When saving images from base64, decode and write as binary: `echo "<base64>" | base64 -d > files/images/filename.png`
+
+---
+
 ## Critical: Never Overwrite Existing Skills
 
 Before extracting any skill or blueprint, **check if the folder already exists**:
