@@ -226,8 +226,14 @@ TRANSCRIPT=$(curl -s -X POST https://bloby.bot/api/services/youtube-to-text/use 
   -H "Authorization: Bearer $RELAY_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}')
+```
 
-echo "$TRANSCRIPT"
+Then wrap the transcript in a BlobyText tag so it doesn't flood the chat:
+
+```
+<BlobyText title="YouTube Transcript — Video Title">
+$TRANSCRIPT
+</BlobyText>
 ```
 
 ---
@@ -266,15 +272,24 @@ curl -s -X POST https://bloby.bot/api/services/image-gen/use \
 | `401` | Missing or invalid auth token |
 | `502` | Image generation failed |
 
-**Example — generate and save:**
+**Example — generate and show in chat:**
 
 ```bash
+# Generate and save directly to files/images/ (the only path that works for both chat and WhatsApp)
 curl -s -X POST https://bloby.bot/api/services/image-gen/use \
   -H "Authorization: Bearer $RELAY_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"prompt": "A futuristic city at sunset, cyberpunk style"}' \
-  -o /tmp/generated.png
+  -o files/images/generated_cyberpunk_city.png
 ```
+
+Then display it in your response using the BlobyImage tag:
+
+```
+<BlobyImage src="/api/files/images/generated_cyberpunk_city.png" alt="A futuristic city at sunset, cyberpunk style" />
+```
+
+**CRITICAL:** Always save to `files/images/` and use `/api/files/images/...` in the src. Do NOT save to `client/public/`, the workspace root, or `/tmp/`. Only `files/images/` is served correctly for both the chat UI and WhatsApp.
 
 ---
 
@@ -297,22 +312,25 @@ Response: a markdown document (text/markdown).
 
 When you generate, receive, or download an image that you want to show to your human in the chat:
 
-1. Save the image file to `files/images/` using any method (Bash, Write tool, curl, etc.)
+1. Save the image file to `files/images/` using any method (Bash, curl, etc.)
    Suggested naming: `generated_YYYYMMDD_HHMMSS_description.ext`
 
 2. In your response, use the BlobyImage tag to display it:
 
 <BlobyImage src="/api/files/images/filename.png" alt="Brief description" />
 
-The chat renders this as an image card with thumbnail preview, download button (original resolution), and expand button (full-screen lightbox).
+The chat renders this as an image card with thumbnail preview and download button. If WhatsApp is connected, the image is sent natively as a WhatsApp photo with the alt text as caption.
 
 **Rules:**
-- Use `/api/files/` prefix in `src` — this routes to the file server
-- `alt` is optional but recommended — shows as a caption below the image
+- **ALWAYS save to `files/images/`** — this is the ONLY directory served correctly for both chat and WhatsApp
+- **NEVER save to `client/public/`, the workspace root, or `/tmp/`** — these will break on one or both channels
+- Use `/api/files/images/` prefix in `src` — this routes to the file server
+- `alt` is optional but recommended — shows as a caption below the image and as WhatsApp caption
 - Multiple `<BlobyImage>` tags in one response = multiple image cards
 - Text around the tags renders normally as markdown
 - Always use `<BlobyImage>` tags, NOT markdown `![](url)` syntax
-- When saving images from base64, decode and write as binary: `echo "<base64>" | base64 -d > files/images/filename.png`
+- When saving from base64: `echo "<base64>" | base64 -d > files/images/filename.png`
+- When saving from a service: `curl ... -o files/images/filename.png`
 
 ---
 
@@ -326,7 +344,7 @@ It can be as long as needed.
 Markdown formatting works inside.
 </BlobyText>
 
-The chat renders this as a collapsed card the user can expand. When expanded it shows a scrollable area (max 500px height) with full markdown rendering and a copy button.
+The chat renders this as a collapsed card the user can expand. When expanded it shows a scrollable area (max 500px height) with full markdown rendering and a copy button. On WhatsApp, it sends as plain text with the title bolded.
 
 **Rules:**
 - Use a descriptive `title` — it's the only thing visible when collapsed
