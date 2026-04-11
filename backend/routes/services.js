@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { ObjectId } from 'mongodb';
 import { authenticate } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { getDb } from '../db.js';
@@ -42,11 +43,29 @@ router.post('/services/:serviceId/use', authenticate, async (req, res) => {
     return res.status(501).json({ error: 'Service not implemented' });
   }
 
+  // Deduct credits before executing (paid services only)
+  if (service.price > 0) {
+    if (!req.user.accountId) {
+      return res.status(403).json({ error: 'Not claimed — no linked account' });
+    }
+
+    const db = getDb();
+    const accountId = new ObjectId(req.user.accountId);
+    const deducted = await db.collection('accounts').updateOne(
+      { _id: accountId, balance: { $gte: service.price } },
+      { $inc: { balance: -service.price } },
+    );
+
+    if (deducted.modifiedCount === 0) {
+      return res.status(402).json({ error: 'Insufficient credit balance' });
+    }
+  }
+
   // Execute the service
   try {
     const result = await handler(req.body);
 
-    // Record the transaction only on success
+    // Record the transaction for history/analytics
     try {
       await recordTransaction({
         productId: service.id,
@@ -63,6 +82,14 @@ router.post('/services/:serviceId/use', authenticate, async (req, res) => {
     const status = result.status || 200;
     res.status(status).type(result.contentType || 'application/json').send(result.body);
   } catch (err) {
+    // Refund on failure (paid services)
+    if (service.price > 0 && req.user.accountId) {
+      await getDb().collection('accounts').updateOne(
+        { _id: new ObjectId(req.user.accountId) },
+        { $inc: { balance: service.price } },
+      ).catch((e) => console.error('[services] refund error:', e.message));
+    }
+
     console.error(`[services/${serviceId}]`, err.message);
     res.status(500).json({ error: 'Service execution failed' });
   }
