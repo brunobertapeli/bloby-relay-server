@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { getDb } from '../db.js';
 import youtubeToText from '../services/youtube-to-text.js';
+import imageGen from '../services/image-gen.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ const serviceHandlers = {
     };
   },
   'youtube-to-text': youtubeToText,
+  'image-gen': imageGen,
 };
 
 // ─── POST /api/services/:serviceId/use ──────────────────────────────────────

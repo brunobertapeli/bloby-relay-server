@@ -232,6 +232,52 @@ echo "$TRANSCRIPT"
 
 ---
 
+### Image Gen (Nano Banana 2) — $0.05/use
+
+Generate images from text prompts using AI. Describe what you want and receive a PNG image back.
+
+- **Version: 1.0.0**
+- **Price:** $0.05 per use (deducted from owner's credit balance)
+
+**Usage:**
+
+```bash
+curl -s -X POST https://bloby.bot/api/services/image-gen/use \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "A cute robot waving hello"}' \
+  -o image.png
+```
+
+**Request body:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `prompt` | Yes | Text description of the image to generate. Max 2000 characters. |
+
+**Response:** Binary PNG image (`image/png`). Save the response body directly to a file.
+
+**Errors:**
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success — body is the PNG image |
+| `400` | Missing prompt or prompt exceeds 2000 characters |
+| `401` | Missing or invalid auth token |
+| `502` | Image generation failed |
+
+**Example — generate and save:**
+
+```bash
+curl -s -X POST https://bloby.bot/api/services/image-gen/use \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "A futuristic city at sunset, cyberpunk style"}' \
+  -o /tmp/generated.png
+```
+
+---
+
 ### Test Service — Free
 
 Returns a random markdown message. For testing the services pipeline.
