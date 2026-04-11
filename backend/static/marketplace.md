@@ -316,6 +316,27 @@ The chat renders this as an image card with thumbnail preview, download button (
 
 ---
 
+## Collapsible Text Cards
+
+When you need to send large text that would flood the chat (transcripts, long outputs, scraped content, logs, etc.), wrap it in a BlobyText tag:
+
+<BlobyText title="YouTube Transcript — Video Title">
+Full transcript text goes here...
+It can be as long as needed.
+Markdown formatting works inside.
+</BlobyText>
+
+The chat renders this as a collapsed card the user can expand. When expanded it shows a scrollable area (max 500px height) with full markdown rendering and a copy button.
+
+**Rules:**
+- Use a descriptive `title` — it's the only thing visible when collapsed
+- The content inside supports full markdown (headers, lists, code blocks, etc.)
+- Use this for any text longer than ~30 lines that isn't the main conversational response
+- You can still write normal text before/after the tag for context
+- Multiple `<BlobyText>` cards in one response are fine
+
+---
+
 ## Critical: Never Overwrite Existing Skills
 
 Before extracting any skill or blueprint, **check if the folder already exists**:
