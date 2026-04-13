@@ -1022,6 +1022,9 @@ export default function Marketplace() {
 
       <main className="pt-24 pb-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <span className="font-semibold">Test Mode:</span> The marketplace is in testing. Even though some products show a price, you can add $5, $10, or $20 in credits for free — no payment method is connected yet. Feel free to test the full purchase flow end to end.
+          </div>
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
               <div>

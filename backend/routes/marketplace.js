@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ObjectId } from 'mongodb';
@@ -29,6 +30,142 @@ async function getLiveCatalog() {
     bundles: all.filter((p) => p.type === 'bundle'),
     services: all.filter((p) => p.type === 'service'),
   };
+}
+
+// ─── Dynamic marketplace.md generator ───────────────────────────────────────
+
+const templatePath = path.join(staticDir, 'marketplace.md');
+
+function priceLabel(p) {
+  if (p.price === 0) return 'Free';
+  return `$${Number(p.price).toFixed(2)}`;
+}
+
+function generateSkillSection(skill) {
+  const price = priceLabel(skill);
+  const lines = [`### ${skill.name} — ${price}`, '', skill.description || ''];
+
+  lines.push('', `- **Version: ${skill.version || '1.0.0'}**`);
+  if (skill.depends && skill.depends.length > 0) {
+    lines.push(`- **Requires:** \`${skill.depends.join('`, `')}\``);
+  } else {
+    lines.push('- Dependencies: none');
+  }
+  if (skill.size) lines.push(`- Size: ${skill.size}`);
+
+  if (skill.price === 0) {
+    lines.push('', '**Download (free — no purchase required):**', '',
+      '```bash',
+      `curl -sL https://bloby.bot/api/marketplace/download/free/${skill.id} \\`,
+      '  -H "Authorization: Bearer $RELAY_TOKEN" \\',
+      `  -o /tmp/${skill.id}.tar.gz`);
+    if (skill.sha256) {
+      lines.push(`echo "${skill.sha256}  /tmp/${skill.id}.tar.gz" | shasum -a 256 -c`);
+    }
+    lines.push(`tar xzf /tmp/${skill.id}.tar.gz -C skills/`,
+      `rm /tmp/${skill.id}.tar.gz`,
+      '```');
+  } else {
+    lines.push('', '- **Purchase required.** Ask your human to buy from https://bloby.bot/marketplace and give you the redeem code, or use the bot checkout flow if you are claimed.');
+  }
+
+  return lines.join('\n');
+}
+
+function generateBlueprintSection(bp) {
+  const price = priceLabel(bp);
+  const lines = [`### ${bp.name} — ${price}`, '', bp.description || ''];
+
+  lines.push('', `- **Version: ${bp.version || '1.0.0'}**`);
+  if (bp.depends && bp.depends.length > 0) {
+    lines.push(`- **Requires:** \`${bp.depends.join('`, `')}\``);
+  } else {
+    lines.push('- Dependencies: none');
+  }
+  if (bp.size) lines.push(`- Size: ${bp.size}`);
+
+  if (bp.price === 0) {
+    lines.push('', '**Download (free — no purchase required):**', '',
+      '```bash',
+      `curl -sL https://bloby.bot/api/marketplace/download/free/${bp.id} \\`,
+      '  -H "Authorization: Bearer $RELAY_TOKEN" \\',
+      `  -o /tmp/${bp.id}.tar.gz`);
+    if (bp.sha256) {
+      lines.push(`echo "${bp.sha256}  /tmp/${bp.id}.tar.gz" | shasum -a 256 -c`);
+    }
+    lines.push(`tar xzf /tmp/${bp.id}.tar.gz -C skills/`,
+      `rm /tmp/${bp.id}.tar.gz`,
+      '```');
+    lines.push('', `**After executing:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
+  } else {
+    lines.push('', '- **Purchase required.** Ask your human to buy from https://bloby.bot/marketplace and give you the redeem code, or use the bot checkout flow if you are claimed.');
+  }
+
+  return lines.join('\n');
+}
+
+function generateBundleSection(bundle) {
+  const price = priceLabel(bundle);
+  const lines = [`### ${bundle.name} — ${price}`, '', bundle.description || ''];
+  if (bundle.skills && bundle.skills.length > 0) {
+    const names = bundle.skills.map((s) => typeof s === 'string' ? s : s.name || s.id);
+    lines.push('', `Includes: ${names.join(' + ')}.`);
+  }
+  if (bundle.price > 0) {
+    lines.push('', '- **Purchase required.**');
+  }
+  return lines.join('\n');
+}
+
+function generateServiceSection(service) {
+  const price = service.price > 0 ? `$${Number(service.price).toFixed(2)}/use` : 'Free';
+  const lines = [`### ${service.name} — ${price}`, '', service.description || ''];
+
+  lines.push('', `- **Version: ${service.version || '1.0.0'}**`);
+  if (service.price > 0) {
+    lines.push(`- **Price:** $${Number(service.price).toFixed(2)} per use (deducted from owner's credit balance)`);
+  }
+
+  // Rich agent-facing docs stored in MongoDB
+  if (service.agentDocs) {
+    lines.push('', service.agentDocs);
+  } else {
+    // Fallback: basic usage
+    lines.push('', '**Usage:**', '',
+      '```bash',
+      `curl -s -X POST https://bloby.bot/api/services/${service.id}/use \\`,
+      '  -H "Authorization: Bearer $RELAY_TOKEN"',
+      '```');
+  }
+
+  return lines.join('\n');
+}
+
+async function buildMarketplaceMd() {
+  const catalog = await getLiveCatalog();
+  const template = fs.readFileSync(templatePath, 'utf-8');
+
+  const skillsMd = catalog.skills.length > 0
+    ? `## Available Skills\n\n${catalog.skills.map(generateSkillSection).join('\n\n---\n\n')}`
+    : '## Available Skills\n\nNo skills available yet.';
+
+  const bundlesMd = catalog.bundles.length > 0
+    ? `## Bundles\n\n${catalog.bundles.map(generateBundleSection).join('\n\n---\n\n')}`
+    : '## Bundles\n\nNo bundles available yet.';
+
+  const blueprintsMd = catalog.blueprints.length > 0
+    ? `## Blueprints\n\nBlueprints are one-time knowledge packages. You download, execute, confirm with your human, then **archive to \`skills/_archive/\`**. They do not stay in \`skills/\`.\n\n${catalog.blueprints.map(generateBlueprintSection).join('\n\n---\n\n')}`
+    : '## Blueprints\n\nNo blueprints available yet.';
+
+  const servicesMd = catalog.services.length > 0
+    ? `## Available Services\n\nServices are cloud API endpoints you call on demand. Each call is recorded as a transaction.\n\n${catalog.services.map(generateServiceSection).join('\n\n---\n\n')}`
+    : '## Available Services\n\nNo services available yet.';
+
+  return template
+    .replace('{{SKILLS}}', skillsMd)
+    .replace('{{BUNDLES}}', bundlesMd)
+    .replace('{{BLUEPRINTS}}', blueprintsMd)
+    .replace('{{SERVICES}}', servicesMd);
 }
 
 async function findDownloadable(id) {
@@ -739,8 +876,15 @@ router.post(
 
 // ─── GET /api/marketplace.md ────────────────────────────────────────────────
 // Agent-readable markdown catalog with download and redeem instructions.
-router.get('/marketplace.md', (_req, res) => {
-  res.type('text/markdown').sendFile(path.join(staticDir, 'marketplace.md'));
+// Product listings are generated dynamically from MongoDB.
+router.get('/marketplace.md', async (_req, res) => {
+  try {
+    const md = await buildMarketplaceMd();
+    res.type('text/markdown').send(md);
+  } catch (err) {
+    console.error('[marketplace.md]', err.message);
+    res.status(500).type('text/plain').send('Failed to generate marketplace guide');
+  }
 });
 
 // ─── GET /api/marketplace/docs/:type ───────────────────────────────────────
