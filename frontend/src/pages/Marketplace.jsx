@@ -760,7 +760,10 @@ export default function Marketplace() {
   const tokenClientRef = useRef(null)
   const loginResolveRef = useRef(null)
   const [mode, setMode] = useState('humans') // 'humans' | 'agents'
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('search') || params.get('vendor') || ''
+  })
   const [cart, setCart] = useState(() => {
     try {
       const stored = sessionStorage.getItem('bloby_cart')

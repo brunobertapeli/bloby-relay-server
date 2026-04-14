@@ -1,6 +1,15 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
+import { createPortal } from 'react-dom'
 import ZoneEditor from '../components/ZoneEditor'
 import { WORLD_CONFIG } from '../config/world'
+import { API_URL } from '../api'
+
+const ZONE_LABELS = {
+  casino: 'Casino',
+  town_square: 'Town Square',
+  marketplace: 'Marketplace',
+  arena: 'Arena',
+}
 
 const STYLES = `
   .bloby-world {
@@ -30,6 +39,7 @@ const STYLES = `
     max-height: none;
   }
   .bloby-world__map.visible { opacity: 1; }
+
   .bloby-dot {
     position: absolute;
     width: 16px;
@@ -38,8 +48,275 @@ const STYLES = `
     background: #a855f7;
     border: 2px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 12px rgba(168, 85, 247, 0.5);
-    pointer-events: none;
+    pointer-events: auto;
     transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .bloby-dot:hover {
+    transform: translate(-50%, -50%) scale(1.4);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.7);
+  }
+
+  .bloby-dot__name {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 2px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .bloby-dot:hover .bloby-dot__name {
+    opacity: 1;
+  }
+
+  .bloby-card-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .bloby-card {
+    position: relative;
+    width: 280px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    color: #1a1a1a;
+    animation: bloby-card-in 0.25s ease;
+  }
+  @keyframes bloby-card-in {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .bloby-card__close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .bloby-card__close:hover { color: #333; }
+
+  .bloby-card__avatar {
+    height: 52px;
+    width: auto;
+    margin: 0 auto 16px;
+    display: block;
+  }
+
+  .bloby-card__divider {
+    height: 1px;
+    background: #eee;
+    margin: 16px 0;
+  }
+
+  .bloby-card__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .bloby-card__label {
+    color: #888;
+    font-weight: 500;
+  }
+  .bloby-card__value {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .bloby-card__name {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
+  }
+
+  .bloby-card__zone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a855f7;
+    background: #f3e8ff;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+  .bloby-card__zone-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #a855f7;
+  }
+
+  .bloby-card__items-btn {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px 0;
+    border: none;
+    border-radius: 12px;
+    background: #a855f7;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    letter-spacing: 0.2px;
+    text-align: center;
+    text-decoration: none;
+  }
+  .bloby-card__items-btn:hover {
+    background: #9333ea;
+  }
+
+  .bloby-items {
+    position: relative;
+    width: 320px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    font-family: 'Space Grotesk', sans-serif;
+    color: #1a1a1a;
+    animation: bloby-card-in 0.25s ease;
+  }
+  .bloby-items__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .bloby-items__back {
+    background: none;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #666;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .bloby-items__back:hover { border-color: #ccc; color: #333; }
+  .bloby-items__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .bloby-items__close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .bloby-items__close:hover { color: #333; }
+  .bloby-items__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bloby-items__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .bloby-items__item:hover {
+    border-color: #e0d4fc;
+    box-shadow: 0 2px 12px rgba(168, 85, 247, 0.08);
+  }
+  .bloby-items__item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #a855f7;
+    background: #f3e8ff;
+  }
+  .bloby-items__item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .bloby-items__item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bloby-items__item-type {
+    font-size: 11px;
+    color: #999;
+  }
+  .bloby-items__item-price {
+    font-size: 13px;
+    font-weight: 600;
+    color: #a855f7;
+    flex-shrink: 0;
+  }
+  .bloby-items__empty {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 30px 0;
+  }
+  .bloby-items__loading {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 30px 0;
   }
 `
 
@@ -60,13 +337,138 @@ function generateBlobies(zoneData, count) {
     const col = cell.idx % zoneData.gridCols
     blobies.push({
       id: i,
+      name: 'Bloby',
+      human: 'Bruno Bertapeli',
+      level: 45,
+      born: 'April 2024',
       zone: cell.zoneName,
-      // Normalized 0-1 with jitter within cell
       x: (col + Math.random()) / zoneData.gridCols,
       y: (row + Math.random()) / zoneData.gridRows,
     })
   }
   return blobies
+}
+
+const TYPE_LABELS = { skill: 'Skill', bundle: 'Bundle', blueprint: 'Blueprint', service: 'Service' }
+
+function BlobyCard({ bloby, onClose }) {
+  const [showItems, setShowItems] = useState(false)
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const openItems = useCallback(() => {
+    setShowItems(true)
+    if (items.length > 0) return
+    setLoading(true)
+    fetch(`${API_URL}/api/marketplace/products`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        const all = [
+          ...(data.skills || []).map(s => ({ name: s.name, type: 'skill', price: s.price, bloby: s.bloby })),
+          ...(data.bundles || []).map(b => ({ name: b.name, type: 'bundle', price: b.price, bloby: b.bloby })),
+          ...(data.blueprints || []).map(b => ({ name: b.name, type: 'blueprint', price: b.price, bloby: b.bloby })),
+          ...(data.services || []).map(s => ({ name: s.name, type: 'service', price: s.price, bloby: s.bloby })),
+        ]
+        const mine = all.filter(i => i.bloby?.toLowerCase() === bloby.name.toLowerCase())
+        setItems(mine)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [bloby.name, items.length])
+
+  return createPortal(
+    <div className="bloby-card-overlay" onClick={onClose}>
+      {!showItems ? (
+        <div className="bloby-card" onClick={e => e.stopPropagation()}>
+          <button className="bloby-card__close" onClick={onClose}>&times;</button>
+
+          <img
+            className="bloby-card__avatar"
+            src="/assets/images/bloby.png"
+            alt={bloby.name}
+          />
+
+          <h3 className="bloby-card__name">{bloby.name}</h3>
+
+          <div className="bloby-card__zone-badge">
+            <span className="bloby-card__zone-dot" />
+            {ZONE_LABELS[bloby.zone] || bloby.zone}
+          </div>
+
+          <div className="bloby-card__divider" />
+
+          <div className="bloby-card__row">
+            <span className="bloby-card__label">Human</span>
+            <span className="bloby-card__value">{bloby.human}</span>
+          </div>
+          <div className="bloby-card__row">
+            <span className="bloby-card__label">Level</span>
+            <span className="bloby-card__value">{bloby.level}</span>
+          </div>
+          <div className="bloby-card__row">
+            <span className="bloby-card__label">Now visiting</span>
+            <span className="bloby-card__value">{ZONE_LABELS[bloby.zone] || bloby.zone}</span>
+          </div>
+          <div className="bloby-card__row">
+            <span className="bloby-card__label">Date of birth</span>
+            <span className="bloby-card__value">{bloby.born}</span>
+          </div>
+
+          <button className="bloby-card__items-btn" onClick={openItems}>
+            View Items for Sale
+          </button>
+        </div>
+      ) : (
+        <div className="bloby-items" onClick={e => e.stopPropagation()}>
+          <button className="bloby-items__close" onClick={onClose}>&times;</button>
+
+          <div className="bloby-items__header">
+            <button className="bloby-items__back" onClick={() => setShowItems(false)}>
+              &larr;
+            </button>
+            <h3 className="bloby-items__title">{bloby.name}&apos;s Shop</h3>
+          </div>
+
+          {loading && <div className="bloby-items__loading">Loading...</div>}
+
+          {!loading && items.length === 0 && (
+            <div className="bloby-items__empty">No items for sale</div>
+          )}
+
+          {!loading && items.length > 0 && (
+            <div className="bloby-items__list">
+              {items.map((item, i) => (
+                <a
+                  key={i}
+                  className="bloby-items__item"
+                  href={`/marketplace?search=${encodeURIComponent(item.name)}`}
+                >
+                  <div className="bloby-items__item-icon">
+                    {item.name.charAt(0)}
+                  </div>
+                  <div className="bloby-items__item-info">
+                    <div className="bloby-items__item-name">{item.name}</div>
+                    <div className="bloby-items__item-type">{TYPE_LABELS[item.type] || item.type}</div>
+                  </div>
+                  <div className="bloby-items__item-price">
+                    {item.price === 0 ? 'Free' : `$${item.price}`}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>,
+    document.body
+  )
 }
 
 export default function BlobyWorld() {
@@ -77,6 +479,7 @@ export default function BlobyWorld() {
   const [editorMode, setEditorMode] = useState(false)
   const editorModeRef = useRef(false)
   const [blobies, setBlobies] = useState([])
+  const [selectedBloby, setSelectedBloby] = useState(null)
 
   // Load zones and generate blobies
   useEffect(() => {
@@ -264,11 +667,19 @@ export default function BlobyWorld() {
                 left: `${b.x * 100}%`,
                 top: `${b.y * 100}%`,
               }}
-            />
+              onClick={(e) => { e.stopPropagation(); setSelectedBloby(b) }}
+            >
+              <span className="bloby-dot__name">{b.name}</span>
+            </div>
           ))}
           {editorMode && <ZoneEditor cam={cam} />}
         </div>
       </div>
+
+      {selectedBloby && (
+        <BlobyCard bloby={selectedBloby} onClose={() => setSelectedBloby(null)} />
+      )}
+
       {editorMode && (
         <div style={{
           position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
