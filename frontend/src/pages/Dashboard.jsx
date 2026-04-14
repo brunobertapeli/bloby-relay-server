@@ -48,7 +48,7 @@ function DashNavbar({ user, onLogout }) {
     { href: '/#features', label: 'Features' },
     { href: '/#how-it-works', label: 'How it works' },
     { href: '/marketplace', label: 'Marketplace' },
-    { href: '/square', label: 'Square' },
+    { href: '/world', label: 'Bloby World' },
     { href: '/docs', label: 'Docs' },
   ]
 

@@ -16,7 +16,7 @@ import Navbar from './components/Navbar'
 import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
 import Dashboard from './pages/Dashboard'
-import BlobyWorld from './pages/Square'
+import BlobyWorld from './pages/World'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import { API_URL } from './api'
@@ -1313,7 +1313,7 @@ function BlobyWorldSection() {
           </p>
 
           <a
-            href="/square"
+            href="/world"
             className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#04D1FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
           >
             Enter world
