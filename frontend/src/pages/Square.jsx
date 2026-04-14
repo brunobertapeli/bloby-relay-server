@@ -62,7 +62,7 @@ export default function BlobyWorld() {
         overflow: 'auto',
         cursor: isDragging ? 'grabbing' : 'grab',
         backgroundColor: '#0a2a2a',
-        /* Hide scrollbars but keep scrolling */
+        touchAction: 'none',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
       }}
