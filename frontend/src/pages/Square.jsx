@@ -1,129 +1,89 @@
-import { motion } from 'framer-motion'
-import Navbar from '../components/Navbar'
-import { useState, useEffect, useRef } from 'react'
-import { API_URL } from '../api'
+import { useRef, useEffect, useState } from 'react'
 
-export default function Square() {
-  const [user, setUser] = useState(null)
-  const tokenClientRef = useRef(null)
-  const loginResolveRef = useRef(null)
+export default function BlobyWorld() {
+  const containerRef = useRef(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragState = useRef({ startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 })
 
   useEffect(() => {
-    const token = localStorage.getItem('bloby_token')
-    if (token) {
-      fetch(`${API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => { if (data.user) setUser(data.user) })
-        .catch(() => localStorage.removeItem('bloby_token'))
-    }
-  }, [])
+    const el = containerRef.current
+    if (!el) return
 
-  useEffect(() => {
-    const init = () => {
-      if (!window.google?.accounts?.oauth2) return
-      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        scope: 'email profile',
-        callback: async (tokenResponse) => {
-          if (tokenResponse.error) return
-          try {
-            const res = await fetch(`${API_URL}/api/auth/google`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ accessToken: tokenResponse.access_token }),
-            })
-            const data = await res.json()
-            if (data.token && data.user) {
-              localStorage.setItem('bloby_token', data.token)
-              setUser(data.user)
-              if (loginResolveRef.current) {
-                loginResolveRef.current()
-                loginResolveRef.current = null
-              }
-            }
-          } catch (err) {
-            console.error('[auth] Failed:', err)
-          }
-        },
-      })
+    // Center the map on load
+    const img = el.querySelector('img')
+    const centerMap = () => {
+      el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2
+      el.scrollTop = (el.scrollHeight - el.clientHeight) / 2
     }
 
-    if (window.google?.accounts?.oauth2) {
-      init()
+    if (img.complete) {
+      centerMap()
     } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.oauth2) {
-          clearInterval(interval)
-          init()
-        }
-      }, 200)
-      return () => clearInterval(interval)
+      img.addEventListener('load', centerMap, { once: true })
     }
   }, [])
 
-  const handleLogin = () => {
-    if (!tokenClientRef.current) {
-      return new Promise((resolve) => {
-        let attempts = 0
-        const retry = setInterval(() => {
-          attempts++
-          if (tokenClientRef.current) {
-            clearInterval(retry)
-            loginResolveRef.current = () => resolve(true)
-            tokenClientRef.current.requestAccessToken()
-          } else if (attempts > 15) {
-            clearInterval(retry)
-            resolve(false)
-          }
-        }, 200)
-      })
+  const handlePointerDown = (e) => {
+    setIsDragging(true)
+    const el = containerRef.current
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
     }
-    return new Promise((resolve) => {
-      loginResolveRef.current = () => resolve(true)
-      tokenClientRef.current.requestAccessToken()
-    })
+    el.setPointerCapture(e.pointerId)
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('bloby_token')
-    setUser(null)
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.disableAutoSelect()
-    }
+  const handlePointerMove = (e) => {
+    if (!isDragging) return
+    const dx = e.clientX - dragState.current.startX
+    const dy = e.clientY - dragState.current.startY
+    const el = containerRef.current
+    el.scrollLeft = dragState.current.scrollLeft - dx
+    el.scrollTop = dragState.current.scrollTop - dy
+  }
+
+  const handlePointerUp = () => {
+    setIsDragging(false)
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
-
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <motion.img
-            src="/assets/images/bloby.png"
-            alt="Bloby"
-            className="h-20 w-auto mx-auto mb-8"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          />
-          <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight mb-3">
-            Bloby Square
-          </h1>
-          <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display mb-4">
-            Coming soon
-          </span>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto">
-            Public gathering space for blobies
-          </p>
-        </motion.div>
-      </div>
+    <div
+      ref={containerRef}
+      className="bloby-world"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        overflow: 'auto',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        backgroundColor: '#0a2a2a',
+        /* Hide scrollbars but keep scrolling */
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}
+    >
+      <style>{`
+        .bloby-world::-webkit-scrollbar { display: none; }
+      `}</style>
+      <img
+        src="/assets/images/map.png"
+        alt="Bloby World"
+        draggable={false}
+        style={{
+          display: 'block',
+          minWidth: '100vw',
+          minHeight: '100vh',
+          width: 'max(100vw, 177.8vh)',  /* maintain aspect ~16:9 */
+          height: 'auto',
+          objectFit: 'cover',
+          userSelect: 'none',
+        }}
+      />
     </div>
   )
 }

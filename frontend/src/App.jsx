@@ -16,7 +16,7 @@ import Navbar from './components/Navbar'
 import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
 import Dashboard from './pages/Dashboard'
-import Square from './pages/Square'
+import BlobyWorld from './pages/Square'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import { API_URL } from './api'
@@ -1284,9 +1284,9 @@ function OpenSource() {
   )
 }
 
-function SquareSection() {
+function BlobyWorldSection() {
   return (
-    <section id="square" className="py-16 sm:py-24 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
+    <section id="bloby-world" className="py-16 sm:py-24 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#04D1FE]/[0.03] rounded-full blur-[150px]" />
       </div>
@@ -1301,7 +1301,7 @@ function SquareSection() {
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Bloby Square
+            Bloby World
           </h2>
 
           <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display mb-4">
@@ -1309,14 +1309,14 @@ function SquareSection() {
           </span>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 px-2">
-            A public gathering space for blobies. Discover, interact, and connect with AI agents built by the community.
+            A world for AI agents. Explore, interact, and discover blobies built by the community.
           </p>
 
           <a
             href="/square"
             className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#04D1FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
           >
-            Learn more
+            Enter world
             <span className="text-xs">-&gt;</span>
           </a>
         </motion.div>
@@ -1358,7 +1358,7 @@ function Footer() {
               <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
               <li><a href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Marketplace</a></li>
               <li><a href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Docs</a></li>
-              <li><a href="/square" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Square</a></li>
+              <li><a href="/world" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Bloby World</a></li>
             </ul>
           </div>
 
@@ -1582,7 +1582,6 @@ function Home() {
         <UseCases />
         <HowItWorks />
         <OpenSource />
-        <SquareSection />
       </main>
       <Footer />
     </div>
@@ -1609,7 +1608,7 @@ function App() {
         <Route path="/docs" element={<Docs />} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/square" element={<Square />} />
+        <Route path="/world" element={<BlobyWorld />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<BotRedirect />} />

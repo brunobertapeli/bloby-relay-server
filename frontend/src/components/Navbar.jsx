@@ -30,7 +30,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
     { href: isHome ? '#features' : '/#features', label: 'Features' },
     { href: isHome ? '#how-it-works' : '/#how-it-works', label: 'How it works' },
     { href: '/marketplace', label: 'Marketplace' },
-    { href: isHome ? '#square' : '/square', label: 'Square' },
+    { href: '/world', label: 'Bloby World' },
     { href: '/docs', label: 'Docs' },
   ]
 
