@@ -3,7 +3,7 @@ import { getUsers } from '../db.js';
 
 const router = Router();
 
-const PRESENCE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const PRESENCE_WINDOW_MS = 30 * 1000; // 30 seconds
 
 /**
  * GET /api/world/presence
