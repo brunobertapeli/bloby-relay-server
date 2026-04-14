@@ -665,16 +665,36 @@ export default function BlobyWorld() {
         // Load zone data once
         if (!zoneDataRef.current) {
           const zRes = await fetch('/assets/zones.json')
-          if (zRes.ok) zoneDataRef.current = await zRes.json()
+          if (zRes.ok) {
+            zoneDataRef.current = await zRes.json()
+            const zd = zoneDataRef.current
+            const zoneCounts = {}
+            for (const [name, zone] of Object.entries(zd.zones)) {
+              zoneCounts[name] = zone.cells.filter(c => c === 1).length
+            }
+            console.log('[world] zone data loaded, cells per zone:', zoneCounts)
+          } else {
+            console.log('[world] failed to load zones.json:', zRes.status)
+          }
         }
 
         const res = await fetch(`${API_URL}/api/world/presence`)
-        if (!res.ok) return
+        if (!res.ok) {
+          console.log('[world] presence fetch failed:', res.status)
+          return
+        }
         const { blobies } = await res.json()
+        console.log('[world] presence data:', blobies.length, 'blobies', blobies.map(b => `${b.username}@${b.zone}`))
 
         const dots = assignPositions(blobies, zoneDataRef.current)
-        setClusters(clusterDots(dots))
-      } catch {}
+        console.log('[world] dots after assignPositions:', dots.length, dots.map(d => `${d.username} x=${d.x.toFixed(3)} y=${d.y.toFixed(3)}`))
+
+        const cl = clusterDots(dots)
+        console.log('[world] clusters:', cl.length, cl.map(c => `${c.count} at x=${c.x.toFixed(3)} y=${c.y.toFixed(3)}`))
+        setClusters(cl)
+      } catch (err) {
+        console.error('[world] fetchPresence error:', err)
+      }
     }
 
     fetchPresence()
