@@ -26,9 +26,17 @@ router.get('/world/presence', async (_req, res) => {
       .limit(500)
       .toArray();
 
-    console.log(`[world] presence query cutoff: ${cutoff.toISOString()}, found: ${blobies.length}`, blobies.map(b => `${b.username}@${b.lastZone}`));
+    // Rename lastZone → zone for the frontend
+    const result = blobies.map(b => ({
+      username: b.username,
+      zone: b.lastZone,
+      lastZoneAt: b.lastZoneAt,
+      isOnline: b.isOnline,
+    }));
 
-    res.json({ blobies });
+    console.log(`[world] presence query cutoff: ${cutoff.toISOString()}, found: ${result.length}`, result.map(b => `${b.username}@${b.zone}`));
+
+    res.json({ blobies: result });
   } catch (error) {
     console.error('[world] presence error:', error.message);
     res.status(500).json({ error: 'Failed to fetch presence' });
