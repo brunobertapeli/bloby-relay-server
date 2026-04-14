@@ -21,6 +21,8 @@ import marketplaceRoutes from './routes/marketplace.js';
 import serviceRoutes from './routes/services.js';
 import extensionRoutes from './routes/extension.js';
 import resolveRoutes from './routes/resolve.js';
+import worldRoutes from './routes/world.js';
+import { zoneTracker } from './middleware/zoneTracker.js';
 
 dotenv.config();
 
@@ -74,6 +76,7 @@ app.use('/api', express.json({ limit: '16kb' }));
 
 // ─── API routes ──────────────────────────────────────────────────────────────
 app.use('/api', apiLimiter);
+app.use(zoneTracker);
 app.use('/api', registerRoutes);
 app.use('/api', tunnelRoutes);
 app.use('/api', statusRoutes);
@@ -85,6 +88,7 @@ app.use('/api', claimRoutes);
 app.use('/api', marketplaceRoutes);
 app.use('/api', serviceRoutes);
 app.use('/api', extensionRoutes);
+app.use('/api', worldRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────

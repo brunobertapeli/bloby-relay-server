@@ -40,6 +40,7 @@ async function createIndexes() {
     users.createIndex({ username: 1, tier: 1 }, { unique: true }),
     users.createIndex({ tokenHash: 1 }, { unique: true }),
     users.createIndex({ lastHeartbeat: 1 }),
+    users.createIndex({ lastZoneAt: 1 }),
   ]);
 
   const claims = db.collection('claims');

@@ -11,6 +11,8 @@ const ZONE_LABELS = {
   arena: 'Arena',
 }
 
+const POLL_INTERVAL = 30_000
+
 const STYLES = `
   .bloby-world {
     position: fixed;
@@ -77,6 +79,26 @@ const STYLES = `
   }
   .bloby-dot:hover .bloby-dot__name {
     opacity: 1;
+  }
+
+  .bloby-dot__count {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 1.5px solid #fff;
+    pointer-events: none;
   }
 
   .bloby-card-overlay {
@@ -318,36 +340,191 @@ const STYLES = `
     font-size: 13px;
     padding: 30px 0;
   }
+
+  .bloby-stack-list {
+    position: relative;
+    width: 280px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    font-family: 'Space Grotesk', sans-serif;
+    color: #1a1a1a;
+    animation: bloby-card-in 0.25s ease;
+  }
+  .bloby-stack-list__title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: #1a1a1a;
+  }
+  .bloby-stack-list__close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .bloby-stack-list__close:hover { color: #333; }
+  .bloby-stack-list__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .bloby-stack-list__item:hover {
+    background: #f9f5ff;
+  }
+  .bloby-stack-list__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #a855f7;
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+  .bloby-stack-list__name {
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .bloby-stack-list__zone {
+    font-size: 11px;
+    color: #999;
+    flex-shrink: 0;
+  }
 `
 
-// Pick random points inside painted zone cells
-function generateBlobies(zoneData, count) {
-  const allCells = []
+// ─── Assign positions from zone data ─────────────────────────────────────────
+
+function assignPositions(blobies, zoneData) {
+  if (!zoneData) return []
+
+  // Build lookup: zone -> list of active cell indices
+  const zoneCells = {}
   for (const [zoneName, zone] of Object.entries(zoneData.zones)) {
+    const cells = []
     for (let i = 0; i < zone.cells.length; i++) {
-      if (zone.cells[i]) allCells.push({ zoneName, idx: i })
+      if (zone.cells[i]) cells.push(i)
+    }
+    zoneCells[zoneName] = cells
+  }
+
+  // Seed a deterministic-ish random per username so dots don't jump on polls
+  const seededRandom = (seed) => {
+    let h = 0
+    for (let i = 0; i < seed.length; i++) {
+      h = ((h << 5) - h + seed.charCodeAt(i)) | 0
+    }
+    return () => {
+      h = (h * 1664525 + 1013904223) | 0
+      return (h >>> 0) / 4294967296
     }
   }
-  if (allCells.length === 0) return []
 
-  const blobies = []
-  for (let i = 0; i < count; i++) {
-    const cell = allCells[Math.floor(Math.random() * allCells.length)]
-    const row = Math.floor(cell.idx / zoneData.gridCols)
-    const col = cell.idx % zoneData.gridCols
-    blobies.push({
-      id: i,
-      name: 'Bloby',
-      human: 'Bruno Bertapeli',
-      level: 45,
-      born: 'April 2024',
-      zone: cell.zoneName,
-      x: (col + Math.random()) / zoneData.gridCols,
-      y: (row + Math.random()) / zoneData.gridRows,
+  return blobies
+    .map(b => {
+      const cells = zoneCells[b.zone]
+      if (!cells || cells.length === 0) return null
+
+      const rng = seededRandom(b.username + b.zone)
+      const cellIdx = cells[Math.floor(rng() * cells.length)]
+      const row = Math.floor(cellIdx / zoneData.gridCols)
+      const col = cellIdx % zoneData.gridCols
+
+      return {
+        username: b.username,
+        zone: b.zone,
+        isOnline: b.isOnline,
+        x: (col + rng()) / zoneData.gridCols,
+        y: (row + rng()) / zoneData.gridRows,
+      }
+    })
+    .filter(Boolean)
+}
+
+// ─── Cluster nearby dots ─────────────────────────────────────────────────────
+
+function clusterDots(dots, threshold = 0.012) {
+  const clusters = []
+  const used = new Set()
+
+  for (let i = 0; i < dots.length; i++) {
+    if (used.has(i)) continue
+    const cluster = [dots[i]]
+    used.add(i)
+
+    for (let j = i + 1; j < dots.length; j++) {
+      if (used.has(j)) continue
+      const dx = dots[i].x - dots[j].x
+      const dy = dots[i].y - dots[j].y
+      if (Math.sqrt(dx * dx + dy * dy) < threshold) {
+        cluster.push(dots[j])
+        used.add(j)
+      }
+    }
+
+    // Average position for cluster center
+    const cx = cluster.reduce((s, d) => s + d.x, 0) / cluster.length
+    const cy = cluster.reduce((s, d) => s + d.y, 0) / cluster.length
+
+    clusters.push({
+      id: `${i}`,
+      x: cx,
+      y: cy,
+      blobies: cluster,
+      count: cluster.length,
     })
   }
-  return blobies
+
+  return clusters
 }
+
+// ─── Stack list (multiple blobies on same spot) ──────────────────────────────
+
+function StackList({ cluster, onClose, onSelect }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return createPortal(
+    <div className="bloby-card-overlay" onClick={onClose}>
+      <div className="bloby-stack-list" onClick={e => e.stopPropagation()}>
+        <button className="bloby-stack-list__close" onClick={onClose}>&times;</button>
+        <h3 className="bloby-stack-list__title">
+          {cluster.count} blobies here
+        </h3>
+        {cluster.blobies.map((b, i) => (
+          <div
+            key={i}
+            className="bloby-stack-list__item"
+            onClick={() => onSelect(b)}
+          >
+            <span className="bloby-stack-list__dot" />
+            <span className="bloby-stack-list__name">{b.username}</span>
+            <span className="bloby-stack-list__zone">{ZONE_LABELS[b.zone] || b.zone}</span>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ─── Bloby card ──────────────────────────────────────────────────────────────
 
 const TYPE_LABELS = { skill: 'Skill', bundle: 'Bundle', blueprint: 'Blueprint', service: 'Service' }
 
@@ -376,12 +553,12 @@ function BlobyCard({ bloby, onClose }) {
           ...(data.blueprints || []).map(b => ({ name: b.name, type: 'blueprint', price: b.price, bloby: b.bloby })),
           ...(data.services || []).map(s => ({ name: s.name, type: 'service', price: s.price, bloby: s.bloby })),
         ]
-        const mine = all.filter(i => i.bloby?.toLowerCase() === bloby.name.toLowerCase())
+        const mine = all.filter(i => i.bloby?.toLowerCase() === bloby.username.toLowerCase())
         setItems(mine)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [bloby.name, items.length])
+  }, [bloby.username, items.length])
 
   return createPortal(
     <div className="bloby-card-overlay" onClick={onClose}>
@@ -392,10 +569,10 @@ function BlobyCard({ bloby, onClose }) {
           <img
             className="bloby-card__avatar"
             src="/assets/images/bloby.png"
-            alt={bloby.name}
+            alt={bloby.username}
           />
 
-          <h3 className="bloby-card__name">{bloby.name}</h3>
+          <h3 className="bloby-card__name">{bloby.username}</h3>
 
           <div className="bloby-card__zone-badge">
             <span className="bloby-card__zone-dot" />
@@ -405,20 +582,14 @@ function BlobyCard({ bloby, onClose }) {
           <div className="bloby-card__divider" />
 
           <div className="bloby-card__row">
-            <span className="bloby-card__label">Human</span>
-            <span className="bloby-card__value">{bloby.human}</span>
-          </div>
-          <div className="bloby-card__row">
-            <span className="bloby-card__label">Level</span>
-            <span className="bloby-card__value">{bloby.level}</span>
-          </div>
-          <div className="bloby-card__row">
             <span className="bloby-card__label">Now visiting</span>
             <span className="bloby-card__value">{ZONE_LABELS[bloby.zone] || bloby.zone}</span>
           </div>
           <div className="bloby-card__row">
-            <span className="bloby-card__label">Date of birth</span>
-            <span className="bloby-card__value">{bloby.born}</span>
+            <span className="bloby-card__label">Status</span>
+            <span className="bloby-card__value" style={{ color: bloby.isOnline ? '#22c55e' : '#999' }}>
+              {bloby.isOnline ? 'Online' : 'Offline'}
+            </span>
           </div>
 
           <button className="bloby-card__items-btn" onClick={openItems}>
@@ -433,7 +604,7 @@ function BlobyCard({ bloby, onClose }) {
             <button className="bloby-items__back" onClick={() => setShowItems(false)}>
               &larr;
             </button>
-            <h3 className="bloby-items__title">{bloby.name}&apos;s Shop</h3>
+            <h3 className="bloby-items__title">{bloby.username}&apos;s Shop</h3>
           </div>
 
           {loading && <div className="bloby-items__loading">Loading...</div>}
@@ -471,6 +642,8 @@ function BlobyCard({ bloby, onClose }) {
   )
 }
 
+// ─── Main component ──────────────────────────────────────────────────────────
+
 export default function BlobyWorld() {
   const containerRef = useRef(null)
   const wrapperRef = useRef(null)
@@ -478,17 +651,35 @@ export default function BlobyWorld() {
   const cam = useRef({ x: 0, y: 0, dragging: false, lastX: 0, lastY: 0, imgW: 0, imgH: 0, vw: 0, vh: 0 })
   const [editorMode, setEditorMode] = useState(false)
   const editorModeRef = useRef(false)
-  const [blobies, setBlobies] = useState([])
+  const [clusters, setClusters] = useState([])
   const [selectedBloby, setSelectedBloby] = useState(null)
+  const [selectedCluster, setSelectedCluster] = useState(null)
+  const zoneDataRef = useRef(null)
 
-  // Load zones and generate blobies
+  // Load zone data + presence, then poll
   useEffect(() => {
-    fetch('/assets/zones.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) setBlobies(generateBlobies(data, 30))
-      })
-      .catch(() => {})
+    let timer = null
+
+    const fetchPresence = async () => {
+      try {
+        // Load zone data once
+        if (!zoneDataRef.current) {
+          const zRes = await fetch('/assets/zones.json')
+          if (zRes.ok) zoneDataRef.current = await zRes.json()
+        }
+
+        const res = await fetch(`${API_URL}/api/world/presence`)
+        if (!res.ok) return
+        const { blobies } = await res.json()
+
+        const dots = assignPositions(blobies, zoneDataRef.current)
+        setClusters(clusterDots(dots))
+      } catch {}
+    }
+
+    fetchPresence()
+    timer = setInterval(fetchPresence, POLL_INTERVAL)
+    return () => clearInterval(timer)
   }, [])
 
   // Keep ref in sync with state
@@ -558,7 +749,6 @@ export default function BlobyWorld() {
     img.classList.add('visible')
   }, [applyCamera])
 
-  // Load + resize
   useEffect(() => {
     const img = imgRef.current
     const onLoad = () => layout()
@@ -647,6 +837,15 @@ export default function BlobyWorld() {
     return () => el.removeEventListener('mousedown', onDown)
   }, [applyCamera])
 
+  const handleDotClick = useCallback((e, cluster) => {
+    e.stopPropagation()
+    if (cluster.count === 1) {
+      setSelectedBloby(cluster.blobies[0])
+    } else {
+      setSelectedCluster(cluster)
+    }
+  }, [])
+
   return (
     <>
       <style>{STYLES}</style>
@@ -659,22 +858,35 @@ export default function BlobyWorld() {
             alt="Bloby World"
             draggable={false}
           />
-          {blobies.map(b => (
+          {clusters.map(c => (
             <div
-              key={b.id}
+              key={c.id}
               className="bloby-dot"
               style={{
-                left: `${b.x * 100}%`,
-                top: `${b.y * 100}%`,
+                left: `${c.x * 100}%`,
+                top: `${c.y * 100}%`,
               }}
-              onClick={(e) => { e.stopPropagation(); setSelectedBloby(b) }}
+              onClick={(e) => handleDotClick(e, c)}
             >
-              <span className="bloby-dot__name">{b.name}</span>
+              <span className="bloby-dot__name">
+                {c.count === 1 ? c.blobies[0].username : `${c.count} blobies`}
+              </span>
+              {c.count > 1 && (
+                <span className="bloby-dot__count">{c.count}</span>
+              )}
             </div>
           ))}
           {editorMode && <ZoneEditor cam={cam} />}
         </div>
       </div>
+
+      {selectedCluster && (
+        <StackList
+          cluster={selectedCluster}
+          onClose={() => setSelectedCluster(null)}
+          onSelect={(b) => { setSelectedCluster(null); setSelectedBloby(b) }}
+        />
+      )}
 
       {selectedBloby && (
         <BlobyCard bloby={selectedBloby} onClose={() => setSelectedBloby(null)} />
