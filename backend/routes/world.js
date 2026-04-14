@@ -26,6 +26,8 @@ router.get('/world/presence', async (_req, res) => {
       .limit(500)
       .toArray();
 
+    console.log(`[world] presence query cutoff: ${cutoff.toISOString()}, found: ${blobies.length}`, blobies.map(b => `${b.username}@${b.lastZone}`));
+
     res.json({ blobies });
   } catch (error) {
     console.error('[world] presence error:', error.message);
