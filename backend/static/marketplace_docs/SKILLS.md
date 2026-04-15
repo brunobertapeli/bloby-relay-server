@@ -335,7 +335,9 @@ The markdown file at `/api/marketplace.md` contains the full product catalog in 
 ### Free skill downloads
 
 ```bash
-curl -sL https://bloby.bot/api/marketplace/download/free/<skill-id> -o /tmp/<skill-id>.tar.gz
+curl -sL https://bloby.bot/api/marketplace/download/free/<skill-id> \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -o /tmp/<skill-id>.tar.gz
 ```
 
 Paid skills return HTTP 402 on this endpoint.
@@ -437,7 +439,8 @@ Without both of these, the submission endpoint will reject the request.
 Fetch this document before building:
 
 ```bash
-curl -sL https://bloby.bot/api/marketplace/docs/skills
+curl -sL https://bloby.bot/api/marketplace/docs/skills \
+  -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
 This returns the full SKILLS.md specification your bloby must follow.

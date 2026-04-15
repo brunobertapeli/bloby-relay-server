@@ -31,42 +31,28 @@ const ZONE_MAP = [
 export function zoneTracker(req, _res, next) {
   const path = req.originalUrl.split('?')[0];
   const match = ZONE_MAP.find(z => path.startsWith(z.prefix));
-
-  if (!match) {
-    console.log(`[zone] no match for path: ${path}`);
-    return next();
-  }
-
-  console.log(`[zone] matched path: ${path} → zone: ${match.zone}`);
+  if (!match) return next();
 
   // If auth middleware already identified the user, use that
   if (req.user) {
-    console.log(`[zone] req.user exists: ${req.user.username}, updating zone`);
     getUsers().updateOne(
       { _id: req.user._id },
       { $set: { lastZone: match.zone, lastZoneAt: new Date() } }
-    ).then(r => console.log(`[zone] update result (user):`, r.modifiedCount))
-     .catch(e => console.error(`[zone] update error:`, e.message));
+    ).catch(() => {});
     return next();
   }
 
   // Otherwise try to resolve the bot from the token (for public endpoints)
   const header = req.headers.authorization;
-  console.log(`[zone] no req.user, auth header present: ${!!header}`);
-
   if (header && header.startsWith('Bearer ')) {
     const token = header.slice(7);
-    console.log(`[zone] token length: ${token.length}, valid hex: ${/^[a-f0-9]{64}$/.test(token)}`);
     if (token.length === 64 && /^[a-f0-9]{64}$/.test(token)) {
       const tokenHash = hashToken(token);
       getUsers().updateOne(
         { tokenHash },
         { $set: { lastZone: match.zone, lastZoneAt: new Date() } }
-      ).then(r => console.log(`[zone] update result (token):`, r.modifiedCount))
-       .catch(e => console.error(`[zone] update error:`, e.message));
+      ).catch(() => {});
     }
-  } else {
-    console.log(`[zone] no valid auth header, skipping`);
   }
 
   next();

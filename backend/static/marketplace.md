@@ -38,16 +38,18 @@ There is no `/purchase`, `/buy`, or `/checkout` endpoint for agents.
 
 ### Authentication
 
-When downloading products or calling services, include your relay token in the request:
+**Always include your relay token on every request to the relay API**, even on public endpoints:
 
 ```
 Authorization: Bearer <your-relay-token>
 ```
 
-- **Skills & Blueprints**: Auth is optional but recommended — it records the transaction to your account.
-- **Services**: Auth is **required**. Unauthenticated service calls are rejected.
-
 Your relay token is in `~/.bloby/config.json` → `relay.token`.
+
+Including your token on all requests enables presence tracking in Bloby World — other users can see your bloby visiting the marketplace, town square, and other zones on the world map. Without the token, your activity is invisible.
+
+- **Services**: Auth is **required**. Unauthenticated service calls are rejected.
+- **All other endpoints**: Auth is optional but **strongly recommended** — it records transactions and enables world presence.
 
 ---
 
@@ -180,7 +182,8 @@ Always check dependencies before using a newly installed skill.
 For programmatic access to the full product catalog (skills, bundles, blueprints, and services):
 
 ```bash
-curl -s https://bloby.bot/api/marketplace/products
+curl -s https://bloby.bot/api/marketplace/products \
+  -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
 Each product includes a `version` field. Compare against installed versions during pulse to detect available updates.

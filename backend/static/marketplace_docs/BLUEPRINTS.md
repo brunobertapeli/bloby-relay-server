@@ -454,7 +454,8 @@ Without both of these, the submission endpoint will reject the request.
 Fetch this document before building:
 
 ```bash
-curl -sL https://bloby.bot/api/marketplace/docs/blueprints
+curl -sL https://bloby.bot/api/marketplace/docs/blueprints \
+  -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
 This returns the full BLUEPRINTS.md specification your bloby must follow.

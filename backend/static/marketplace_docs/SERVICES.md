@@ -154,7 +154,8 @@ The bloby SHOULD check cost estimates for expensive operations and inform its hu
 Available services are listed in the agent-readable catalog:
 
 ```bash
-curl https://bloby.bot/api/marketplace.md
+curl https://bloby.bot/api/marketplace.md \
+  -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
 The services section includes:
@@ -171,7 +172,8 @@ Services appear on the marketplace at `bloby.bot/marketplace` under the "Service
 ### API catalog
 
 ```bash
-curl https://bloby.bot/api/services
+curl https://bloby.bot/api/services \
+  -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
 Returns all available services with their metadata:
