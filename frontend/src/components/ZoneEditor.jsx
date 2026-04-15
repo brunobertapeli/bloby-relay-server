@@ -11,10 +11,40 @@ const ZONES = [
   { id: 'arena', label: 'Arena', color: '#F44336' },
 ]
 
+// RLE: [0,0,0,1,1,0] → "3,2,1" (run lengths alternating starting from 0)
+function rlEncode(cells) {
+  if (cells.length === 0) return ''
+  const runs = []
+  let cur = 0, count = 0
+  for (const v of cells) {
+    if (v === cur) {
+      count++
+    } else {
+      runs.push(count)
+      cur = v
+      count = 1
+    }
+  }
+  runs.push(count)
+  return runs.join(',')
+}
+
+function rlDecode(str, expectedLen) {
+  if (!str) return new Array(expectedLen).fill(0)
+  const runs = str.split(',').map(Number)
+  const cells = []
+  let val = 0
+  for (const count of runs) {
+    for (let i = 0; i < count; i++) cells.push(val)
+    val = 1 - val
+  }
+  return cells
+}
+
 function createEmptyData() {
   const cells = () => new Array(GRID_COLS * GRID_ROWS).fill(0)
   return {
-    version: 1,
+    version: 2,
     gridCols: GRID_COLS,
     gridRows: GRID_ROWS,
     naturalWidth: 2612,
@@ -25,12 +55,37 @@ function createEmptyData() {
   }
 }
 
+// Expand RLE strings to arrays for internal use
+function expandZoneData(data) {
+  const total = data.gridCols * data.gridRows
+  for (const zone of Object.values(data.zones)) {
+    if (typeof zone.cells === 'string') {
+      zone.cells = rlDecode(zone.cells, total)
+    }
+  }
+  return data
+}
+
+// Compress arrays to RLE strings for saving
+function compressZoneData(data) {
+  return {
+    ...data,
+    version: 2,
+    zones: Object.fromEntries(
+      Object.entries(data.zones).map(([k, z]) => [
+        k,
+        { color: z.color, cells: rlEncode(z.cells) },
+      ])
+    ),
+  }
+}
+
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem('bloby_zones')
     if (raw) {
       const data = JSON.parse(raw)
-      if (data.version === 1 && data.gridCols === GRID_COLS) return data
+      if (data.gridCols === GRID_COLS) return expandZoneData(data)
     }
   } catch {}
   return createEmptyData()
@@ -84,7 +139,7 @@ export default function ZoneEditor({ cam }) {
   const scheduleSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
-      localStorage.setItem('bloby_zones', JSON.stringify(zoneDataRef.current))
+      localStorage.setItem('bloby_zones', JSON.stringify(compressZoneData(zoneDataRef.current)))
     }, 500)
   }, [])
 
@@ -193,7 +248,8 @@ export default function ZoneEditor({ cam }) {
   }, [paintAt])
 
   const saveToFile = () => {
-    const json = JSON.stringify(zoneDataRef.current, null, 2)
+    const compressed = compressZoneData(zoneDataRef.current)
+    const json = JSON.stringify(compressed, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -210,9 +266,10 @@ export default function ZoneEditor({ cam }) {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result)
-        if (data.version === 1 && data.gridCols === GRID_COLS) {
-          zoneDataRef.current = data
-          localStorage.setItem('bloby_zones', JSON.stringify(data))
+        if (data.gridCols === GRID_COLS) {
+          const expanded = expandZoneData(data)
+          zoneDataRef.current = expanded
+          localStorage.setItem('bloby_zones', JSON.stringify(compressZoneData(expanded)))
           redraw()
         }
       } catch {}

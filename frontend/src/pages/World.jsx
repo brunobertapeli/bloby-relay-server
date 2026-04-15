@@ -408,15 +408,34 @@ const STYLES = `
 
 // ─── Assign positions from zone data ─────────────────────────────────────────
 
+// Decode RLE string to array
+function rlDecode(str, len) {
+  if (!str) return new Array(len).fill(0)
+  const runs = str.split(',').map(Number)
+  const cells = []
+  let val = 0
+  for (const count of runs) {
+    for (let i = 0; i < count; i++) cells.push(val)
+    val = 1 - val
+  }
+  return cells
+}
+
 function assignPositions(blobies, zoneData) {
   if (!zoneData) return []
+
+  const total = zoneData.gridCols * zoneData.gridRows
 
   // Build lookup: zone -> list of active cell indices
   const zoneCells = {}
   for (const [zoneName, zone] of Object.entries(zoneData.zones)) {
+    // Support both array (v1) and RLE string (v2)
+    const arr = typeof zone.cells === 'string'
+      ? rlDecode(zone.cells, total)
+      : zone.cells
     const cells = []
-    for (let i = 0; i < zone.cells.length; i++) {
-      if (zone.cells[i]) cells.push(i)
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i]) cells.push(i)
     }
     zoneCells[zoneName] = cells
   }
