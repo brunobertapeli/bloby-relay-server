@@ -20,11 +20,11 @@ export const RESERVED = new Set([
 
 // ─── Tiers ───────────────────────────────────────────────────────────────────
 
-const FREE_PREFIXES = new Set(['my']);
+const FREE_PREFIXES = new Set(['open']);
 
 export const TIERS = {
   premium: { prefix: null, paid: true, price: 5 },
-  at:      { prefix: 'my', paid: false, price: 0 },
+  at:      { prefix: 'open', paid: false, price: 0 },
 };
 
 export const VALID_TIERS = new Set(Object.keys(TIERS));

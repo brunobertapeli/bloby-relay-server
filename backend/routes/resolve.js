@@ -97,7 +97,7 @@ export function subdomainResolver(req, res, next) {
   const host = req.hostname;
 
   // Skip bare domain, www, api, and my — relay's own routes apply there
-  if (host === domain || host === `www.${domain}` || host === `api.${domain}` || host === `my.${domain}`) return next();
+  if (host === domain || host === `www.${domain}` || host === `api.${domain}` || host === `open.${domain}`) return next();
 
   if (host.endsWith(`.${domain}`)) {
     const subdomain = host.slice(0, -(domain.length + 1));
@@ -115,7 +115,7 @@ export function subdomainResolver(req, res, next) {
 // ─── Path-based shortcut: GET /:username ─────────────────────────────────────
 // Redirects:
 //   bloby.bot/bruno      →  bruno.bloby.bot       (premium)
-//   my.bloby.bot/bruno   →  bruno.my.bloby.bot    (free)
+//   open.bloby.bot/bruno   →  bruno.open.bloby.bot    (free)
 
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
@@ -131,9 +131,9 @@ router.get('/:username', redirectLimiter, async (req, res) => {
       return res.redirect(301, `https://www.${domain}/${username}`);
     }
 
-    // Determine tier from host: my.bloby.bot → free ("at"), bloby.bot → premium
+    // Determine tier from host: open.bloby.bot → free ("at"), bloby.bot → premium
     const host = req.hostname;
-    const tier = (domain && host === `my.${domain}`) ? 'at' : 'premium';
+    const tier = (domain && host === `open.${domain}`) ? 'at' : 'premium';
 
     const user = await getUsers().findOne(
       { username, tier },
