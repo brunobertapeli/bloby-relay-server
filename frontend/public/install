@@ -226,6 +226,22 @@ install_bloby() {
   fi
   rm -f "$INSTALL_LOG"
 
+  # Install workspace dependencies (rebuilds native modules for this platform —
+  # workspace/node_modules is intentionally not shipped in the tarball so that
+  # better-sqlite3 etc. get a prebuild matching the target OS+arch, not the
+  # publisher's machine)
+  if [ -f "$BLOBY_HOME/workspace/package.json" ]; then
+    printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
+    WS_INSTALL_LOG=$(mktemp)
+    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev > "$WS_INSTALL_LOG" 2>&1); then
+      printf "  ${RED}✗${RESET}  Workspace dependency install failed:\n"
+      cat "$WS_INSTALL_LOG"
+      rm -f "$WS_INSTALL_LOG"
+      exit 1
+    fi
+    rm -f "$WS_INSTALL_LOG"
+  fi
+
   # Verify
   if [ ! -f "$BLOBY_HOME/bin/cli.js" ]; then
     printf "  ${RED}✗${RESET}  Installation failed\n"

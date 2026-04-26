@@ -239,20 +239,30 @@ function Install-Bloby {
 
     # Install dependencies inside ~/.bloby/
     Push-Location $BLOBY_HOME
-    try {
-        & $NPM install --omit=dev 2>$null
-    } catch {}
+    $installLog = & $NPM install --omit=dev 2>&1 | Out-String
+    $installExit = $LASTEXITCODE
     Pop-Location
+    if ($installExit -ne 0) {
+        Write-Host "  ✗  Dependency install failed:" -ForegroundColor Red
+        Write-Host $installLog
+        exit 1
+    }
 
-    # Install workspace dependencies (rebuilds native modules for this platform)
+    # Install workspace dependencies (rebuilds native modules for this platform —
+    # workspace/node_modules is intentionally not shipped in the tarball so that
+    # native deps like better-sqlite3 get a prebuild matching the target OS+arch)
     $wsDir = Join-Path $BLOBY_HOME "workspace"
     if (Test-Path (Join-Path $wsDir "package.json")) {
         Write-Down "Installing workspace dependencies..."
         Push-Location $wsDir
-        try {
-            & $NPM install --omit=dev 2>$null
-        } catch {}
+        $wsLog = & $NPM install --omit=dev 2>&1 | Out-String
+        $wsExit = $LASTEXITCODE
         Pop-Location
+        if ($wsExit -ne 0) {
+            Write-Host "  ✗  Workspace dependency install failed:" -ForegroundColor Red
+            Write-Host $wsLog
+            exit 1
+        }
     }
 
     # Verify

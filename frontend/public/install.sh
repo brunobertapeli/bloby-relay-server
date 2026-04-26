@@ -201,12 +201,28 @@ install_bloby() {
 
   # Install dependencies inside ~/.bloby/
   printf "  ${BLUE}↓${RESET}  Installing dependencies...\n"
-  (cd "$BLOBY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
+  INSTALL_LOG=$(mktemp)
+  if ! (cd "$BLOBY_HOME" && "$NPM" install --omit=dev > "$INSTALL_LOG" 2>&1); then
+    printf "  ${RED}✗${RESET}  Dependency install failed:\n"
+    cat "$INSTALL_LOG"
+    rm -f "$INSTALL_LOG"
+    exit 1
+  fi
+  rm -f "$INSTALL_LOG"
 
-  # Install workspace dependencies (rebuilds native modules for this platform)
+  # Install workspace dependencies (rebuilds native modules for this platform —
+  # workspace/node_modules is intentionally not shipped in the tarball so that
+  # native deps like better-sqlite3 get a prebuild matching the target OS+arch)
   if [ -f "$BLOBY_HOME/workspace/package.json" ]; then
     printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
-    (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev 2>/dev/null)
+    WS_INSTALL_LOG=$(mktemp)
+    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev > "$WS_INSTALL_LOG" 2>&1); then
+      printf "  ${RED}✗${RESET}  Workspace dependency install failed:\n"
+      cat "$WS_INSTALL_LOG"
+      rm -f "$WS_INSTALL_LOG"
+      exit 1
+    fi
+    rm -f "$WS_INSTALL_LOG"
   fi
 
   # Verify
