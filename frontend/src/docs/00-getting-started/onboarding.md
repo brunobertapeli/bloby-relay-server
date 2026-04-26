@@ -28,7 +28,7 @@ For Claude: you'll be redirected to Anthropic's login page, get a code, and past
 
 ### 5. Handle (optional)
 Register a public username with the Bloby Relay. This gives you a permanent URL like:
-- `username.my.bloby.bot` (free)
+- `username.open.bloby.bot` (free)
 - `bloby.bot/username` (premium, $5)
 
 Skip this if you're using a named tunnel or private network.

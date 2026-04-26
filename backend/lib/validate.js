@@ -2,7 +2,7 @@ const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 export const RESERVED = new Set([
   // Infrastructure / internal
-  'api', 'admin', 'www', 'mail', 'ftp', 'localhost', 'relay', 'my',
+  'api', 'admin', 'www', 'mail', 'ftp', 'localhost', 'relay', 'my', 'open',
   'register', 'login', 'signup', 'status', 'health', 'tunnel',
   'heartbeat', 'app', 'dashboard', 'docs', 'help', 'support',
   'blog', 'about', 'contact', 'terms', 'privacy', 'static',
@@ -43,7 +43,7 @@ export function validateTier(tier) {
  * Build the full relay URL for a username + tier.
  *
  *   premium → https://bloby.bot/bruno
- *   at      → https://my.bloby.bot/bruno
+ *   at      → https://open.bloby.bot/bruno
  */
 export function buildRelayUrl(username, tier) {
   const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
@@ -58,7 +58,7 @@ export function buildRelayUrl(username, tier) {
  * Build the internal subdomain URL for proxying.
  *
  *   premium → https://bruno.bloby.bot
- *   at      → https://bruno.my.bloby.bot
+ *   at      → https://bruno.open.bloby.bot
  */
 export function buildSubdomainUrl(username, tier) {
   const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
@@ -78,10 +78,10 @@ const PREFIX_TO_TIER = Object.fromEntries(
  * Parse tier + username from a subdomain.
  *
  * Premium:  subdomain "bruno"      → { tier: "premium", username: "bruno" }
- * Free:     subdomain "bruno.my"   → { tier: "at", username: "bruno" }
+ * Free:     subdomain "bruno.open" → { tier: "at", username: "bruno" }
  */
 export function parseTierFromSubdomain(subdomain) {
-  // Two-level subdomain: "bruno.my" → free tier
+  // Two-level subdomain: "bruno.open" → free tier
   if (subdomain.includes('.')) {
     const parts = subdomain.split('.');
     const prefix = parts[parts.length - 1];

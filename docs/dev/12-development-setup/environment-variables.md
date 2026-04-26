@@ -55,7 +55,7 @@ Key fields:
 | `tunnel.domain` | string | undefined | Custom domain for named tunnel |
 | `tunnel.configPath` | string | undefined | Path to cloudflared YAML config |
 | `relay.token` | string | `""` | Bloby relay server auth token |
-| `relay.url` | string | `""` | Public URL via relay (e.g. `https://my.bloby.bot/HANDLE`) |
+| `relay.url` | string | `""` | Public URL via relay (e.g. `https://open.bloby.bot/HANDLE`) |
 | `tunnelUrl` | string | undefined | Written at runtime -- current tunnel URL |
 
 ---

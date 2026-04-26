@@ -66,7 +66,7 @@ Request Flow Through Relay:
 | Tier    | Subdomain Pattern       | Path Shortcut           | Cost  |
 | ------- | ----------------------- | ----------------------- | ----- |
 | Premium | `username.bloby.bot`    | `bloby.bot/username`    | $5/mo |
-| Free    | `username.my.bloby.bot` | `my.bloby.bot/username` | Free  |
+| Free    | `username.open.bloby.bot` | `open.bloby.bot/username` | Free  |
 
 ### Claude API (via Agent SDK)
 

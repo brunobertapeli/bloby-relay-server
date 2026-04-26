@@ -20,7 +20,7 @@ Your phone → bloby.bot/username → Relay → Quick Tunnel → Your machine
 
 | Tier | URL format | Cost |
 |------|-----------|------|
-| **Free** | `username.my.bloby.bot` | Free |
+| **Free** | `username.open.bloby.bot` | Free |
 | **Premium** | `bloby.bot/username` | $3 one-time |
 
 ## When do you need it?

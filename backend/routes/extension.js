@@ -94,7 +94,7 @@ router.post('/extension/pair/verify', async (req, res) => {
     if (user.tier === 'premium') {
       serverUrl = `https://${user.username}.${domain}`;
     } else {
-      serverUrl = `https://${user.username}.my.${domain}`;
+      serverUrl = `https://${user.username}.open.${domain}`;
     }
 
     console.log(`[extension] Pairing verified for ${user.username} → ${serverUrl}`);
