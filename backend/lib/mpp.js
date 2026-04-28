@@ -16,9 +16,12 @@ export function getMppx() {
   if (!recipient) throw new Error('[mpp] TREASURY_WALLET_ADDRESS not set');
   if (!process.env.MPP_SECRET_KEY) throw new Error('[mpp] MPP_SECRET_KEY not set');
 
+  // Only the `charge` method — `tempo()` also enables `session` (streaming
+  // payment channels) which requires a signing account for on-chain
+  // settlement, which we don't need for one-shot service calls.
   _mppx = Mppx.create({
     methods: [
-      tempo({
+      tempo.charge({
         currency: TEMPO_USDC,
         recipient,
       }),
