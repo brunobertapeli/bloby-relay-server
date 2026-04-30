@@ -62,6 +62,14 @@ async function createIndexes() {
     transactions.createIndex({ botUsername: 1, productId: 1 }, { unique: true }),
     transactions.createIndex({ accountId: 1 }),
   ]);
+
+  const payouts = db.collection('payouts');
+  await Promise.all([
+    payouts.createIndex({ productId: 1, createdAt: -1 }),
+    payouts.createIndex({ recipient: 1, status: 1 }),
+    payouts.createIndex({ status: 1, createdAt: 1 }),
+    payouts.createIndex({ productBloby: 1, status: 1 }),
+  ]);
 }
 
 export function getDb() {

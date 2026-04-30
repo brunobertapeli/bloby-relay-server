@@ -4,6 +4,12 @@ import { hashToken } from '../lib/token.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { getDb, getUsers } from '../db.js';
 import { getMppx } from '../lib/mpp.js';
+import {
+  creatorCut,
+  payoutCreatorFromBalance,
+  logSplitsPayout,
+  logUnfulfilledPayout,
+} from '../lib/treasury-pay.js';
 import youtubeToText from '../services/youtube-to-text.js';
 import imageGen from '../services/image-gen.js';
 
@@ -70,6 +76,7 @@ async function loadService(req, res, next) {
 }
 
 // Try the user's account credit balance first. Sets req.paidVia='balance' on success.
+// On success, fires the creator commission payout (treasury → seller wallet) async.
 async function tryAccountBalance(req, res, next) {
   const { service } = req;
   if (service.price === 0) {
@@ -83,13 +90,59 @@ async function tryAccountBalance(req, res, next) {
     { _id: accountId, balance: { $gte: service.price } },
     { $inc: { balance: -service.price } },
   );
-  if (result.modifiedCount === 1) req.paidVia = 'balance';
+  if (result.modifiedCount !== 1) return next();
+
+  req.paidVia = 'balance';
+
+  // Fire creator commission payout — fully async, never blocks the response.
+  if (service.bloby) {
+    schedulePayout(service, req.user.username).catch((err) =>
+      console.error('[services/payout] schedule error:', err.message),
+    );
+  }
+
   next();
+}
+
+async function schedulePayout(service, botUsername) {
+  const seller = await getUsers().findOne(
+    { username: service.bloby },
+    { projection: { walletAddress: 1 } },
+  );
+
+  if (!seller?.walletAddress) {
+    await logUnfulfilledPayout({
+      productId: service.id,
+      productName: service.name,
+      productBloby: service.bloby,
+      amountUsd: service.price,
+      botUsername,
+    });
+    return;
+  }
+
+  const treasury = process.env.TREASURY_WALLET_ADDRESS?.toLowerCase();
+  if (treasury && seller.walletAddress.toLowerCase() === treasury) return; // self-payout
+
+  setImmediate(() => {
+    payoutCreatorFromBalance({
+      productId: service.id,
+      productName: service.name,
+      productBloby: service.bloby,
+      recipient: seller.walletAddress,
+      amountUsd: service.price,
+      botUsername,
+    }).catch((err) => console.error('[services/payout] tx error:', err.message));
+  });
 }
 
 // Fall through to MPP: if the balance path didn't pay, run the mppx charge
 // handler programmatically. On 402, write the challenge response. On 200,
 // stash the receipt-wrapper on req for runHandler to attach.
+//
+// If the product has a `bloby` (seller) with a registered wallet, build a
+// `splits[]` so 80% of the on-chain charge lands in the creator's wallet
+// atomically and the treasury keeps the 20% commission as primary recipient.
 async function mppxIfNotPaid(req, res, next) {
   if (req.paidVia) return next();
 
@@ -97,10 +150,29 @@ async function mppxIfNotPaid(req, res, next) {
   try { mppx = getMppx(); }
   catch (err) { console.error('[services/mpp]', err.message); return res.status(500).json({ error: 'Payment system unavailable' }); }
 
+  const opts = { amount: String(req.service.price) };
+  let creatorWallet = null;
+
+  if (req.service.bloby) {
+    const seller = await getUsers().findOne(
+      { username: req.service.bloby },
+      { projection: { walletAddress: 1 } },
+    );
+    const treasury = process.env.TREASURY_WALLET_ADDRESS?.toLowerCase();
+    if (
+      seller?.walletAddress &&
+      seller.walletAddress.toLowerCase() !== treasury
+    ) {
+      const { amount: creatorAmount } = creatorCut(req.service.price);
+      opts.splits = [{ amount: creatorAmount, recipient: seller.walletAddress }];
+      creatorWallet = seller.walletAddress;
+    }
+  }
+
   const url = `${req.protocol}://${req.hostname}${req.originalUrl}`;
   const request = new Request(url, { method: req.method, headers: req.headers });
 
-  const result = await mppx.charge({ amount: String(req.service.price) })(request);
+  const result = await mppx.charge(opts)(request);
 
   if (result.status === 402) {
     const c = result.challenge;
@@ -111,6 +183,19 @@ async function mppxIfNotPaid(req, res, next) {
 
   req.paidVia = 'mpp';
   req.mppxWithReceipt = result.withReceipt;
+
+  // Log the on-chain split into the unified payouts ledger (fire-and-forget).
+  if (creatorWallet) {
+    logSplitsPayout({
+      productId: req.service.id,
+      productName: req.service.name,
+      productBloby: req.service.bloby,
+      recipient: creatorWallet,
+      amountUsd: req.service.price,
+      botUsername: req.user.username,
+    }).catch((err) => console.error('[services/payout] splits-log error:', err.message));
+  }
+
   next();
 }
 

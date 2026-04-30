@@ -771,6 +771,13 @@ router.post(
         return res.status(403).json({ error: 'Account must be verified to submit products' });
       }
 
+      // ── Wallet check (commission payouts target this) ───────────────
+      if (!req.user.walletAddress) {
+        return res.status(400).json({
+          error: 'Register a wallet before submitting products. Run `bloby init` (or top up your wallet from the dashboard) so the relay knows where to send your commission payouts.',
+        });
+      }
+
       // ── File check ───────────────────────────────────────────────────
       if (!req.file) {
         return res.status(400).json({ error: 'Missing tarball file. Send as multipart field "tarball".' });
