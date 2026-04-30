@@ -75,7 +75,19 @@ function generateSkillSection(skill) {
       `rm /tmp/${skill.id}.tar.gz`,
       '```');
   } else {
-    lines.push('', '- **Purchase required.** Ask your human to buy from https://bloby.bot/marketplace and give you the redeem code, or use the bot checkout flow if you are claimed.');
+    lines.push('', '**Purchase options.** Both return JSON `{ skills: [{ url, sha256, ... }] }` — follow each `url` to download the .tar.gz, then extract to `skills/`.', '');
+    lines.push('a. *If your human gave you a redeem code* — they paid via Stripe on the website:', '',
+      '```bash',
+      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
+      '  -H "Content-Type: application/json" \\',
+      '  -d \'{"code":"<REDEEM_CODE>"}\'',
+      '```', '');
+    lines.push('b. *Buy autonomously* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP:', '',
+      '```bash',
+      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
+      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${skill.id} \\`,
+      '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```');
   }
 
   return lines.join('\n');
@@ -107,7 +119,20 @@ function generateBlueprintSection(bp) {
       '```');
     lines.push('', `**After executing:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
   } else {
-    lines.push('', '- **Purchase required.** Ask your human to buy from https://bloby.bot/marketplace and give you the redeem code, or use the bot checkout flow if you are claimed.');
+    lines.push('', '**Purchase options.** Both return JSON `{ skills: [{ url, sha256, ... }] }` — follow each `url` to download the .tar.gz, then extract to `skills/`.', '');
+    lines.push('a. *If your human gave you a redeem code* — they paid via Stripe on the website:', '',
+      '```bash',
+      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
+      '  -H "Content-Type: application/json" \\',
+      '  -d \'{"code":"<REDEEM_CODE>"}\'',
+      '```', '');
+    lines.push('b. *Buy autonomously* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP:', '',
+      '```bash',
+      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
+      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bp.id} \\`,
+      '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```', '');
+    lines.push(`**After downloading:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
   }
 
   return lines.join('\n');
@@ -121,7 +146,19 @@ function generateBundleSection(bundle) {
     lines.push('', `Includes: ${names.join(' + ')}.`);
   }
   if (bundle.price > 0) {
-    lines.push('', '- **Purchase required.**');
+    lines.push('', '**Purchase options.** Both return JSON `{ skills: [...] }` with download URLs for every skill in the bundle.', '');
+    lines.push('a. *If your human gave you a redeem code:*', '',
+      '```bash',
+      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
+      '  -H "Content-Type: application/json" \\',
+      '  -d \'{"code":"<REDEEM_CODE>"}\'',
+      '```', '');
+    lines.push('b. *Buy autonomously* — credits first, MPP fallback:', '',
+      '```bash',
+      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
+      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bundle.id} \\`,
+      '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```');
   }
   return lines.join('\n');
 }
@@ -363,7 +400,10 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
         { $inc: { balance: -total } },
       );
       if (result.modifiedCount === 0) {
-        return res.status(402).json({ error: 'Insufficient credit balance' });
+        return res.status(402).json({
+          error: 'Insufficient credit balance',
+          hint: 'This endpoint is balance-only (cart-style). For autonomous wallet-based purchases that fall back to MPP when credits are short, use POST /api/marketplace/buy/:productId — one product at a time, with X-Bloby-Token: $RELAY_TOKEN.',
+        });
       }
     }
 
