@@ -5,11 +5,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ObjectId } from 'mongodb';
-import { getDb } from '../db.js';
+import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
-import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { authenticate, authenticateBlobyHeader, optionalAuth } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
 import { upload as r2Upload, getFile } from '../lib/r2.js';
+import {
+  tryAccountBalance,
+  mppxIfNotPaid,
+  attachReceiptHeader,
+} from '../lib/payment-chain.js';
+import {
+  payoutCreatorFromBalance,
+  logUnfulfilledPayout,
+} from '../lib/treasury-pay.js';
 import multer from 'multer';
 import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter, marketplaceSubmitLimiter } from '../middleware/rateLimiter.js';
 
@@ -292,6 +301,19 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
       );
     }
 
+    // Fire creator commissions for purchased products (skill / blueprint / bundle).
+    // Credit purchases skip — there's no creator. Stripe payment is assumed
+    // to have completed externally before this endpoint is invoked.
+    for (const skillId of resolvedSkills) {
+      const product = await findDownloadable(skillId);
+      if (product && product.bloby && product.type !== 'service' && product.price > 0) {
+        schedulePayoutForItem(product, {
+          botUsername: null,
+          buyerAccountId: req.account.id,
+        }).catch((err) => console.error('[marketplace/checkout] payout error:', err.message));
+      }
+    }
+
     // Build response with item details for the frontend
     const itemDetails = [];
     for (const item of items) {
@@ -358,7 +380,9 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
       redemptions: [{ at: now, bot: req.user.username }],
     });
 
-    // Record transactions for each product
+    // Record transactions + schedule creator payouts per item.
+    // The cart endpoint is balance-only (no MPP fallback) but we still owe
+    // creators their 80% share — fire async treasury → seller transfers.
     for (const skillId of resolvedSkills) {
       const product = await findDownloadable(skillId);
       if (product) {
@@ -370,6 +394,13 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
           accountId: req.user.accountId.toString(),
           unitPrice: product.price,
         }).catch((err) => console.error('[marketplace/checkout/bot] tx error:', err.message));
+
+        if (product.bloby && product.type !== 'service' && product.price > 0) {
+          schedulePayoutForItem(product, {
+            botUsername: req.user.username,
+            buyerAccountId: req.user.accountId.toString(),
+          }).catch((err) => console.error('[marketplace/checkout/bot] payout error:', err.message));
+        }
       }
     }
 
@@ -407,6 +438,137 @@ router.post('/marketplace/checkout/bot', authenticate, marketplaceCheckoutLimite
     res.status(500).json({ error: 'Checkout failed' });
   }
 });
+
+// Helper for cart-style checkouts: fire one creator-commission payout per item.
+// Both /checkout (human, Stripe-paid) and /checkout/bot (bot, balance-paid)
+// are balance-source from the ledger's perspective — the user's money is
+// somewhere upstream (Stripe or account balance), and treasury settles the
+// creator's USDC share.
+async function schedulePayoutForItem(product, { botUsername = null, buyerAccountId = null } = {}) {
+  const seller = await getUsers().findOne(
+    { username: product.bloby },
+    { projection: { walletAddress: 1 } },
+  );
+  if (!seller?.walletAddress) {
+    await logUnfulfilledPayout({
+      productId: product.id,
+      productName: product.name,
+      productBloby: product.bloby,
+      amountUsd: product.price,
+      botUsername,
+      buyerAccountId,
+    });
+    return;
+  }
+  const treasury = process.env.TREASURY_WALLET_ADDRESS?.toLowerCase();
+  if (treasury && seller.walletAddress.toLowerCase() === treasury) return;
+
+  setImmediate(() => {
+    payoutCreatorFromBalance({
+      productId: product.id,
+      productName: product.name,
+      productBloby: product.bloby,
+      recipient: seller.walletAddress,
+      amountUsd: product.price,
+      botUsername,
+      buyerAccountId,
+    }).catch((err) => console.error('[marketplace/payout] tx error:', err.message));
+  });
+}
+
+// ─── POST /api/marketplace/buy/:productId ──────────────────────────────────
+// Autonomous single-product purchase by a bot. Pays via:
+//   1. owner's account credits if claimed and sufficient (balance path), OR
+//   2. bot's USDC wallet via MPP 402 (mpp path)
+// Both paths apply the 80/20 commission split when the product has a seller
+// with a registered walletAddress (skills/blueprints/bundles only — services
+// are not downloadable here).
+//
+// Returns the same { skills: [...] } shape as /redeem so existing client
+// download code works unchanged. Bundles expand to constituent skills.
+async function loadProductForBuy(req, res, next) {
+  const product = await getDb().collection('products').findOne({ id: req.params.productId, ...approved });
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+  if (product.type === 'service') {
+    return res.status(400).json({ error: 'Services are called via POST /api/services/:id/use, not /api/marketplace/buy' });
+  }
+  if (!['skill', 'setup', 'blueprint', 'bundle'].includes(product.type)) {
+    return res.status(400).json({ error: `Cannot buy product type: ${product.type}` });
+  }
+  req.product = product;
+  next();
+}
+
+async function issueDownloadUrls(req, res) {
+  try {
+    const product = req.product;
+    const skillIds = product.type === 'bundle'
+      ? (product.items || product.skills || [])
+      : [product.id];
+
+    if (skillIds.length === 0) {
+      return res.status(500).json({ error: 'Bundle has no items' });
+    }
+
+    const downloadToken = jwt.sign(
+      { pc: `mpp_${Date.now()}`, sk: skillIds },
+      process.env.JWT_SECRET,
+      { expiresIn: DOWNLOAD_TOKEN_TTL },
+    );
+
+    const baseUrl = process.env.RELAY_DOMAIN
+      ? `https://${process.env.RELAY_DOMAIN}`
+      : `http://localhost:${process.env.PORT || 4000}`;
+
+    const skills = [];
+    for (const skillId of skillIds) {
+      const downloadable = await findDownloadable(skillId);
+      if (!downloadable) continue;
+      skills.push({
+        name: downloadable.id,
+        version: downloadable.version,
+        url: `${baseUrl}/api/marketplace/download/${downloadToken}/${downloadable.id}`,
+        sha256: downloadable.sha256,
+      });
+      recordTransaction({
+        productId: downloadable.id,
+        productType: downloadable.type === 'blueprint' ? 'blueprint' : 'skill',
+        productName: downloadable.name,
+        botUsername: req.user.username,
+        accountId: req.user.accountId || null,
+        unitPrice: downloadable.price,
+      }).catch((err) => console.error('[marketplace/buy] tx error:', err.message));
+    }
+
+    attachReceiptHeader(req, res);
+
+    const response = { skills, paidVia: req.paidVia, productId: product.id };
+
+    // Balance-remaining is only meaningful when the bot is claimed
+    if (req.user.accountId && req.paidVia === 'balance') {
+      const account = await getDb().collection('accounts').findOne(
+        { _id: new ObjectId(req.user.accountId) },
+        { projection: { balance: 1 } },
+      );
+      response.balanceRemaining = account?.balance || 0;
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error('[marketplace/buy]', err.message);
+    res.status(500).json({ error: 'Buy failed' });
+  }
+}
+
+router.post(
+  '/marketplace/buy/:productId',
+  authenticateBlobyHeader,
+  marketplaceCheckoutLimiter,
+  loadProductForBuy,
+  tryAccountBalance,
+  mppxIfNotPaid,
+  issueDownloadUrls,
+);
 
 // ─── POST /api/marketplace/redeem ───────────────────────────────────────────
 // Agent redeems a purchase code. Returns short-lived download URLs + sha256.

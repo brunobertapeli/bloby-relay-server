@@ -69,7 +69,7 @@ export function creatorCut(priceUsd) {
  * Caller should fire-and-forget with .catch — never await on the request path.
  */
 export async function payoutCreatorFromBalance(opts) {
-  const { productId, productName, productBloby, recipient, amountUsd, botUsername } = opts;
+  const { productId, productName, productBloby, recipient, amountUsd, botUsername, buyerAccountId } = opts;
   const db = getDb();
   const { units, amount } = creatorCut(amountUsd);
   if (units === 0n) return null;
@@ -82,7 +82,8 @@ export async function payoutCreatorFromBalance(opts) {
     amount: Number(amount),
     amountUnits: units.toString(),
     sourceType: 'balance',
-    botUsername,
+    botUsername: botUsername || null,
+    buyerAccountId: buyerAccountId || null,
     status: 'pending',
     createdAt: new Date(),
   });
@@ -131,7 +132,7 @@ export async function payoutCreatorFromBalance(opts) {
  * received its 20% as the primary recipient. We log for the unified ledger.
  */
 export async function logSplitsPayout(opts) {
-  const { productId, productName, productBloby, recipient, amountUsd, botUsername, txHash } = opts;
+  const { productId, productName, productBloby, recipient, amountUsd, botUsername, buyerAccountId, txHash } = opts;
   const { units, amount } = creatorCut(amountUsd);
   if (units === 0n) return null;
 
@@ -143,7 +144,8 @@ export async function logSplitsPayout(opts) {
     amount: Number(amount),
     amountUnits: units.toString(),
     sourceType: 'splits',
-    botUsername,
+    botUsername: botUsername || null,
+    buyerAccountId: buyerAccountId || null,
     status: 'sent',
     txHash: txHash ?? null,
     createdAt: new Date(),
@@ -157,7 +159,7 @@ export async function logSplitsPayout(opts) {
  * can flush these once the seller registers a wallet.
  */
 export async function logUnfulfilledPayout(opts) {
-  const { productId, productName, productBloby, amountUsd, botUsername } = opts;
+  const { productId, productName, productBloby, amountUsd, botUsername, buyerAccountId } = opts;
   const { units, amount } = creatorCut(amountUsd);
   if (units === 0n) return null;
 
@@ -169,7 +171,8 @@ export async function logUnfulfilledPayout(opts) {
     amount: Number(amount),
     amountUnits: units.toString(),
     sourceType: 'balance',
-    botUsername,
+    botUsername: botUsername || null,
+    buyerAccountId: buyerAccountId || null,
     status: 'unfulfilled',
     reason: 'seller-no-wallet',
     createdAt: new Date(),

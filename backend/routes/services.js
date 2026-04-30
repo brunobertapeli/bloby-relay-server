@@ -1,15 +1,13 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
-import { hashToken } from '../lib/token.js';
+import { authenticateBlobyHeader } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
-import { getDb, getUsers } from '../db.js';
-import { getMppx } from '../lib/mpp.js';
+import { getDb } from '../db.js';
 import {
-  creatorCut,
-  payoutCreatorFromBalance,
-  logSplitsPayout,
-  logUnfulfilledPayout,
-} from '../lib/treasury-pay.js';
+  tryAccountBalance,
+  mppxIfNotPaid,
+  attachReceiptHeader,
+} from '../lib/payment-chain.js';
 import youtubeToText from '../services/youtube-to-text.js';
 import imageGen from '../services/image-gen.js';
 
@@ -39,207 +37,53 @@ const serviceHandlers = {
   }),
 };
 
-// ─── Bot auth ───────────────────────────────────────────────────────────────
-// Reads bot identity from `X-Bloby-Token` first (so the bot's identity survives
-// an MPP 402 → retry, since the mppx client strips the Authorization header on
-// retry to inject the Payment credential). Falls back to `Authorization: Bearer`
-// for backward compatibility with existing curl/manual callers.
-
-async function botAuth(req, res, next) {
-  let token = req.headers['x-bloby-token'];
-  if (!token) {
-    const auth = req.headers.authorization;
-    if (auth && auth.startsWith('Bearer ')) token = auth.slice(7);
-  }
-  if (!token || token.length !== 64 || !/^[a-f0-9]{64}$/.test(token)) {
-    return res.status(401).json({ error: 'Missing or invalid bot token (X-Bloby-Token or Authorization: Bearer)' });
-  }
-  try {
-    const user = await getUsers().findOne({ tokenHash: hashToken(token) });
-    if (!user) return res.status(401).json({ error: 'Invalid token' });
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error('[services/auth]', error.message);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-}
-
-// ─── Pipeline middleware ────────────────────────────────────────────────────
+// ─── Pipeline middleware (service-specific bits) ───────────────────────────
 
 async function loadService(req, res, next) {
-  const service = await getDb().collection('products').findOne({ id: req.params.serviceId, type: 'service' });
-  if (!service) return res.status(404).json({ error: 'Service not found' });
+  const product = await getDb().collection('products').findOne({ id: req.params.serviceId, type: 'service' });
+  if (!product) return res.status(404).json({ error: 'Service not found' });
   if (!serviceHandlers[req.params.serviceId]) return res.status(501).json({ error: 'Service not implemented' });
-  req.service = service;
-  next();
-}
-
-// Try the user's account credit balance first. Sets req.paidVia='balance' on success.
-// On success, fires the creator commission payout (treasury → seller wallet) async.
-async function tryAccountBalance(req, res, next) {
-  const { service } = req;
-  if (service.price === 0) {
-    req.paidVia = 'free';
-    return next();
-  }
-  if (!req.user.accountId) return next(); // unclaimed → fall through to MPP
-
-  const accountId = new ObjectId(req.user.accountId);
-  const result = await getDb().collection('accounts').updateOne(
-    { _id: accountId, balance: { $gte: service.price } },
-    { $inc: { balance: -service.price } },
-  );
-  if (result.modifiedCount !== 1) return next();
-
-  req.paidVia = 'balance';
-
-  // Fire creator commission payout — fully async, never blocks the response.
-  if (service.bloby) {
-    schedulePayout(service, req.user.username).catch((err) =>
-      console.error('[services/payout] schedule error:', err.message),
-    );
-  }
-
-  next();
-}
-
-async function schedulePayout(service, botUsername) {
-  const seller = await getUsers().findOne(
-    { username: service.bloby },
-    { projection: { walletAddress: 1 } },
-  );
-
-  if (!seller?.walletAddress) {
-    await logUnfulfilledPayout({
-      productId: service.id,
-      productName: service.name,
-      productBloby: service.bloby,
-      amountUsd: service.price,
-      botUsername,
-    });
-    return;
-  }
-
-  const treasury = process.env.TREASURY_WALLET_ADDRESS?.toLowerCase();
-  if (treasury && seller.walletAddress.toLowerCase() === treasury) return; // self-payout
-
-  setImmediate(() => {
-    payoutCreatorFromBalance({
-      productId: service.id,
-      productName: service.name,
-      productBloby: service.bloby,
-      recipient: seller.walletAddress,
-      amountUsd: service.price,
-      botUsername,
-    }).catch((err) => console.error('[services/payout] tx error:', err.message));
-  });
-}
-
-// Fall through to MPP: if the balance path didn't pay, run the mppx charge
-// handler programmatically. On 402, write the challenge response. On 200,
-// stash the receipt-wrapper on req for runHandler to attach.
-//
-// If the product has a `bloby` (seller) with a registered wallet, build a
-// `splits[]` so 80% of the on-chain charge lands in the creator's wallet
-// atomically and the treasury keeps the 20% commission as primary recipient.
-async function mppxIfNotPaid(req, res, next) {
-  if (req.paidVia) return next();
-
-  let mppx;
-  try { mppx = getMppx(); }
-  catch (err) { console.error('[services/mpp]', err.message); return res.status(500).json({ error: 'Payment system unavailable' }); }
-
-  const opts = { amount: String(req.service.price) };
-  let creatorWallet = null;
-
-  if (req.service.bloby) {
-    const seller = await getUsers().findOne(
-      { username: req.service.bloby },
-      { projection: { walletAddress: 1 } },
-    );
-    const treasury = process.env.TREASURY_WALLET_ADDRESS?.toLowerCase();
-    if (
-      seller?.walletAddress &&
-      seller.walletAddress.toLowerCase() !== treasury
-    ) {
-      const { amount: creatorAmount } = creatorCut(req.service.price);
-      opts.splits = [{ amount: creatorAmount, recipient: seller.walletAddress }];
-      creatorWallet = seller.walletAddress;
-    }
-  }
-
-  const url = `${req.protocol}://${req.hostname}${req.originalUrl}`;
-  const request = new Request(url, { method: req.method, headers: req.headers });
-
-  const result = await mppx.charge(opts)(request);
-
-  if (result.status === 402) {
-    const c = result.challenge;
-    res.status(c.status);
-    for (const [key, value] of c.headers) res.setHeader(key, value);
-    return res.send(await c.text());
-  }
-
-  req.paidVia = 'mpp';
-  req.mppxWithReceipt = result.withReceipt;
-
-  // Log the on-chain split into the unified payouts ledger (fire-and-forget).
-  if (creatorWallet) {
-    logSplitsPayout({
-      productId: req.service.id,
-      productName: req.service.name,
-      productBloby: req.service.bloby,
-      recipient: creatorWallet,
-      amountUsd: req.service.price,
-      botUsername: req.user.username,
-    }).catch((err) => console.error('[services/payout] splits-log error:', err.message));
-  }
-
+  req.product = product;
   next();
 }
 
 async function runHandler(req, res) {
-  const handler = serviceHandlers[req.service.id];
+  const handler = serviceHandlers[req.product.id];
   try {
     const result = await handler(req.body, { paidVia: req.paidVia });
 
-    // Attach Payment-Receipt header for MPP-paid responses
-    if (req.mppxWithReceipt) {
-      const wrapped = req.mppxWithReceipt(new Response(String(result.body ?? '')));
-      const receipt = wrapped.headers.get('Payment-Receipt');
-      if (receipt) res.setHeader('Payment-Receipt', receipt);
-    }
+    attachReceiptHeader(req, res);
 
     recordTransaction({
-      productId: req.service.id,
+      productId: req.product.id,
       productType: 'service',
-      productName: req.service.name,
+      productName: req.product.name,
       botUsername: req.user.username,
       accountId: req.user.accountId || null,
-      unitPrice: req.service.price,
+      unitPrice: req.product.price,
     }).catch((err) => console.error('[services] tx error:', err.message));
 
     const status = result.status || 200;
     res.status(status).type(result.contentType || 'application/json').send(result.body);
   } catch (err) {
     // Refund balance only if we paid via balance (MPP settled on-chain — no auto-refund)
-    if (req.paidVia === 'balance' && req.service.price > 0 && req.user.accountId) {
+    if (req.paidVia === 'balance' && req.product.price > 0 && req.user.accountId) {
       await getDb().collection('accounts').updateOne(
         { _id: new ObjectId(req.user.accountId) },
-        { $inc: { balance: req.service.price } },
+        { $inc: { balance: req.product.price } },
       ).catch((e) => console.error('[services] refund error:', e.message));
     }
-    console.error(`[services/${req.service.id}]`, err.message);
+    console.error(`[services/${req.product.id}]`, err.message);
     res.status(500).json({ error: 'Service execution failed' });
   }
 }
 
 // ─── POST /api/services/:serviceId/use ──────────────────────────────────────
-// Order: identify bot → load service → try balance → fall back to MPP → run handler.
+// Order: authenticate bot → load service → try balance → fall back to MPP → run handler.
+// Services are platform-served, so commission splits are skipped (treasury keeps 100%).
 router.post(
   '/services/:serviceId/use',
-  botAuth,
+  authenticateBlobyHeader,
   loadService,
   tryAccountBalance,
   mppxIfNotPaid,

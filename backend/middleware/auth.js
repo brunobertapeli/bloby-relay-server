@@ -55,3 +55,32 @@ export async function authenticate(req, res, next) {
     res.status(500).json({ error: 'Authentication failed' });
   }
 }
+
+/**
+ * Bot authentication via `X-Bloby-Token` header (preferred) or
+ * `Authorization: Bearer` (fallback).
+ *
+ * Use this on any endpoint that may go through the MPP 402 → retry flow:
+ * the mppx client strips Authorization on retry to inject the Payment
+ * credential, so bot identity needs a separate header to survive the
+ * second leg.
+ */
+export async function authenticateBlobyHeader(req, res, next) {
+  let token = req.headers['x-bloby-token'];
+  if (!token) {
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith('Bearer ')) token = auth.slice(7);
+  }
+  if (!token || token.length !== 64 || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.status(401).json({ error: 'Missing or invalid bot token (X-Bloby-Token or Authorization: Bearer)' });
+  }
+  try {
+    const user = await getUsers().findOne({ tokenHash: hashToken(token) });
+    if (!user) return res.status(401).json({ error: 'Invalid token' });
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('[auth/bloby-header]', error.message);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+}
