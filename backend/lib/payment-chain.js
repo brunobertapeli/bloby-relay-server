@@ -7,9 +7,11 @@
 //     chain runs (a Mongo `products` doc with `id`, `price`, `type`,
 //     optional `bloby`).
 //   - The route MUST set `req.user` (bot identity) before this chain runs.
-//   - On success: req.paidVia = 'free' | 'balance' | 'mpp'.
-//   - For MPP-paid: req.mppxWithReceipt is set so the route handler can
-//     attach the Payment-Receipt header to its response.
+//   - On success: req.paidVia = 'free' | 'balance' | 'mpp' | 'mpp-base'.
+//   - For MPP-paid (Tempo): req.mppxWithReceipt is set so the route handler
+//     can attach the Payment-Receipt header to its response.
+//   - For BASE x402: x402-express handles X-PAYMENT-RESPONSE itself by
+//     buffering the outgoing response, so the route handler does nothing.
 //
 // Commission rule:
 //   - product.type === 'service' → no split, no payout (treasury keeps 100%).
@@ -20,6 +22,8 @@
 //   - else                        → 80% creator, 20% treasury.
 
 import { ObjectId } from 'mongodb';
+import { paymentMiddleware as baseX402Middleware } from 'x402-express';
+import { facilitator as cdpFacilitator } from '@coinbase/x402';
 import { getDb, getUsers } from '../db.js';
 import { getMppx } from './mpp.js';
 import {
@@ -172,4 +176,70 @@ export function attachReceiptHeader(req, res) {
   const wrapped = req.mppxWithReceipt(new Response('{}'));
   const receipt = wrapped.headers.get('Payment-Receipt');
   if (receipt) res.setHeader('Payment-Receipt', receipt);
+}
+
+// ─── baseX402IfNotPaid ──────────────────────────────────────────────────────
+// BASE-network counterpart of `mppxIfNotPaid`. If neither free nor balance
+// paid, run x402-express's paymentMiddleware against USDC on Base mainnet
+// (or base-sepolia when X402_NETWORK=base-sepolia for testing).
+//
+// Why a fresh middleware per request: x402-express resolves price + payTo at
+// init time and matches by route pattern. Service prices are dynamic
+// (per-product), so we instantiate a one-shot middleware that matches exactly
+// the current req.method + req.path.
+//
+// Treasury keeps 100% for services (per existing convention) — no splits.
+let _baseFacilitator;
+function getBaseFacilitator() {
+  if (_baseFacilitator) return _baseFacilitator;
+  const useTestnet = process.env.X402_NETWORK === 'base-sepolia';
+  // Coinbase CDP facilitator on mainnet reads CDP_API_KEY_ID + CDP_API_KEY_SECRET
+  // automatically; the public x402.org facilitator handles base-sepolia for free.
+  _baseFacilitator = useTestnet ? { url: 'https://x402.org/facilitator' } : cdpFacilitator;
+  return _baseFacilitator;
+}
+
+export async function baseX402IfNotPaid(req, res, next) {
+  if (req.paidVia) return next();
+
+  const product = req.product;
+  const payTo = process.env.TREASURY_BASE_ADDRESS;
+  if (!payTo) {
+    console.error('[base-x402] TREASURY_BASE_ADDRESS not set');
+    return res.status(500).json({ error: 'Payment system unavailable' });
+  }
+
+  const network = process.env.X402_NETWORK === 'base-sepolia' ? 'base-sepolia' : 'base';
+  const routeKey = `${req.method.toUpperCase()} ${req.path}`;
+
+  let middleware;
+  try {
+    middleware = baseX402Middleware(
+      payTo,
+      {
+        [routeKey]: {
+          price: `$${product.price}`,
+          network,
+          config: {
+            description: product.description || product.name || product.id,
+            mimeType: 'application/json',
+          },
+        },
+      },
+      getBaseFacilitator(),
+    );
+  } catch (err) {
+    console.error('[base-x402] init error:', err.message);
+    return res.status(500).json({ error: 'Payment system unavailable' });
+  }
+
+  // x402-express calls `next()` after verifying the X-PAYMENT header; that's
+  // when we mark the request as paid so downstream handlers know.
+  const wrappedNext = (err) => {
+    if (err) return next(err);
+    req.paidVia = 'mpp-base';
+    next();
+  };
+
+  return middleware(req, res, wrappedNext);
 }

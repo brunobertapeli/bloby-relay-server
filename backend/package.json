@@ -14,6 +14,7 @@
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.1000.0",
     "@aws-sdk/client-s3": "^3.1028.0",
+    "@coinbase/x402": "^2.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
@@ -25,7 +26,8 @@
     "mppx": "^0.6.6",
     "multer": "^2.1.1",
     "stripe": "^20.4.0",
-    "viem": "^2.47.6"
+    "viem": "^2.47.6",
+    "x402-express": "^1.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

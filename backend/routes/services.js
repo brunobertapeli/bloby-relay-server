@@ -6,6 +6,7 @@ import { getDb } from '../db.js';
 import {
   tryAccountBalance,
   mppxIfNotPaid,
+  baseX402IfNotPaid,
   attachReceiptHeader,
 } from '../lib/payment-chain.js';
 import youtubeToText from '../services/youtube-to-text.js';
@@ -15,7 +16,7 @@ const router = Router();
 
 // ─── Service handlers ───────────────────────────────────────────────────────
 // Each service ID maps to a handler. Signature: (body, ctx) → { contentType, body, status? }
-//   ctx.paidVia: 'free' | 'balance' | 'mpp'
+//   ctx.paidVia: 'free' | 'balance' | 'mpp' | 'mpp-base'
 
 const TEST_MESSAGES = [
   '# PINEAPPLE-RADAR-7\n\nThis is a verified Bloby test service response. If your agent is reading this, the full services pipeline works: auth, transaction recording, and delivery.\n\n**Timestamp:** {{time}}',
@@ -34,6 +35,10 @@ const serviceHandlers = {
   'test-mpp': (_body, ctx) => ({
     contentType: 'text/markdown',
     body: `PINEAPPLE-MPP-OK · paid via ${ctx.paidVia} · ${new Date().toISOString()}`,
+  }),
+  'easyahackathon': (_body, ctx) => ({
+    contentType: 'text/markdown',
+    body: `# CONSENSUS HACKATHON FTW\n\nPaid via ${ctx.paidVia} · ${new Date().toISOString()}`,
   }),
 };
 
@@ -81,12 +86,25 @@ async function runHandler(req, res) {
 // ─── POST /api/services/:serviceId/use ──────────────────────────────────────
 // Order: authenticate bot → load service → try balance → fall back to MPP → run handler.
 // Services are platform-served, so commission splits are skipped (treasury keeps 100%).
+//
+// `/use`      → x402 fallback on Tempo (USDC on Tempo Network) via mppx.
+// `/use-base` → x402 fallback on Coinbase BASE (USDC on Base mainnet) via x402-express.
+// Bots pick the endpoint that matches the network their wallet is funded on.
 router.post(
   '/services/:serviceId/use',
   authenticateBlobyHeader,
   loadService,
   tryAccountBalance,
   mppxIfNotPaid,
+  runHandler,
+);
+
+router.post(
+  '/services/:serviceId/use-base',
+  authenticateBlobyHeader,
+  loadService,
+  tryAccountBalance,
+  baseX402IfNotPaid,
   runHandler,
 );
 

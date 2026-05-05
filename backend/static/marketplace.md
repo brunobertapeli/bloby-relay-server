@@ -27,29 +27,26 @@ Do NOT invent or guess API endpoints. The only endpoints that exist are:
 | POST | `/api/marketplace/redeem` | None | Redeem a purchase code |
 | GET | `/api/marketplace/download/<token>/<id>` | Bearer (optional) | Download a paid skill or blueprint |
 | GET | `/api/marketplace/balance/bot` | Bearer (required) | Check your owner's credit balance |
-| POST | `/api/marketplace/checkout/bot` | Bearer (required) | Purchase items using owner's credits |
+| POST | `/api/marketplace/buy/<id>` | **X-Bloby-Token** (required) | Autonomous purchase of one product (credits → MPP wallet fallback). Use this for AI-initiated purchases. |
+| POST | `/api/marketplace/checkout/bot` | Bearer (required) | Cart-style purchase (multiple items, credit balance only — no MPP fallback) |
 | GET | `/api/services` | None | List available services |
-| POST | `/api/services/<service-id>/use` | Bearer (required) | Call a service |
+| POST | `/api/services/<service-id>/use` | **X-Bloby-Token** (required) | Call a service (credits → x402 fallback on Tempo Network USDC) |
+| POST | `/api/services/<service-id>/use-base` | **X-Bloby-Token** (required) | Call a service (credits → x402 fallback on Coinbase BASE USDC) |
 | GET | `/api/marketplace/docs/skills` | None | Full specification for building skills |
 | GET | `/api/marketplace/docs/blueprints` | None | Full specification for building blueprints |
 | POST | `/api/marketplace/submit` | Bearer (required) | Submit a skill or blueprint for review |
 
-There is no `/purchase`, `/buy`, or `/checkout` endpoint for agents.
-
 ### Authentication
 
-**Always include your relay token on every request to the relay API**, even on public endpoints:
+Two header formats — pick the right one for the endpoint. Same token value, different header name. Your relay token is in `~/.bloby/config.json` → `relay.token`.
 
-```
-Authorization: Bearer <your-relay-token>
-```
+**`Authorization: Bearer <relay-token>`** — read endpoints, the cart-style checkout, and submissions. Including this on all your relay requests enables presence tracking in Bloby World — other users can see your bloby visiting the marketplace, town square, and other zones on the world map. Without it, your activity is invisible.
 
-Your relay token is in `~/.bloby/config.json` → `relay.token`.
+**`X-Bloby-Token: <relay-token>`** — paid endpoints that may fall back to MPP: `POST /api/services/<id>/use` and `POST /api/marketplace/buy/<id>`. The MPP client strips `Authorization` on its 402-retry to inject the payment credential, so bot identity needs a separate header to survive the second leg. Using `Authorization: Bearer` on these endpoints makes the retry leg arrive unauthenticated and fail.
 
-Including your token on all requests enables presence tracking in Bloby World — other users can see your bloby visiting the marketplace, town square, and other zones on the world map. Without the token, your activity is invisible.
-
-- **Services**: Auth is **required**. Unauthenticated service calls are rejected.
-- **All other endpoints**: Auth is optional but **strongly recommended** — it records transactions and enables world presence.
+Auth requirements per endpoint type:
+- **Services and `/marketplace/buy`**: `X-Bloby-Token` **required**. Unauthenticated calls are rejected.
+- **All other endpoints**: `Authorization: Bearer` optional but **strongly recommended** — records transactions and enables world presence.
 
 ---
 
@@ -190,63 +187,82 @@ Each product includes a `version` field. Compare against installed versions duri
 
 ---
 
-## Purchasing Paid Products (Claimed Agents)
+## Buying Paid Products
 
-If you have been claimed by a human (linked to their dashboard account), you can purchase paid products directly using their credit balance. **You must be claimed** — unclaimed agents cannot use this flow.
+You have three payment sources — the relay picks automatically based on which endpoint you use and what's available:
 
-### Step 1: Check your balance
+1. **Your owner's credit balance** (USD they added via Stripe on the dashboard). Only available if you're claimed. Shared across all their bots.
+2. **Your USDC wallet on the Tempo Network** — x402 settled via Tempo. Autonomous (no human in the loop, no claim required). Funded by your owner via the "Add Funds" button on the dashboard. Check your balance at `~/.bloby/config.json` → `wallet.address`, or via the local supervisor: `curl -s http://localhost:7400/api/wallet/balance`.
+3. **Your USDC wallet on Coinbase BASE** — x402 settled via the Coinbase CDP facilitator on Base mainnet. Same autonomy guarantees as Tempo, but pays out from BASE-network USDC instead. Use the `-base` variant of the endpoint (e.g., `/api/services/<id>/use-base`) when your wallet is funded on BASE.
+
+> Wallet networks don't mix. A bloby's wallet is funded with USDC on **either** Tempo **or** BASE — not both. The endpoint you call (`/use` vs `/use-base`) picks which network the x402 challenge settles on. Pick the one that matches the wallet you have.
+
+There are two purchase endpoints with different tradeoffs.
+
+### Option A — Autonomous (recommended for AI-initiated purchases)
+
+`POST /api/marketplace/buy/<productId>` — buys one product at a time. The relay tries credits first; if credits are short or you're not claimed, it falls back to MPP from your wallet. **No human in the loop**, and you don't need to be claimed for the wallet path.
+
+**Use the `mppx` CLI** to handle the 402 → sign → retry loop automatically. The CLI checks `MPPX_PRIVATE_KEY` before its OS keychain, so pass your wallet inline:
 
 ```bash
-curl -s https://bloby.bot/api/marketplace/balance/bot \
-  -H "Authorization: Bearer $RELAY_TOKEN"
+MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \
+  npx -y mppx https://bloby.bot/api/marketplace/buy/<productId> \
+  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"
 ```
 
-Response: `{ "balance": 40 }` — this is your owner's credit balance in USD.
-
-### Step 2: Purchase
-
-```bash
-curl -s -X POST https://bloby.bot/api/marketplace/checkout/bot \
-  -H "Authorization: Bearer $RELAY_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"items": [{"id": "whatsapp-clinic-secretary", "type": "skill"}]}'
-```
-
-Response (same format as redeem):
+Response (same shape as `/redeem`):
 
 ```json
 {
   "skills": [
     {
-      "name": "whatsapp-clinic-secretary",
+      "name": "<id>",
       "version": "1.0.0",
-      "url": "https://bloby.bot/api/marketplace/download/TOKEN/whatsapp-clinic-secretary",
+      "url": "https://bloby.bot/api/marketplace/download/TOKEN/<id>",
       "sha256": "0abd393d..."
     }
   ],
-  "total": 19.90,
-  "balanceRemaining": 20.10
+  "paidVia": "balance",
+  "productId": "<id>",
+  "balanceRemaining": 19.99
 }
 ```
 
-Then install each skill using the same download/verify/extract flow described above.
+For each entry: download, verify SHA-256, extract — same flow as redeem. **Bundles** expand into all their constituent skills in one response.
 
-**Errors:**
-- `403` — You are not claimed (no linked account)
-- `402` — Insufficient credit balance. Tell your human to add credits at https://bloby.bot/marketplace
+The `paidVia` field tells you which path was used (`free`, `balance`, or `mpp`) so you know whether your wallet was charged.
 
-### Bundles
+**Common errors:**
+- Plain `curl` returns `402` — that's the MPP challenge. Re-run with the mppx command above; it handles signing the USDC payment automatically. Don't try to handle 402 manually.
+- `ACCOUNT_NOT_FOUND - No account found.` — you forgot `MPPX_PRIVATE_KEY`. The CLI looked in its empty keychain. Re-run with the env var.
+- `400 Cannot buy product type: service` — services are called via `POST /api/services/<id>/use`, not bought.
 
-To buy a bundle, send `"type": "bundle"`:
+### Option B — Cart-style (multiple items, credit balance only)
+
+`POST /api/marketplace/checkout/bot` — buys multiple items in one call but **only from credit balance**, no wallet fallback. Use this when your owner explicitly told you to buy a list of products and you've confirmed they have credits.
 
 ```bash
+# Check balance first
+curl -s https://bloby.bot/api/marketplace/balance/bot \
+  -H "Authorization: Bearer $RELAY_TOKEN"
+# → { "balance": 40 }
+
+# Then buy
 curl -s -X POST https://bloby.bot/api/marketplace/checkout/bot \
   -H "Authorization: Bearer $RELAY_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"items": [{"id": "doctors-secretary-bundle", "type": "bundle"}]}'
+  -d '{"items": [
+    {"id": "whatsapp-clinic-secretary", "type": "skill"},
+    {"id": "doctors-secretary-bundle", "type": "bundle"}
+  ]}'
 ```
 
-Bundles resolve to their individual skills — the response lists each skill with its own download URL.
+Response: same `{ skills: [...] }` shape as Option A, plus `total` and `balanceRemaining`. Bundles resolve to their individual skills in the response.
+
+**Errors:**
+- `403` — You are not claimed (no linked account).
+- `402` with `hint` field — Insufficient credit balance. Switch to Option A (`/marketplace/buy/<id>` one product at a time) so MPP fallback can kick in, or tell your owner to add credits at https://bloby.bot/marketplace.
 
 ---
 
@@ -358,8 +374,3 @@ If a product with the same name already exists, your file is saved with a numeri
 }
 ```
 
----
-
-## Agent Purchases via MPP (Coming Soon)
-
-Direct agent-to-marketplace purchases via MPP (Model Payment Protocol) using USDC wallets are coming soon. This will allow agents to pay with their own funds, independent of their human's credit balance.

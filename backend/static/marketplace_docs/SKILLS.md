@@ -23,7 +23,8 @@ skill-name/
   .claude-plugin/
     plugin.json       # Claude SDK plugin manifest (required)
   skill.json          # Marketplace manifest (required)
-  SKILL.md            # Main instructions (required)
+  SKILL.md            # Main instructions (required, with YAML frontmatter)
+  SKILL.json          # Codex display metadata (optional, capital S)
   preview.png         # Marketplace product image (optional)
   SCRIPT.md           # Customer-facing prompt (optional, for channel skills)
   SETUP.md            # First-time setup guide (optional, for complex skills)
@@ -34,6 +35,8 @@ skill-name/
     components/       # example: react components
       ThemeCard.tsx
 ```
+
+Skills in this marketplace are **cross-compatible** with both the Claude harness and the OpenAI/Codex harness. The two providers share the same on-disk layout. Codex's router only reads YAML frontmatter at the top of `SKILL.md` — Claude ignores the frontmatter as plain markdown. See [SKILL.md](#skillmd) below for the required format.
 
 ---
 
@@ -130,9 +133,16 @@ The backend extracts `preview.png` from the tarball during catalog sync and serv
 
 ### `SKILL.md`
 
-The installation instructions for the buying bloby (bloby-facing, technical). Humans don't see this — it tells the bloby what to do after downloading. Structure:
+The installation instructions for the buying bloby (bloby-facing, technical). Humans don't see this — it tells the bloby what to do after downloading.
+
+**Required: YAML frontmatter at the very top of the file.** Codex's router uses these two keys to decide when the skill applies and how to invoke it. Claude ignores the block as plain markdown. Without it, Codex rejects the skill with `missing YAML frontmatter delimited by ---`.
 
 ```markdown
+---
+name: skill-name
+description: One-paragraph description used for routing decisions.
+---
+
 # Skill Name
 
 ## What This Is
@@ -170,6 +180,47 @@ What the bloby should tell/ask its human:
 ## Notes
 Edge cases, gotchas, platform-specific instructions (Linux vs Mac vs Windows).
 ```
+
+#### Frontmatter rules
+
+| Key | Rule |
+|---|---|
+| `name` | Must equal the **folder name** of the skill (e.g. `whatsapp` for `skills/whatsapp/`). Lowercase, hyphenated, no spaces. Same value as `name` in `.claude-plugin/plugin.json` and `skill.json`. |
+| `description` | Required. Must match the `description` field in `.claude-plugin/plugin.json` and `skill.json` exactly so the three never drift. Codex uses this for routing decisions, so be specific. |
+| `---` delimiters | Exactly three dashes on their own lines. The opening `---` MUST be the very first line of the file (no blank line, no BOM, no comment before it). |
+
+If `description` contains characters that would break YAML (`:`, `#`, `[`, `]`, `{`, `}`, `&`, `*`, `!`, `|`, `>`, single/double quotes, `%`, `@`, backtick, leading whitespace, leading `-`/`?`), wrap the value in double quotes and escape any literal `"` as `\"`. For multiline descriptions use the YAML folded form:
+
+```yaml
+description: >
+  First sentence on its own line.
+  Second sentence is concatenated with a space.
+```
+
+Do NOT add fields beyond `name` and `description` to the frontmatter — extras may produce warnings.
+
+### `SKILL.json` (optional, capital S — Codex display)
+
+Distinct from `skill.json` (lowercase, Bloby's marketplace metadata). `SKILL.json` is read by the Codex skill picker for nicer presentation. All keys optional; skip the file entirely if you have nothing to add.
+
+```json
+{
+  "displayName": "WhatsApp",
+  "shortDescription": "Connect a WhatsApp number via QR",
+  "iconSmall": "./assets/icon-small.svg",
+  "iconLarge": "./assets/icon-large.png",
+  "brandColor": "#25D366",
+  "defaultPrompt": "Use $whatsapp to send or receive WhatsApp messages."
+}
+```
+
+| Key | Notes |
+|---|---|
+| `displayName` | Title-cased human label. Falls back to `name` if omitted. |
+| `shortDescription` | One-line tagline (~60 chars) for the skill list UI. |
+| `iconSmall` / `iconLarge` | Paths relative to the skill folder. SVG preferred for small, PNG for large (256×256+). |
+| `brandColor` | Hex color for accents. |
+| `defaultPrompt` | Suggested prompt shown in Codex when the skill is selected. |
 
 ---
 

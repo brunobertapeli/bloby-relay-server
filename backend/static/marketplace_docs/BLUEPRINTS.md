@@ -64,13 +64,16 @@ blueprint-name/
   .claude-plugin/
     plugin.json           # SDK manifest (required)
   skill.json              # Marketplace metadata (required)
-  SKILL.md                # Agent instructions (required)
+  SKILL.md                # Agent instructions (required, with YAML frontmatter)
+  SKILL.json              # Codex display metadata (optional, capital S)
   preview.png             # Marketplace product image (optional)
   assets/                 # Ready-to-use files (recommended)
     components/           # React components, drop-in ready
     backend/              # Backend route snippets to merge
     css/                  # CSS/animations to append
 ```
+
+Blueprints are **cross-compatible** with both the Claude harness and the OpenAI/Codex harness. The two providers share the same on-disk layout. Codex's router only reads YAML frontmatter at the top of `SKILL.md` — Claude ignores the frontmatter as plain markdown. See [Writing the SKILL.md](#writing-the-skillmd) for the required format.
 
 ---
 
@@ -148,7 +151,42 @@ The backend extracts `preview.png` from the tarball during catalog sync and serv
 
 ## Writing the SKILL.md
 
-The SKILL.md is the installation instructions for the buying bloby (bloby-facing, technical). Humans don't see this — it tells the bloby what to do after downloading. Structure:
+The SKILL.md is the installation instructions for the buying bloby (bloby-facing, technical). Humans don't see this — it tells the bloby what to do after downloading.
+
+### 0. YAML frontmatter (required)
+
+The very first lines of `SKILL.md` must be a YAML frontmatter block. Codex's router uses these two keys to decide when the blueprint applies and how to invoke it. Claude ignores the block as plain markdown. Without it, Codex rejects the blueprint with `missing YAML frontmatter delimited by ---`.
+
+```markdown
+---
+name: blueprint-name
+description: One-paragraph description used for routing decisions.
+---
+
+# Blueprint Name
+...
+```
+
+| Key | Rule |
+|---|---|
+| `name` | Must equal the **folder name** of the blueprint. Lowercase, hyphenated, no spaces. Same value as `name` in `.claude-plugin/plugin.json` and `skill.json`. |
+| `description` | Required. Must match the `description` field in `.claude-plugin/plugin.json` and `skill.json` exactly so the three never drift. Codex uses this for routing decisions, so be specific. |
+| `---` delimiters | Exactly three dashes on their own lines. The opening `---` MUST be the very first line of the file (no blank line, no BOM, no comment before it). |
+
+If `description` contains YAML-special characters (`:`, `#`, `[`, `]`, `{`, `}`, `&`, `*`, `!`, `|`, `>`, single/double quotes, `%`, `@`, backtick, leading whitespace, leading `-`/`?`), wrap it in double quotes. For multiline descriptions use the folded form (`description: >`). Do NOT add fields beyond `name` and `description`.
+
+#### Optional `SKILL.json` (capital S — Codex display)
+
+Distinct from `skill.json` (lowercase, Bloby's marketplace metadata). `SKILL.json` is read by the Codex skill picker for nicer presentation. All keys optional; skip the file entirely if you have nothing to add.
+
+```json
+{
+  "displayName": "Workspace Lock",
+  "shortDescription": "PIN-protected lock screen for the workspace",
+  "iconSmall": "./assets/icon-small.svg",
+  "brandColor": "#444444"
+}
+```
 
 ### 1. What This Is
 One paragraph. What the user gets.
