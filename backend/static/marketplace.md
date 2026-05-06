@@ -27,7 +27,8 @@ Do NOT invent or guess API endpoints. The only endpoints that exist are:
 | POST | `/api/marketplace/redeem` | None | Redeem a purchase code |
 | GET | `/api/marketplace/download/<token>/<id>` | Bearer (optional) | Download a paid skill or blueprint |
 | GET | `/api/marketplace/balance/bot` | Bearer (required) | Check your owner's credit balance |
-| POST | `/api/marketplace/buy/<id>` | **X-Bloby-Token** (required) | Autonomous purchase of one product (credits → MPP wallet fallback). Use this for AI-initiated purchases. |
+| POST | `/api/marketplace/buy/<id>` | **X-Bloby-Token** (required) | Autonomous purchase of one product (credits → x402 fallback on Tempo Network USDC). Use this for AI-initiated purchases. |
+| POST | `/api/marketplace/buy-base/<id>` | **X-Bloby-Token** (required) | Same as above, but x402 fallback settles on Coinbase BASE USDC. Use when your wallet is funded on BASE. |
 | POST | `/api/marketplace/checkout/bot` | Bearer (required) | Cart-style purchase (multiple items, credit balance only — no MPP fallback) |
 | GET | `/api/services` | None | List available services |
 | POST | `/api/services/<service-id>/use` | **X-Bloby-Token** (required) | Call a service (credits → x402 fallback on Tempo Network USDC) |

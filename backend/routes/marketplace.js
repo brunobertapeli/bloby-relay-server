@@ -13,6 +13,7 @@ import { upload as r2Upload, getFile } from '../lib/r2.js';
 import {
   tryAccountBalance,
   mppxIfNotPaid,
+  baseX402IfNotPaid,
   attachReceiptHeader,
 } from '../lib/payment-chain.js';
 import {
@@ -82,11 +83,16 @@ function generateSkillSection(skill) {
       '  -H "Content-Type: application/json" \\',
       '  -d \'{"code":"<REDEEM_CODE>"}\'',
       '```', '');
-    lines.push('b. *Buy autonomously* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP:', '',
+    lines.push('b. *Buy autonomously (Tempo USDC)* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP on Tempo:', '',
       '```bash',
       'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
       `  npx -y mppx https://bloby.bot/api/marketplace/buy/${skill.id} \\`,
       '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```', '');
+    lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
+      '```',
+      `POST https://bloby.bot/api/marketplace/buy-base/${skill.id}`,
+      'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```');
   }
 
@@ -126,11 +132,16 @@ function generateBlueprintSection(bp) {
       '  -H "Content-Type: application/json" \\',
       '  -d \'{"code":"<REDEEM_CODE>"}\'',
       '```', '');
-    lines.push('b. *Buy autonomously* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP:', '',
+    lines.push('b. *Buy autonomously (Tempo USDC)* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP on Tempo:', '',
       '```bash',
       'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
       `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bp.id} \\`,
       '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```', '');
+    lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
+      '```',
+      `POST https://bloby.bot/api/marketplace/buy-base/${bp.id}`,
+      'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```', '');
     lines.push(`**After downloading:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
   }
@@ -153,11 +164,16 @@ function generateBundleSection(bundle) {
       '  -H "Content-Type: application/json" \\',
       '  -d \'{"code":"<REDEEM_CODE>"}\'',
       '```', '');
-    lines.push('b. *Buy autonomously* — credits first, MPP fallback:', '',
+    lines.push('b. *Buy autonomously (Tempo USDC)* — credits first, MPP fallback on Tempo:', '',
       '```bash',
       'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
       `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bundle.id} \\`,
       '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
+      '```', '');
+    lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
+      '```',
+      `POST https://bloby.bot/api/marketplace/buy-base/${bundle.id}`,
+      'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```');
   }
   return lines.join('\n');
@@ -607,6 +623,26 @@ router.post(
   loadProductForBuy,
   tryAccountBalance,
   mppxIfNotPaid,
+  issueDownloadUrls,
+);
+
+// ─── POST /api/marketplace/buy-base/:productId ─────────────────────────────
+// Same as /buy/:productId but the x402 fallback settles USDC on Coinbase
+// BASE instead of Tempo. Bots pick the endpoint that matches the network
+// their wallet is funded on.
+//
+// NOTE: BASE path keeps 100% in the treasury (no creator splits) because
+// x402-express doesn't expose splits the way mppx does. The balance path is
+// unchanged — `tryAccountBalance` still schedules an 80/20 creator payout on
+// Tempo when the blueprint has a seller. If the seller has no Tempo wallet,
+// the existing `unfulfilled` payout log catches it.
+router.post(
+  '/marketplace/buy-base/:productId',
+  authenticateBlobyHeader,
+  marketplaceCheckoutLimiter,
+  loadProductForBuy,
+  tryAccountBalance,
+  baseX402IfNotPaid,
   issueDownloadUrls,
 );
 
