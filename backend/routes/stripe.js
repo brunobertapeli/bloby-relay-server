@@ -137,13 +137,15 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
     }
 
     const stripe = getStripeOnramp();
-    // NOTE: params are flat at the top level — the legacy `transaction_details`
-    // wrapper is silently dropped by the current API. The Stripe Node SDK
-    // (20.x) no longer ships onramp resources, so we hand-roll the request.
+    // Params live at the top level — the legacy `transaction_details` wrapper
+    // is silently dropped by the current API. The Stripe Node SDK (20.x) no
+    // longer ships onramp resources, so we hand-roll the request.
+    // The legacy field `destination_exchange_amount` was renamed to
+    // `destination_amount` (Stripe API version 2026-02-25.clover and later).
     const session = await new OnrampSessionResource(stripe).create({
       destination_currency: 'usdc',
       destination_network: network,
-      destination_exchange_amount: String(amount),
+      destination_amount: String(amount),
       wallet_addresses: { ethereum: bloby.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
