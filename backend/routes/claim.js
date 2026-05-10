@@ -2,6 +2,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import { createPublicClient, http, formatUnits } from 'viem';
+import { base } from 'viem/chains';
 import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { authenticate } from '../middleware/auth.js';
@@ -20,7 +21,13 @@ const tempoClient = createPublicClient({
   transport: http('https://rpc.tempo.xyz'),
 });
 
-const USDC_ADDRESS = '0x20c000000000000000000000b9537d11c60e8b50';
+const baseClient = createPublicClient({
+  chain: base,
+  transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
+});
+
+const USDC_TEMPO_ADDRESS = '0x20c000000000000000000000b9537d11c60e8b50';
+const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const USDC_ABI = [{
   name: 'balanceOf',
   type: 'function',
@@ -29,19 +36,27 @@ const USDC_ABI = [{
   outputs: [{ name: '', type: 'uint256' }],
 }];
 
-async function getUsdcBalance(walletAddress) {
+async function readUsdc(client, contract, walletAddress, label) {
   try {
-    const balance = await tempoClient.readContract({
-      address: USDC_ADDRESS,
+    const balance = await client.readContract({
+      address: contract,
       abi: USDC_ABI,
       functionName: 'balanceOf',
       args: [walletAddress],
     });
     return formatUnits(balance, 6);
   } catch (err) {
-    console.error('[balance] Failed for', walletAddress, err.message);
+    console.error(`[balance:${label}] Failed for`, walletAddress, err.message);
     return '0';
   }
+}
+
+async function getUsdcBalances(walletAddress) {
+  const [balanceTempo, balanceBase] = await Promise.all([
+    readUsdc(tempoClient, USDC_TEMPO_ADDRESS, walletAddress, 'tempo'),
+    readUsdc(baseClient, USDC_BASE_ADDRESS, walletAddress, 'base'),
+  ]);
+  return { balanceTempo, balanceBase };
 }
 
 const router = Router();
@@ -209,7 +224,9 @@ router.get('/claim/blobies', jwtAuth, claimBlobiesLimiter, async (req, res) => {
 
     const results = await Promise.all(
       blobies.map(async (b) => {
-        const balance = b.walletAddress ? await getUsdcBalance(b.walletAddress) : '0';
+        const { balanceTempo, balanceBase } = b.walletAddress
+          ? await getUsdcBalances(b.walletAddress)
+          : { balanceTempo: '0', balanceBase: '0' };
         return {
           id: b._id.toString(),
           name: b.username,
@@ -218,7 +235,8 @@ router.get('/claim/blobies', jwtAuth, claimBlobiesLimiter, async (req, res) => {
           isOnline: b.isOnline,
           lastSeen: b.lastHeartbeat?.toISOString() || null,
           walletAddress: b.walletAddress || null,
-          balance,
+          balanceTempo,
+          balanceBase,
         };
       }),
     );

@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import {
   HiPlus, HiXMark, HiClipboardDocument,
   HiEye, HiEyeSlash, HiCheckCircle, HiChevronDown,
-  HiBars3
+  HiBars3, HiInformationCircle
 } from 'react-icons/hi2'
 import { FaDiscord } from 'react-icons/fa'
 import { API_URL } from '../api'
@@ -561,13 +561,33 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
   )
 }
 
+function formatUsdc(value) {
+  const n = parseFloat(value || '0')
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function BalanceRow({ network, amount }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <img
+          src="/assets/images/usdc.svg"
+          alt=""
+          className="w-4 h-4 shrink-0"
+          style={{ filter: 'grayscale(1) opacity(0.55)' }}
+        />
+        <span className="text-[12px] text-muted-foreground font-display">USDC on {network}</span>
+      </div>
+      <span className="text-sm font-semibold font-display text-foreground tabular-nums">${formatUsdc(amount)}</span>
+    </div>
+  )
+}
+
 function BlobyCard({ bloby, onAddFunds }) {
   const hasWallet = !!bloby.walletAddress
   const truncatedWallet = hasWallet
     ? `${bloby.walletAddress.slice(0, 6)}...${bloby.walletAddress.slice(-4)}`
     : null
-  const balanceNum = parseFloat(bloby.balance || '0')
-  const formattedBalance = balanceNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
     <div className="group rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-black/5 overflow-hidden">
@@ -590,32 +610,30 @@ function BlobyCard({ bloby, onAddFunds }) {
         </div>
       </div>
 
-      {/* Balance */}
+      {/* Agent wallet balances */}
       <div className="px-5 py-4 border-b border-border/30">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display mb-1">Balance</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-semibold font-display text-foreground tracking-tight">${formattedBalance}</span>
-              <span className="text-[10px] text-muted-foreground/40 font-display">USDC</span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Agent Wallet</p>
           <button
             onClick={() => onAddFunds(bloby)}
-            className="flex items-center gap-1.5 h-7 text-muted-foreground/50 hover:text-primary transition-all duration-200 text-[11px] font-medium font-display"
+            className="flex items-center gap-1.5 h-7 text-muted-foreground/60 hover:text-primary transition-all duration-200 text-[11px] font-medium font-display"
           >
-            <span className="w-6 h-6 rounded-md border border-border/50 flex items-center justify-center hover:border-primary/40">
+            <span className="w-5 h-5 rounded-md border border-border/50 flex items-center justify-center group-hover:border-primary/40">
               <HiPlus className="w-3 h-3" />
             </span>
             Add Funds
           </button>
+        </div>
+        <div className="space-y-2">
+          <BalanceRow network="Tempo" amount={bloby.balanceTempo} />
+          <BalanceRow network="Base" amount={bloby.balanceBase} />
         </div>
       </div>
 
       {/* Wallet */}
       <div className="px-5 py-3.5">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">USDC Wallet</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Wallet Address</p>
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${hasWallet ? 'bg-emerald-400/60' : 'bg-amber-400/60'}`} />
             <span className="text-[10px] text-muted-foreground/50 font-display">{hasWallet ? 'Linked' : 'Not linked'}</span>
@@ -940,7 +958,7 @@ export default function Dashboard() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 sm:space-y-14">
         <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Blobies</h2>
             <button
               onClick={() => setShowClaim(!showClaim)}
@@ -950,6 +968,9 @@ export default function Dashboard() {
               Claim your Bloby
             </button>
           </div>
+          <p className="text-xs text-muted-foreground/70 font-display mb-5">
+            Each agent has its own USDC wallet. Top up via Stripe (Coinbase soon) — funds stay scoped to that agent.
+          </p>
           <AnimatePresence>
             {showClaim && (
               <motion.div
@@ -984,9 +1005,18 @@ export default function Dashboard() {
         </motion.section>
 
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.5}>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Credit Balance</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Account Balance</h2>
+            <span className="group/tip relative inline-flex">
+              <HiInformationCircle className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-help" />
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 w-72 z-20 opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 rounded-lg border border-border/60 bg-background/95 backdrop-blur-sm px-3 py-2 text-[11px] text-muted-foreground font-display leading-relaxed shadow-lg">
+                Funds tied to your account. All your agents can spend from this balance to buy skills, services, blueprints, and bundles in the Marketplace.
+              </span>
+            </span>
           </div>
+          <p className="text-xs text-muted-foreground/70 font-display mb-5">
+            Shared across all your agents · separate from each agent's own USDC wallet.
+          </p>
           <div className="rounded-2xl border border-border/50 bg-card px-5 py-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-center gap-3 flex-1">
@@ -995,7 +1025,7 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold font-display text-foreground leading-tight">
                     {balance !== null ? `$${balance.toFixed(2)}` : '...'}
                   </p>
-                  <p className="text-xs text-muted-foreground">Available credits</p>
+                  <p className="text-xs text-muted-foreground">Available credits · all agents</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
