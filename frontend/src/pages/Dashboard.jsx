@@ -399,7 +399,8 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
       const { clientSecret } = await res.json()
 
       const { loadStripeOnramp } = await import('@stripe/crypto')
-      const stripeOnramp = await loadStripeOnramp(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+      const onrampKey = import.meta.env.VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+      const stripeOnramp = await loadStripeOnramp(onrampKey)
       const session = stripeOnramp.createSession({
         clientSecret,
         appearance: { theme: 'dark' },

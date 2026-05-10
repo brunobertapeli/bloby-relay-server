@@ -809,6 +809,68 @@ export default function Marketplace() {
     }
   }, [cart])
 
+  // Handle return from Stripe Checkout — success or cancel
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('marketplace_session_id')
+    const canceled = params.get('marketplace_canceled')
+
+    if (!sessionId && !canceled) return
+
+    const cleanUrl = () => {
+      params.delete('marketplace_session_id')
+      params.delete('marketplace_canceled')
+      const search = params.toString()
+      const next = window.location.pathname + (search ? `?${search}` : '') + window.location.hash
+      window.history.replaceState({}, '', next)
+    }
+
+    if (canceled) {
+      cleanUrl()
+      return
+    }
+
+    let cancelled = false
+    let attempts = 0
+    const maxAttempts = 5
+
+    const fetchSession = async () => {
+      const token = localStorage.getItem('bloby_token')
+      if (!token) { cleanUrl(); return }
+
+      while (!cancelled && attempts < maxAttempts) {
+        attempts++
+        try {
+          const res = await fetch(`${API_URL}/api/marketplace/checkout/session/${sessionId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!res.ok) break
+          const data = await res.json()
+
+          if (data.status === 'fulfilled') {
+            showSuccess(data)
+            setCartOpen(true)
+            cleanUrl()
+            return
+          }
+          if (data.status === 'unpaid' || data.status === 'not_found') {
+            // Stripe says payment didn't complete — just clean the URL
+            cleanUrl()
+            return
+          }
+          // 'processing' — webhook is mid-flight, retry shortly
+        } catch (err) {
+          console.error('[checkout-return]', err)
+        }
+        await new Promise(r => setTimeout(r, 800))
+      }
+      cleanUrl()
+    }
+
+    fetchSession()
+    return () => { cancelled = true }
+  }, [])
+
   // Fetch product catalog from API
   useEffect(() => {
     fetch(`${API_URL}/api/marketplace/products`)
@@ -928,6 +990,19 @@ export default function Marketplace() {
 
   const [checkingOut, setCheckingOut] = useState(false)
 
+  const showSuccess = (data) => {
+    setCheckoutSuccess({
+      code: data.code,
+      items: (data.items || []).map(i => ({
+        ...i,
+        title: i.name,
+        price: i.price === 0 ? 'Free' : `$${i.price.toFixed(2)}`,
+      })),
+      total: data.total,
+    })
+    setCart([])
+  }
+
   const handleCheckout = async () => {
     // Require login
     if (!user) {
@@ -958,16 +1033,20 @@ export default function Marketplace() {
       }
 
       const data = await res.json()
-      setCheckoutSuccess({
-        code: data.code,
-        items: data.items.map(i => ({
-          ...i,
-          title: i.name,
-          price: i.price === 0 ? 'Free' : `$${i.price.toFixed(2)}`,
-        })),
-        total: data.total,
-      })
-      setCart([])
+
+      // Free cart — fulfilled inline, show success right away
+      if (data.freeFulfilled) {
+        showSuccess(data)
+        return
+      }
+
+      // Paid cart — redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
+
+      throw new Error('Unexpected checkout response')
     } catch (err) {
       console.error('[checkout]', err)
       alert(err.message || 'Checkout failed — please try again')

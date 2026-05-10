@@ -22,6 +22,7 @@ import {
 } from '../lib/treasury-pay.js';
 import multer from 'multer';
 import { marketplaceCheckoutLimiter, marketplaceRedeemLimiter, marketplaceSubmitLimiter } from '../middleware/rateLimiter.js';
+import { getStripe, getStripeFrontendUrl } from './stripe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticDir = path.join(__dirname, '..', 'static');
@@ -314,9 +315,166 @@ async function calculateTotal(items) {
   return total;
 }
 
+// ─── Cart fulfillment (shared by free path + post-Stripe webhook) ──────────
+// Generates redeem code, creates the purchase doc, increments credit balance,
+// schedules creator payouts, and returns frontend-shaped item details.
+async function processFulfillment({ accountId, items, stripeSessionId = null }) {
+  const resolvedSkills = await resolveSkills(items);
+  const total = await calculateTotal(items);
+  const creditAmount = items
+    .filter((i) => i.type === 'credit')
+    .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
+  const code = generateRedeemCode();
+  const now = new Date();
+  const db = getDb();
+
+  await db.collection('purchases').insertOne({
+    code,
+    accountId,
+    cartItems: items,
+    resolvedSkills,
+    total,
+    stripeSessionId,
+    createdAt: now,
+    redemptions: [],
+  });
+
+  if (creditAmount > 0) {
+    await db.collection('accounts').updateOne(
+      { _id: new ObjectId(accountId) },
+      { $inc: { balance: creditAmount } },
+    );
+  }
+
+  for (const skillId of resolvedSkills) {
+    const product = await findDownloadable(skillId);
+    if (product && product.bloby && product.type !== 'service' && product.price > 0) {
+      schedulePayoutForItem(product, {
+        botUsername: null,
+        buyerAccountId: accountId,
+      }).catch((err) => console.error('[marketplace/checkout] payout error:', err.message));
+    }
+  }
+
+  const itemDetails = [];
+  for (const item of items) {
+    if (item.type === 'credit') {
+      itemDetails.push({ id: item.id, type: 'credit', name: `$${parseFloat(item.amount).toFixed(2)} Credits`, price: parseFloat(item.amount) });
+    } else {
+      const product = item.type === 'bundle' ? await findBundle(item.id) : await findDownloadable(item.id);
+      if (product) itemDetails.push({ id: product.id, type: item.type, name: product.name, price: product.price });
+    }
+  }
+
+  return { code, items: itemDetails, resolvedSkills, total };
+}
+
+// Build Stripe Checkout line_items dynamically from cart entries.
+// Each cart item gets its own row so the Stripe receipt reads naturally.
+async function buildStripeLineItems(items) {
+  const lines = [];
+  for (const item of items) {
+    if (item.type === 'credit') {
+      const amount = parseFloat(item.amount);
+      lines.push({
+        price_data: {
+          currency: 'usd',
+          unit_amount: Math.round(amount * 100),
+          product_data: {
+            name: `$${amount.toFixed(2)} Bloby Credits`,
+            description: 'Account credit balance — usable across all your agents',
+          },
+        },
+        quantity: 1,
+      });
+      continue;
+    }
+
+    const product = item.type === 'bundle'
+      ? await findBundle(item.id)
+      : await findDownloadable(item.id);
+    if (!product || !product.price || product.price <= 0) continue;
+
+    const labelType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    lines.push({
+      price_data: {
+        currency: 'usd',
+        unit_amount: Math.round(product.price * 100),
+        product_data: {
+          name: product.name,
+          description: (product.description || `${labelType} · ${product.id}`).slice(0, 200),
+        },
+      },
+      quantity: 1,
+    });
+  }
+  return lines;
+}
+
+// Idempotent fulfillment for a Stripe-paid marketplace purchase. Called by
+// the Stripe webhook AND the success-page lookup endpoint — whichever wins
+// the race does the work; the other reads the recorded result.
+export async function fulfillMarketplacePurchase(sessionId) {
+  const db = getDb();
+
+  // Atomic claim: only the first caller transitions pending → fulfilling.
+  const claimed = await db.collection('pending_purchases').findOneAndUpdate(
+    { stripeSessionId: sessionId, status: 'pending' },
+    { $set: { status: 'fulfilling', startedAt: new Date() } },
+    { returnDocument: 'after' },
+  );
+
+  if (!claimed) {
+    const existing = await db.collection('pending_purchases').findOne({ stripeSessionId: sessionId });
+    if (!existing) return { status: 'not_found' };
+    if (existing.status === 'fulfilled') {
+      return {
+        status: 'fulfilled',
+        code: existing.redeemCode,
+        items: existing.fulfilledItems,
+        total: existing.total,
+      };
+    }
+    return { status: 'processing' };
+  }
+
+  try {
+    const result = await processFulfillment({
+      accountId: claimed.accountId,
+      items: claimed.items,
+      stripeSessionId: sessionId,
+    });
+
+    await db.collection('pending_purchases').updateOne(
+      { _id: claimed._id },
+      {
+        $set: {
+          status: 'fulfilled',
+          redeemCode: result.code,
+          fulfilledItems: result.items,
+          fulfilledAt: new Date(),
+        },
+      },
+    );
+
+    return { status: 'fulfilled', code: result.code, items: result.items, total: result.total };
+  } catch (err) {
+    // Roll back so a retry can pick it up.
+    await db.collection('pending_purchases').updateOne(
+      { _id: claimed._id },
+      { $set: { status: 'pending' }, $unset: { startedAt: 1 } },
+    );
+    throw err;
+  }
+}
+
 // ─── POST /api/marketplace/checkout ─────────────────────────────────────────
-// Dashboard user checks out. Payment is handled externally (Stripe / mocked).
-// Creates a purchase record with a redeem code.
+// Dashboard user checks out. If the cart total is $0 (free items only) we
+// fulfill inline and return a redeem code immediately. Otherwise we create a
+// Stripe Checkout Session and return its hosted URL — the frontend redirects.
+// Real fulfillment happens in fulfillMarketplacePurchase, triggered by either
+// the Stripe webhook or the success-page lookup (whichever fires first).
 router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async (req, res) => {
   try {
     const { items } = req.body;
@@ -327,61 +485,103 @@ router.post('/marketplace/checkout', jwtAuth, marketplaceCheckoutLimiter, async 
     const validationError = await validateCartItems(items);
     if (validationError) return res.status(400).json({ error: validationError });
 
-    const resolvedSkills = await resolveSkills(items);
     const total = await calculateTotal(items);
 
-    const creditItems = items.filter((i) => i.type === 'credit');
-    const creditAmount = creditItems.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    if (total === 0) {
+      const result = await processFulfillment({ accountId: req.account.id, items });
+      return res.json({ freeFulfilled: true, ...result });
+    }
 
-    const code = generateRedeemCode();
-    const now = new Date();
+    const stripe = getStripe();
+    const FRONTEND_URL = getStripeFrontendUrl();
     const db = getDb();
 
-    await db.collection('purchases').insertOne({
-      code,
-      accountId: req.account.id,
-      cartItems: items,
-      resolvedSkills,
-      total,
-      createdAt: now,
-      redemptions: [],
-    });
+    const account = await db.collection('accounts').findOne(
+      { _id: new ObjectId(req.account.id) },
+    );
+    if (!account) return res.status(404).json({ error: 'Account not found' });
 
-    if (creditAmount > 0) {
+    let customerId = account.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: account.email || req.account.email,
+        name: account.name || req.account.name,
+        metadata: { accountId: req.account.id },
+      });
+      customerId = customer.id;
       await db.collection('accounts').updateOne(
         { _id: new ObjectId(req.account.id) },
-        { $inc: { balance: creditAmount } },
+        { $set: { stripeCustomerId: customerId } },
       );
     }
 
-    // Fire creator commissions for purchased products (skill / blueprint / bundle).
-    // Credit purchases skip — there's no creator. Stripe payment is assumed
-    // to have completed externally before this endpoint is invoked.
-    for (const skillId of resolvedSkills) {
-      const product = await findDownloadable(skillId);
-      if (product && product.bloby && product.type !== 'service' && product.price > 0) {
-        schedulePayoutForItem(product, {
-          botUsername: null,
-          buyerAccountId: req.account.id,
-        }).catch((err) => console.error('[marketplace/checkout] payout error:', err.message));
-      }
+    const lineItems = await buildStripeLineItems(items);
+    if (lineItems.length === 0) {
+      return res.status(400).json({ error: 'No paid items in cart' });
     }
 
-    // Build response with item details for the frontend
-    const itemDetails = [];
-    for (const item of items) {
-      if (item.type === 'credit') {
-        itemDetails.push({ id: item.id, type: 'credit', name: `$${parseFloat(item.amount).toFixed(2)} Credits`, price: parseFloat(item.amount) });
-      } else {
-        const product = item.type === 'bundle' ? await findBundle(item.id) : await findDownloadable(item.id);
-        if (product) itemDetails.push({ id: product.id, type: item.type, name: product.name, price: product.price });
-      }
-    }
+    const pendingId = new ObjectId();
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'payment',
+      line_items: lineItems,
+      metadata: {
+        purpose: 'marketplace',
+        pendingId: pendingId.toString(),
+        accountId: req.account.id,
+      },
+      success_url: `${FRONTEND_URL}/marketplace?marketplace_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${FRONTEND_URL}/marketplace?marketplace_canceled=1`,
+    });
 
-    res.json({ code, items: itemDetails, resolvedSkills, total });
+    await db.collection('pending_purchases').insertOne({
+      _id: pendingId,
+      stripeSessionId: session.id,
+      accountId: req.account.id,
+      items,
+      total,
+      status: 'pending',
+      createdAt: new Date(),
+    });
+
+    res.json({ url: session.url });
   } catch (error) {
     console.error('[marketplace/checkout]', error.message);
     res.status(500).json({ error: 'Checkout failed' });
+  }
+});
+
+// ─── GET /api/marketplace/checkout/session/:sessionId ───────────────────────
+// Called by the success page after Stripe redirects back. Idempotent: returns
+// the existing redeem code if the webhook already fulfilled, or fulfills now.
+router.get('/marketplace/checkout/session/:sessionId', jwtAuth, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const stripe = getStripe();
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.metadata?.purpose !== 'marketplace') {
+      return res.status(400).json({ error: 'Not a marketplace session' });
+    }
+    if (session.metadata?.accountId !== req.account.id) {
+      return res.status(403).json({ error: 'Not your session' });
+    }
+
+    if (session.payment_status !== 'paid') {
+      return res.json({ status: 'unpaid' });
+    }
+
+    const result = await fulfillMarketplacePurchase(sessionId);
+    res.json(result);
+  } catch (error) {
+    console.error('[marketplace/checkout/session]', error.message);
+    res.status(500).json({ error: 'Failed to look up session' });
   }
 });
 

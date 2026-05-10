@@ -9,9 +9,13 @@ import { validateUsername } from '../lib/validate.js';
 
 // Lazy-init: env vars aren't available at import time (dotenv runs later in server.js)
 let _stripe;
-function getStripe() {
+export function getStripe() {
   if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   return _stripe;
+}
+
+export function getStripeFrontendUrl() {
+  return process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'bloby.bot'}`;
 }
 
 const router = Router();
@@ -29,9 +33,16 @@ function getConfig() {
 }
 
 // ─── Stripe instance for Crypto Onramp ─────────────────────────────────────
+// Onramp lives in a separate Stripe account (Stripe doesn't allow Onramp +
+// regular payments in the same account). Falls back to STRIPE_SECRET_KEY so
+// dev environments that haven't split yet keep working.
 let _stripeOnramp;
 function getStripeOnramp() {
-  if (!_stripeOnramp) _stripeOnramp = new Stripe(process.env.STRIPE_SECRET_KEY);
+  if (!_stripeOnramp) {
+    const key = process.env.STRIPE_ONRAMP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+    if (!key) throw new Error('STRIPE_ONRAMP_SECRET_KEY (or STRIPE_SECRET_KEY) is not set');
+    _stripeOnramp = new Stripe(key);
+  }
   return _stripeOnramp;
 }
 
@@ -309,9 +320,22 @@ export async function stripeWebhookHandler(req, res) {
       case 'checkout.session.completed': {
         const session = event.data.object;
 
-        // ── Handle purchase (one-time payment) ──
+        // ── One-time payments: dispatch on metadata.purpose ──
         if (session.mode === 'payment') {
-          const { handle, accountId } = session.metadata || {};
+          const { purpose, handle, accountId } = session.metadata || {};
+
+          if (purpose === 'marketplace') {
+            try {
+              // Dynamic import avoids a circular-import edge case at module init.
+              const { fulfillMarketplacePurchase } = await import('./marketplace.js');
+              const result = await fulfillMarketplacePurchase(session.id);
+              console.log(`[stripe/webhook] marketplace fulfilled session=${session.id} status=${result.status}`);
+            } catch (err) {
+              console.error('[stripe/webhook] marketplace fulfillment failed:', err.message);
+            }
+            break;
+          }
+
           if (handle && accountId) {
             const hash = crypto.randomBytes(4).toString('base64url').slice(0, 5);
             const db = getDb();
