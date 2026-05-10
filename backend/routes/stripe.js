@@ -34,16 +34,53 @@ function getConfig() {
 
 // ─── Stripe instance for Crypto Onramp ─────────────────────────────────────
 // Onramp lives in a separate Stripe account (Stripe doesn't allow Onramp +
-// regular payments in the same account). Falls back to STRIPE_SECRET_KEY so
-// dev environments that haven't split yet keep working.
+// regular payments in the same account). The frontend's onramp publishable
+// key MUST come from the same account as STRIPE_ONRAMP_SECRET_KEY here —
+// account mismatch causes silent 400s on Stripe's session lookup.
+function maskKey(k) {
+  if (!k || k.length < 12) return '<invalid>';
+  return `${k.slice(0, 8)}…${k.slice(-4)}`;
+}
+
 let _stripeOnramp;
 function getStripeOnramp() {
   if (!_stripeOnramp) {
-    const key = process.env.STRIPE_ONRAMP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
-    if (!key) throw new Error('STRIPE_ONRAMP_SECRET_KEY (or STRIPE_SECRET_KEY) is not set');
+    const onrampKey = process.env.STRIPE_ONRAMP_SECRET_KEY;
+    const fallbackKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!onrampKey && process.env.NODE_ENV === 'production') {
+      throw new Error('STRIPE_ONRAMP_SECRET_KEY is required in production. Onramp lives in a separate Stripe account from STRIPE_SECRET_KEY — do not share keys.');
+    }
+
+    const key = onrampKey || fallbackKey;
+    if (!key) {
+      throw new Error('Neither STRIPE_ONRAMP_SECRET_KEY nor STRIPE_SECRET_KEY is set');
+    }
+
+    if (!onrampKey) {
+      console.warn('[onramp] WARNING: STRIPE_ONRAMP_SECRET_KEY not set — falling back to STRIPE_SECRET_KEY. This will fail on Stripe session lookup if the frontend publishable key is from a different account.');
+    }
+
+    console.log(`[onramp] init secret key src=${onrampKey ? 'STRIPE_ONRAMP_SECRET_KEY' : 'STRIPE_SECRET_KEY (fallback)'} prefix=${maskKey(key)}`);
     _stripeOnramp = new Stripe(key);
   }
   return _stripeOnramp;
+}
+
+// Cached account info for the onramp Stripe account — lets the frontend
+// verify its publishable key targets the same account.
+let _onrampAccountInfo;
+async function getOnrampAccountInfo() {
+  if (_onrampAccountInfo) return _onrampAccountInfo;
+  const stripe = getStripeOnramp();
+  const account = await stripe.accounts.retrieve();
+  _onrampAccountInfo = {
+    accountId: account.id,
+    country: account.country,
+    livemode: !!(process.env.STRIPE_ONRAMP_SECRET_KEY || process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_'),
+    keyPrefix: maskKey(process.env.STRIPE_ONRAMP_SECRET_KEY || process.env.STRIPE_SECRET_KEY),
+  };
+  return _onrampAccountInfo;
 }
 
 // Custom resource for the Crypto Onramp API (not yet in the SDK)
@@ -54,12 +91,36 @@ const OnrampSessionResource = Stripe.StripeResource.extend({
   }),
 });
 
+// ─── GET /api/stripe/onramp/account ────────────────────────────────────────
+// Lets the frontend verify that its publishable key matches the backend's
+// onramp Stripe account. Logs a warning client-side if there's a mismatch.
+router.get('/stripe/onramp/account', jwtAuth, async (req, res) => {
+  try {
+    const info = await getOnrampAccountInfo();
+    res.json(info);
+  } catch (error) {
+    console.error('[onramp/account]', error.message);
+    res.status(500).json({ error: 'Failed to fetch onramp account info' });
+  }
+});
+
+// Networks Stripe Crypto Onramp currently supports for USDC funding.
+// Tempo is intentionally rejected here until Stripe ships support for it.
+const ONRAMP_SUPPORTED_NETWORKS = new Set(['base', 'ethereum', 'polygon', 'solana']);
+
 // ─── Create Crypto Onramp Session (Fund Bot wallet) ────────────────────────
 router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
   try {
-    const { blobyId, amount } = req.body;
+    const { blobyId, amount, network = 'base' } = req.body;
     if (!blobyId || !amount || amount <= 0) {
       return res.status(400).json({ error: 'Missing blobyId or valid amount' });
+    }
+
+    if (network === 'tempo') {
+      return res.status(400).json({ error: 'Tempo onramp is not yet supported by Stripe. Use Base for now.' });
+    }
+    if (!ONRAMP_SUPPORTED_NETWORKS.has(network)) {
+      return res.status(400).json({ error: `Unsupported network: ${network}` });
     }
 
     const accountId = new ObjectId(req.account.id);
@@ -80,14 +141,15 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
       transaction_details: {
         destination_currency: 'usdc',
         destination_exchange_amount: String(amount),
-        destination_network: 'base',
+        destination_network: network,
       },
       wallet_addresses: { ethereum: bloby.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
     });
 
-    res.json({ clientSecret: session.client_secret });
+    console.log(`[onramp] session created id=${session.id} network=${network} amount=${amount} bloby=${bloby.username}`);
+    res.json({ clientSecret: session.client_secret, sessionId: session.id });
   } catch (error) {
     console.error('[stripe/onramp-session] error:', error.message, error.raw || '');
     res.status(500).json({ error: 'Failed to create onramp session' });

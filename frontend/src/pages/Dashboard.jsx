@@ -347,10 +347,21 @@ function ClaimBlobyCard({ onClaimed }) {
 
 const fundPresets = [5, 10, 25]
 
+const NETWORK_OPTIONS = [
+  { id: 'base', label: 'USDC on Base', sublabel: 'By Coinbase', enabled: true },
+  { id: 'tempo', label: 'USDC on Tempo', sublabel: 'By Stripe · Coming soon', enabled: false },
+]
+
+function maskKey(k) {
+  if (!k || k.length < 12) return '<missing>'
+  return `${k.slice(0, 8)}…${k.slice(-4)}`
+}
+
 function FundWalletModal({ bloby, onClose, onFunded }) {
   const [selected, setSelected] = useState(null)
   const [custom, setCustom] = useState('')
   const [showCustom, setShowCustom] = useState(false)
+  const [network, setNetwork] = useState('base')
   const [step, setStep] = useState('select') // 'select' | 'loading' | 'pay' | 'done'
   const [error, setError] = useState(null)
   const onrampRef = useRef(null)
@@ -364,6 +375,35 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
     }
   }, [])
 
+  // On open: log the publishable-key prefix and the backend's onramp account
+  // so a key/account mismatch is obvious in the console.
+  useEffect(() => {
+    const pk = import.meta.env.VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+    console.log('[onramp] frontend publishable key:', maskKey(pk),
+      'src:', import.meta.env.VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY ? 'VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY' : 'VITE_STRIPE_PUBLISHABLE_KEY (fallback)')
+    if (!pk) {
+      console.error('[onramp] no publishable key configured — set VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY')
+    }
+
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    fetch(`${API_URL}/api/stripe/onramp/account`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(info => {
+        if (!info) return
+        console.log('[onramp] backend onramp account:', info)
+        if (pk && pk.startsWith('pk_test_') && info.livemode) {
+          console.warn('[onramp] MISMATCH: backend is livemode but frontend publishable key is test')
+        }
+        if (pk && pk.startsWith('pk_live_') && !info.livemode) {
+          console.warn('[onramp] MISMATCH: backend is testmode but frontend publishable key is live')
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Mount the onramp widget once the container and session are both ready
   useEffect(() => {
     if (step === 'pay' && onrampSession && onrampRef.current) {
@@ -373,7 +413,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
   }, [step, onrampSession])
 
   const activeAmount = showCustom ? parseFloat(custom) : selected
-  const canProceed = activeAmount && activeAmount > 0
+  const canProceed = activeAmount && activeAmount > 0 && network
 
   const handleProceed = async () => {
     if (!canProceed) return
@@ -388,7 +428,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ blobyId: bloby.id, amount: activeAmount }),
+        body: JSON.stringify({ blobyId: bloby.id, amount: activeAmount, network }),
       })
 
       if (!res.ok) {
@@ -396,10 +436,15 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
         throw new Error(data.error || 'Failed to create session')
       }
 
-      const { clientSecret } = await res.json()
+      const { clientSecret, sessionId } = await res.json()
+      console.log('[onramp] session created on backend:', sessionId)
+
+      const onrampKey = import.meta.env.VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+      if (!onrampKey) {
+        throw new Error('Stripe Onramp publishable key not configured (VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY)')
+      }
 
       const { loadStripeOnramp } = await import('@stripe/crypto')
-      const onrampKey = import.meta.env.VITE_STRIPE_ONRAMP_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
       const stripeOnramp = await loadStripeOnramp(onrampKey)
       const session = stripeOnramp.createSession({
         clientSecret,
@@ -411,6 +456,13 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
           setStep('done')
           onFunded?.()
         }
+      })
+
+      // Stripe.js fires this when the embedded session can't be loaded (e.g.
+      // publishable key from a different account than the secret key that
+      // created the session).
+      session.addEventListener('exit', (e) => {
+        console.error('[onramp] session exit:', e?.payload)
       })
 
       setOnrampSession(session)
@@ -448,7 +500,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
             <div className="flex items-center gap-3">
               <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
               <div>
-                <h3 className="text-base font-bold font-display text-foreground">Fund Wallet</h3>
+                <h3 className="text-base font-bold font-display text-foreground">Fund Agent Wallet</h3>
                 <p className="text-xs text-muted-foreground">{bloby.name} &middot; USDC</p>
               </div>
             </div>
@@ -458,7 +510,50 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
             {step === 'select' && (
               <>
                 {error && <p className="text-xs text-red-400 font-display mb-3">{error}</p>}
-                <p className="text-xs text-muted-foreground mb-3">Select an amount to add</p>
+
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground/50 font-display mb-2">Select Network</p>
+                <div className="flex flex-col gap-2 mb-5">
+                  {NETWORK_OPTIONS.map((opt) => {
+                    const active = network === opt.id
+                    const disabled = !opt.enabled
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => !disabled && setNetwork(opt.id)}
+                        disabled={disabled}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all duration-200 ${
+                          disabled
+                            ? 'border-border/30 bg-muted/10 cursor-not-allowed opacity-50'
+                            : active
+                              ? 'border-foreground/30 bg-foreground/10'
+                              : 'border-border/50 hover:border-border hover:bg-white/[0.02]'
+                        }`}
+                      >
+                        <img
+                          src="/assets/images/usdc.svg"
+                          alt=""
+                          className="w-7 h-7 shrink-0"
+                          style={{ filter: disabled ? 'grayscale(1) opacity(0.5)' : 'none' }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium font-display ${disabled ? 'text-muted-foreground/60' : 'text-foreground'}`}>
+                            {opt.label}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground/60 font-display">{opt.sublabel}</p>
+                        </div>
+                        <span className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                          disabled
+                            ? 'border-border/40'
+                            : active
+                              ? 'border-foreground bg-foreground'
+                              : 'border-border'
+                        }`} />
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground/50 font-display mb-2">Amount</p>
                 <div className="flex items-center gap-2 mb-4">
                   {fundPresets.map((amount) => (
                     <button
