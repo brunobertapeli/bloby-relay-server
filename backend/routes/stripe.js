@@ -137,19 +137,24 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
     }
 
     const stripe = getStripeOnramp();
+    // NOTE: params are flat at the top level — the legacy `transaction_details`
+    // wrapper is silently dropped by the current API. The Stripe Node SDK
+    // (20.x) no longer ships onramp resources, so we hand-roll the request.
     const session = await new OnrampSessionResource(stripe).create({
-      transaction_details: {
-        destination_currency: 'usdc',
-        destination_exchange_amount: String(amount),
-        destination_network: network,
-      },
+      destination_currency: 'usdc',
+      destination_network: network,
+      destination_exchange_amount: String(amount),
       wallet_addresses: { ethereum: bloby.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
     });
 
-    console.log(`[onramp] session created id=${session.id} network=${network} amount=${amount} bloby=${bloby.username}`);
-    res.json({ clientSecret: session.client_secret, sessionId: session.id });
+    console.log(`[onramp] session created id=${session.id} network=${network} amount=${amount} bloby=${bloby.username} dest_currency=${session.transaction_details?.destination_currency} dest_network=${session.transaction_details?.destination_network}`);
+    res.json({
+      clientSecret: session.client_secret,
+      sessionId: session.id,
+      redirectUrl: session.redirect_url || null,
+    });
   } catch (error) {
     console.error('[stripe/onramp-session] error:', error.message, error.raw || '');
     res.status(500).json({ error: 'Failed to create onramp session' });
