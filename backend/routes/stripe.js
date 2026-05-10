@@ -108,6 +108,17 @@ router.get('/stripe/onramp/account', jwtAuth, async (req, res) => {
 // Tempo is intentionally rejected here until Stripe ships support for it.
 const ONRAMP_SUPPORTED_NETWORKS = new Set(['base', 'ethereum', 'polygon', 'solana']);
 
+// Stripe Onramp keys destination wallets by network, not VM family.
+// `wallet_addresses[ethereum]` only prefills for the Ethereum L1 destination —
+// Base, Polygon etc. need their own keys even though the address format is
+// identical (same EVM address works on all three).
+const NETWORK_TO_WALLET_KEY = {
+  base: 'base_network',
+  ethereum: 'ethereum',
+  polygon: 'polygon',
+  solana: 'solana',
+};
+
 // ─── Create Crypto Onramp Session (Fund Bot wallet) ────────────────────────
 router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
   try {
@@ -142,11 +153,12 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
     // longer ships onramp resources, so we hand-roll the request.
     // The legacy field `destination_exchange_amount` was renamed to
     // `destination_amount` (Stripe API version 2026-02-25.clover and later).
+    const walletKey = NETWORK_TO_WALLET_KEY[network] || 'ethereum';
     const session = await new OnrampSessionResource(stripe).create({
       destination_currency: 'usdc',
       destination_network: network,
       destination_amount: String(amount),
-      wallet_addresses: { ethereum: bloby.walletAddress },
+      wallet_addresses: { [walletKey]: bloby.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
     });
