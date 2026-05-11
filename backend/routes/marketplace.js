@@ -831,11 +831,10 @@ router.post(
 // BASE instead of Tempo. Bots pick the endpoint that matches the network
 // their wallet is funded on.
 //
-// NOTE: BASE path keeps 100% in the treasury (no creator splits) because
-// x402-express doesn't expose splits the way mppx does. The balance path is
-// unchanged — `tryAccountBalance` still schedules an 80/20 creator payout on
-// Tempo when the blueprint has a seller. If the seller has no Tempo wallet,
-// the existing `unfulfilled` payout log catches it.
+// 80/20 split: x402-express has no native `splits` parameter, so x402 settles
+// 100% to TREASURY_BASE_ADDRESS first; `scheduleBasePayout` then fans out the
+// creator's 80% on Base asynchronously (treasury → seller wallet). The
+// balance path still settles via `payoutCreatorFromBalance` on Tempo.
 router.post(
   '/marketplace/buy-base/:productId',
   authenticateBlobyHeader,

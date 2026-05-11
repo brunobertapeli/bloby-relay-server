@@ -6,11 +6,15 @@ import {
   formatUnits,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { tempo } from 'viem/chains';
+import { tempo, base, baseSepolia } from 'viem/chains';
 import { getDb } from '../db.js';
 
 const TEMPO_USDC = '0x20c000000000000000000000b9537d11c60e8b50';
 const RPC = 'https://rpc.tempo.xyz';
+
+// USDC contract addresses on the Base family.
+const BASE_USDC_MAINNET = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const BASE_USDC_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 // Commission split: treasury keeps 20%, creator gets 80%.
 // All math runs in basis points + bigint base units to avoid float drift.
@@ -45,6 +49,31 @@ function getClients() {
   _publicClient = createPublicClient({ chain: tempo, transport: http(RPC) });
   _walletClient = createWalletClient({ account: _account, chain: tempo, transport: http(RPC) });
   return { wallet: _walletClient, public: _publicClient, account: _account };
+}
+
+// Separate clients for the Base chain — uses TREASURY_BASE_PRIVATE_KEY if set
+// (in case the user keeps a dedicated keypair for Base), otherwise falls back
+// to TREASURY_PRIVATE_KEY so a single EVM keypair can serve both chains.
+let _baseAccount;
+let _basePublicClient;
+let _baseWalletClient;
+let _baseUsdc;
+
+function getBaseClients() {
+  if (_baseWalletClient) return { wallet: _baseWalletClient, public: _basePublicClient, account: _baseAccount, usdc: _baseUsdc };
+  const pk = process.env.TREASURY_BASE_PRIVATE_KEY || process.env.TREASURY_PRIVATE_KEY;
+  if (!pk) throw new Error('[treasury-pay/base] TREASURY_BASE_PRIVATE_KEY (or TREASURY_PRIVATE_KEY) not set');
+  const normalized = pk.startsWith('0x') ? pk : `0x${pk}`;
+  const useTestnet = process.env.X402_NETWORK === 'base-sepolia';
+  const chain = useTestnet ? baseSepolia : base;
+  const rpc = useTestnet
+    ? (process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org')
+    : (process.env.BASE_RPC_URL || 'https://mainnet.base.org');
+  _baseUsdc = useTestnet ? BASE_USDC_SEPOLIA : BASE_USDC_MAINNET;
+  _baseAccount = privateKeyToAccount(normalized);
+  _basePublicClient = createPublicClient({ chain, transport: http(rpc) });
+  _baseWalletClient = createWalletClient({ account: _baseAccount, chain, transport: http(rpc) });
+  return { wallet: _baseWalletClient, public: _basePublicClient, account: _baseAccount, usdc: _baseUsdc };
 }
 
 /**
@@ -127,6 +156,72 @@ export async function payoutCreatorFromBalance(opts) {
 }
 
 /**
+ * Pay a creator their 80% commission on Base mainnet after an x402 charge
+ * settled 100% to the treasury Base address. Same idempotent ledger pattern
+ * as `payoutCreatorFromBalance` — just on a different chain.
+ *
+ * Caller should fire-and-forget with .catch — never await on the request path.
+ */
+export async function payoutCreatorOnBase(opts) {
+  const { productId, productName, productBloby, recipient, amountUsd, botUsername, buyerAccountId } = opts;
+  const db = getDb();
+  const { units, amount } = creatorCut(amountUsd);
+  if (units === 0n) return null;
+
+  const { insertedId } = await db.collection('payouts').insertOne({
+    productId,
+    productName,
+    productBloby,
+    recipient: recipient.toLowerCase(),
+    amount: Number(amount),
+    amountUnits: units.toString(),
+    sourceType: 'base-x402',
+    chain: 'base',
+    botUsername: botUsername || null,
+    buyerAccountId: buyerAccountId || null,
+    status: 'pending',
+    createdAt: new Date(),
+  });
+
+  try {
+    const { wallet, public: pub, usdc } = getBaseClients();
+    const hash = await wallet.writeContract({
+      address: usdc,
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [recipient, units],
+    });
+    await db.collection('payouts').updateOne(
+      { _id: insertedId },
+      { $set: { txHash: hash, status: 'sent' } },
+    );
+
+    pub.waitForTransactionReceipt({ hash })
+      .then(async (receipt) => {
+        await db.collection('payouts').updateOne(
+          { _id: insertedId },
+          {
+            $set: {
+              status: receipt.status === 'success' ? 'settled' : 'reverted',
+              blockNumber: Number(receipt.blockNumber),
+              settledAt: new Date(),
+            },
+          },
+        );
+      })
+      .catch((err) => console.error(`[payouts/base/${insertedId}] receipt error:`, err.message));
+
+    return insertedId;
+  } catch (err) {
+    await db.collection('payouts').updateOne(
+      { _id: insertedId },
+      { $set: { status: 'failed', error: err.message } },
+    ).catch(() => {});
+    throw err;
+  }
+}
+
+/**
  * Record a creator payout that happened on-chain inside an MPP `splits[]`
  * charge — the bot's signed credential settled atomically, treasury just
  * received its 20% as the primary recipient. We log for the unified ledger.
@@ -159,7 +254,16 @@ export async function logSplitsPayout(opts) {
  * can flush these once the seller registers a wallet.
  */
 export async function logUnfulfilledPayout(opts) {
-  const { productId, productName, productBloby, amountUsd, botUsername, buyerAccountId } = opts;
+  const {
+    productId,
+    productName,
+    productBloby,
+    amountUsd,
+    botUsername,
+    buyerAccountId,
+    chain = 'tempo',
+    sourceType = 'balance',
+  } = opts;
   const { units, amount } = creatorCut(amountUsd);
   if (units === 0n) return null;
 
@@ -170,7 +274,8 @@ export async function logUnfulfilledPayout(opts) {
     recipient: null,
     amount: Number(amount),
     amountUnits: units.toString(),
-    sourceType: 'balance',
+    sourceType,
+    chain,
     botUsername: botUsername || null,
     buyerAccountId: buyerAccountId || null,
     status: 'unfulfilled',

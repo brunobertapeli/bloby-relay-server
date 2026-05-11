@@ -29,6 +29,7 @@ import { getMppx } from './mpp.js';
 import {
   creatorCut,
   payoutCreatorFromBalance,
+  payoutCreatorOnBase,
   logSplitsPayout,
   logUnfulfilledPayout,
 } from './treasury-pay.js';
@@ -178,6 +179,43 @@ export function attachReceiptHeader(req, res) {
   if (receipt) res.setHeader('Payment-Receipt', receipt);
 }
 
+// ─── scheduleBasePayout ─────────────────────────────────────────────────────
+// Base counterpart of `schedulePayout`. After x402 settles 100% of the price
+// to TREASURY_BASE_ADDRESS, fan out the creator's 80% on Base mainnet
+// (treasury → seller wallet). If the seller has no wallet, log unfulfilled.
+async function scheduleBasePayout(product, botUsername, buyerAccountId) {
+  const sellerWallet = await findSellerWallet(product.bloby);
+
+  if (!sellerWallet) {
+    await logUnfulfilledPayout({
+      productId: product.id,
+      productName: product.name,
+      productBloby: product.bloby,
+      amountUsd: product.price,
+      botUsername,
+      buyerAccountId,
+      chain: 'base',
+      sourceType: 'base-x402',
+    });
+    return;
+  }
+
+  const treasury = process.env.TREASURY_BASE_ADDRESS?.toLowerCase();
+  if (treasury && sellerWallet.toLowerCase() === treasury) return;
+
+  setImmediate(() => {
+    payoutCreatorOnBase({
+      productId: product.id,
+      productName: product.name,
+      productBloby: product.bloby,
+      recipient: sellerWallet,
+      amountUsd: product.price,
+      botUsername,
+      buyerAccountId,
+    }).catch((err) => console.error('[payment-chain/base-payout] tx error:', err.message));
+  });
+}
+
 // ─── baseX402IfNotPaid ──────────────────────────────────────────────────────
 // BASE-network counterpart of `mppxIfNotPaid`. If neither free nor balance
 // paid, run x402-express's paymentMiddleware against USDC on Base mainnet
@@ -188,7 +226,11 @@ export function attachReceiptHeader(req, res) {
 // (per-product), so we instantiate a one-shot middleware that matches exactly
 // the current req.method + req.path.
 //
-// Treasury keeps 100% for services (per existing convention) — no splits.
+// 80/20 split: x402-express has no native `splits` parameter, so the full
+// price settles to treasury first; the 80% creator share is then fanned out
+// asynchronously by `scheduleBasePayout` (treasury → seller wallet on Base).
+// Services (product.type === 'service') and products without a registered
+// seller skip the payout — treasury keeps 100% as before.
 let _baseFacilitator;
 function getBaseFacilitator() {
   if (_baseFacilitator) return _baseFacilitator;
@@ -238,6 +280,15 @@ export async function baseX402IfNotPaid(req, res, next) {
   const wrappedNext = (err) => {
     if (err) return next(err);
     req.paidVia = 'mpp-base';
+
+    if (isCommissionable(product)) {
+      scheduleBasePayout(
+        product,
+        req.user?.username || null,
+        req.user?.accountId?.toString() || null,
+      ).catch((err) => console.error('[base-x402/payout] schedule error:', err.message));
+    }
+
     next();
   };
 
