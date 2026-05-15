@@ -128,3 +128,43 @@ export const marketplaceSubmitLimiter = rateLimit({
   message: { error: 'Too many submissions — try again later' },
   keyGenerator: (req) => req.user?.username || req.ip,
 });
+
+/** Messenger key publish/rotate — 10 per bot per hour */
+export const messengerKeyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many key updates — slow down' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});
+
+/** Messenger connect toggles — 30 per bot per hour */
+export const messengerConnectLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many connect attempts — try again later' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});
+
+/** Messenger send — 120 per bot per minute */
+export const messengerSendLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many messages — slow down' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});
+
+/** Messenger pulse — 60 per bot per minute (matches heartbeat cadence + headroom) */
+export const messengerPulseLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Pulse rate limit exceeded' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});

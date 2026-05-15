@@ -679,7 +679,74 @@ function BalanceRow({ network, amount }) {
   )
 }
 
-function BlobyCard({ bloby, onAddFunds }) {
+function MessengerRow({ summary }) {
+  const active = summary?.active || []
+  const pendingIncoming = summary?.pendingIncoming || []
+  const pendingOutgoing = summary?.pendingOutgoing || []
+  const count = active.length
+  const hasPending = pendingIncoming.length + pendingOutgoing.length > 0
+
+  return (
+    <div className="px-5 py-3.5 border-b border-border/30">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Bloby Messenger</p>
+        {hasPending && (
+          <span className="text-[10px] text-amber-400/80 font-display">
+            {pendingIncoming.length > 0 ? `${pendingIncoming.length} incoming` : `${pendingOutgoing.length} pending`}
+          </span>
+        )}
+      </div>
+      <div className="mt-2">
+        {count === 0 && pendingIncoming.length === 0 && pendingOutgoing.length === 0 ? (
+          <p className="text-[12px] text-muted-foreground/50 font-display">No connections</p>
+        ) : (
+          <span className="group/peers relative inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+            <span className="text-[12px] text-foreground/80 font-display cursor-default">
+              {count} {count === 1 ? 'Connection' : 'Connections'}
+            </span>
+            {(active.length > 0 || pendingIncoming.length > 0 || pendingOutgoing.length > 0) && (
+              <span className="pointer-events-none absolute left-0 top-full mt-2 z-30 w-60 max-h-64 overflow-auto opacity-0 group-hover/peers:opacity-100 transition-opacity duration-200 rounded-lg border border-border/60 bg-background/95 backdrop-blur-sm p-3 text-[11px] font-display shadow-lg space-y-2">
+                {active.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Connected</p>
+                    <div className="flex flex-wrap gap-1">
+                      {active.map((u) => (
+                        <span key={u} className="text-foreground/80 bg-white/5 rounded px-1.5 py-0.5">{u}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pendingIncoming.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-amber-400/70 mb-1">Incoming requests</p>
+                    <div className="flex flex-wrap gap-1">
+                      {pendingIncoming.map((u) => (
+                        <span key={u} className="text-amber-300/90 bg-amber-500/10 rounded px-1.5 py-0.5">{u}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pendingOutgoing.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Awaiting peer</p>
+                    <div className="flex flex-wrap gap-1">
+                      {pendingOutgoing.map((u) => (
+                        <span key={u} className="text-muted-foreground/80 bg-white/5 rounded px-1.5 py-0.5">{u}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
   const hasWallet = !!bloby.walletAddress
   const truncatedWallet = hasWallet
     ? `${bloby.walletAddress.slice(0, 6)}...${bloby.walletAddress.slice(-4)}`
@@ -725,6 +792,9 @@ function BlobyCard({ bloby, onAddFunds }) {
           <BalanceRow network="Base" amount={bloby.balanceBase} />
         </div>
       </div>
+
+      {/* Bloby Messenger (taller card) */}
+      <MessengerRow summary={messengerSummary} />
 
       {/* Wallet */}
       <div className="px-5 py-3.5">
@@ -917,6 +987,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [reservedHandles, setReservedHandles] = useState([])
   const [blobies, setBlobies] = useState([])
+  const [messengerSummary, setMessengerSummary] = useState({})
   const [transactions, setTransactions] = useState([])
   const [visibleHashes, setVisibleHashes] = useState({})
   const [showClaim, setShowClaim] = useState(false)
@@ -974,6 +1045,22 @@ export default function Dashboard() {
     }
   }
 
+  const fetchMessengerSummary = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/messenger/connections-summary`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setMessengerSummary(data.byBloby || {})
+      }
+    } catch (err) {
+      console.error('[messenger-summary] fetch failed:', err)
+    }
+  }
+
   const fetchTransactions = async () => {
     const token = localStorage.getItem('bloby_token')
     if (!token) return
@@ -1006,6 +1093,7 @@ export default function Dashboard() {
           setUser(data.user)
           fetchReservedHandles()
           fetchBlobies()
+          fetchMessengerSummary()
           fetchTransactions()
           fetchBalance()
         } else {
@@ -1083,7 +1171,12 @@ export default function Dashboard() {
           {blobies.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {blobies.map((bloby) => (
-                <BlobyCard key={bloby.id} bloby={bloby} onAddFunds={setFundingBloby} />
+                <BlobyCard
+                  key={bloby.id}
+                  bloby={bloby}
+                  onAddFunds={setFundingBloby}
+                  messengerSummary={messengerSummary[bloby.name]}
+                />
               ))}
             </div>
           ) : !showClaim && (

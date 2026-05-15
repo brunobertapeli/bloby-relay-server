@@ -22,6 +22,7 @@ import serviceRoutes from './routes/services.js';
 import extensionRoutes from './routes/extension.js';
 import resolveRoutes from './routes/resolve.js';
 import worldRoutes from './routes/world.js';
+import messengerRoutes from './routes/messenger.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 
 dotenv.config();
@@ -89,6 +90,7 @@ app.use('/api', marketplaceRoutes);
 app.use('/api', serviceRoutes);
 app.use('/api', extensionRoutes);
 app.use('/api', worldRoutes);
+app.use('/api', messengerRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────

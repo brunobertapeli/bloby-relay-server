@@ -70,6 +70,25 @@ async function createIndexes() {
     payouts.createIndex({ status: 1, createdAt: 1 }),
     payouts.createIndex({ productBloby: 1, status: 1 }),
   ]);
+
+  // ─── Bloby Messenger ──────────────────────────────────────────────────────
+  // Connections are stored with a canonical (userA, userB) sorted pair, so
+  // the unique index naturally covers both directions of a 1-on-1.
+  const messengerConnections = db.collection('messenger_connections');
+  await Promise.all([
+    messengerConnections.createIndex({ userA: 1, userB: 1 }, { unique: true }),
+    messengerConnections.createIndex({ userA: 1, status: 1 }),
+    messengerConnections.createIndex({ userB: 1, status: 1 }),
+  ]);
+
+  // Messages are opaque encrypted blobs. They are deleted on /ack but get a
+  // 30-day TTL safety net so abandoned recipients don't cause unbounded growth.
+  const messengerMessages = db.collection('messenger_messages');
+  await Promise.all([
+    messengerMessages.createIndex({ to: 1, createdAt: 1 }),
+    messengerMessages.createIndex({ connectionId: 1 }),
+    messengerMessages.createIndex({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 }),
+  ]);
 }
 
 export function getDb() {
