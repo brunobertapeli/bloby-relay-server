@@ -8,7 +8,8 @@ import {
   messengerKeyLimiter,
   messengerConnectLimiter,
   messengerSendLimiter,
-  messengerPulseLimiter,
+  messengerInboxLimiter,
+  messengerReadLimiter,
 } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -16,8 +17,8 @@ const router = Router();
 // ─── Limits ─────────────────────────────────────────────────────────────────
 const MAX_PAYLOAD_BYTES = 64 * 1024;       // 64 KB per encrypted message
 const MAX_PUBKEY_BYTES = 256;              // generous: 32-byte X25519 = 44 base64 chars
-const MAX_PULSE_MESSAGES = 200;            // per pulse response
-const MAX_ACK_IDS = 200;
+const MAX_INBOX_MESSAGES = 200;            // metadata page size
+const MAX_READ_IDS = 50;                   // per /read call
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -286,99 +287,143 @@ router.post('/messenger/send', authenticate, messengerSendLimiter, async (req, r
   }
 });
 
-// ─── GET /api/messenger/pulse ────────────────────────────────────────────────
-// Single endpoint a bloby calls on its heartbeat tick. Returns:
-//   - connections: all active + pending connections involving me
-//   - pendingIncoming: peers who requested me (action items)
-//   - messages: encrypted payloads addressed to me, oldest first, capped at 200
+// ─── GET /api/messenger/inbox ────────────────────────────────────────────────
+// "Peek" endpoint — the god endpoint a widget polls on every render. Returns
+// everything needed to draw a status UI without ever touching ciphertext:
+//   - connections: all active + pending connections involving me (with peer
+//     names, status, mutual flag, online-ness for the "Connected" widget)
+//   - pendingIncoming: peers who requested me — action items
+//   - messages: METADATA ONLY for queued messages → { id, from, createdAt, bytes }
 //
-// `?since=<isoDate>` (optional): only return messages newer than that cursor.
-// If omitted, returns all undelivered messages.
+// This endpoint is read-only. It never deletes a message and is safe to poll
+// continuously from a UI. To actually consume a message, call POST /read.
 //
-// Returns: { connections, pendingIncoming, messages }
-router.get('/messenger/pulse', authenticate, messengerPulseLimiter, async (req, res) => {
+// Returns: { connections, pendingIncoming, messages, totalUnread, byPeer }
+router.get('/messenger/inbox', authenticate, messengerInboxLimiter, async (req, res) => {
   try {
     const me = req.user.username;
-    const since = req.query.since ? new Date(String(req.query.since)) : null;
-    const sinceValid = since && !Number.isNaN(since.getTime()) ? since : null;
 
+    // Connections (joined with peer's online state for the widget UX).
     const conns = await getConnections()
       .find({ $or: [{ userA: me }, { userB: me }] })
       .toArray();
 
-    const connections = conns.map((c) => ({
-      id: c._id.toString(),
-      peer: peerOf(c, me),
-      status: c.status,
-      initiator: c.initiator,
-      mutual: !!c.mutual,
-      createdAt: c.createdAt?.toISOString(),
-      acceptedAt: c.acceptedAt?.toISOString() || null,
-    }));
+    const peerNames = conns.map((c) => peerOf(c, me));
+    const peerDocs = peerNames.length
+      ? await getUsers()
+          .find({ username: { $in: peerNames } })
+          .project({ username: 1, isOnline: 1, messengerPubkey: 1 })
+          .toArray()
+      : [];
+    const peerMap = new Map(peerDocs.map((p) => [p.username, p]));
+
+    const connections = conns.map((c) => {
+      const peer = peerOf(c, me);
+      const p = peerMap.get(peer);
+      return {
+        id: c._id.toString(),
+        peer,
+        status: c.status,
+        initiator: c.initiator,
+        mutual: !!c.mutual,
+        peerOnline: !!p?.isOnline,
+        peerHasKey: !!p?.messengerPubkey,
+        createdAt: c.createdAt?.toISOString(),
+        acceptedAt: c.acceptedAt?.toISOString() || null,
+      };
+    });
 
     const pendingIncoming = connections
       .filter((c) => c.status === 'pending' && c.initiator !== me)
       .map((c) => c.peer);
 
-    const msgQuery = { to: me };
-    if (sinceValid) msgQuery.createdAt = { $gt: sinceValid };
-
+    // Message metadata — payload is intentionally NOT projected.
     const msgs = await getMessages()
-      .find(msgQuery)
+      .find({ to: me })
+      .project({ from: 1, createdAt: 1, payload: 1 })
       .sort({ createdAt: 1 })
-      .limit(MAX_PULSE_MESSAGES)
+      .limit(MAX_INBOX_MESSAGES)
       .toArray();
 
     const messages = msgs.map((m) => ({
       id: m._id.toString(),
       from: m.from,
-      payload: m.payload,
+      // Approx decoded byte length, computed from the base64 string length so
+      // we don't ship the actual bytes back to the widget.
+      bytes: Math.floor((m.payload?.length || 0) * 3 / 4),
       createdAt: m.createdAt.toISOString(),
     }));
+
+    // Convenience aggregation for "Messages — From  /  1 new — handle" widgets.
+    const byPeer = {};
+    for (const m of messages) {
+      byPeer[m.from] = (byPeer[m.from] || 0) + 1;
+    }
 
     res.json({
       connections,
       pendingIncoming,
       messages,
-      // Cursor the caller should send back next time. If we hit the limit,
-      // stay on the oldest unread to guarantee the next pulse drains backlog.
-      nextSince: messages.length ? messages[messages.length - 1].createdAt : (sinceValid?.toISOString() || null),
-      truncated: messages.length === MAX_PULSE_MESSAGES,
+      totalUnread: messages.length,
+      byPeer,
+      truncated: messages.length === MAX_INBOX_MESSAGES,
     });
   } catch (error) {
-    console.error('[messenger/pulse]', error.message);
-    res.status(500).json({ error: 'Pulse failed' });
+    console.error('[messenger/inbox]', error.message);
+    res.status(500).json({ error: 'Inbox failed' });
   }
 });
 
-// ─── POST /api/messenger/ack ─────────────────────────────────────────────────
-// Confirm message IDs have been received and decrypted. The relay deletes them
-// so plaintext residue (encrypted but pullable) doesn't accumulate on our DB.
+// ─── POST /api/messenger/read ────────────────────────────────────────────────
+// "Consume" endpoint — returns the ciphertext payload for each requested ID
+// AND deletes it from the relay in the same operation. This is what the bloby's
+// internal decryption loop calls; the human-facing widget should never call it.
 //
-// Body:    { ids: string[] }
-// Returns: { ok, deleted }
-router.post('/messenger/ack', authenticate, async (req, res) => {
+// Per-message atomicity is guaranteed by findOneAndDelete: the relay only ever
+// returns a payload that it has just removed, so no two calls can decrypt the
+// same blob twice. IDs that don't belong to the caller (or no longer exist)
+// are silently skipped.
+//
+// Body:    { ids: string[] }     (max 50 per call)
+// Returns: { messages: [{ id, from, payload, createdAt }] }
+router.post('/messenger/read', authenticate, messengerReadLimiter, async (req, res) => {
   try {
     const me = req.user.username;
     const { ids } = req.body || {};
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'ids must be a non-empty array' });
     }
-    if (ids.length > MAX_ACK_IDS) {
-      return res.status(413).json({ error: `Too many ids (max ${MAX_ACK_IDS})` });
+    if (ids.length > MAX_READ_IDS) {
+      return res.status(413).json({ error: `Too many ids (max ${MAX_READ_IDS})` });
     }
 
     const objectIds = [];
     for (const id of ids) {
       try { objectIds.push(new ObjectId(String(id))); } catch { /* skip invalid */ }
     }
-    if (!objectIds.length) return res.json({ ok: true, deleted: 0 });
+    if (!objectIds.length) return res.json({ messages: [] });
 
-    const result = await getMessages().deleteMany({ _id: { $in: objectIds }, to: me });
-    res.json({ ok: true, deleted: result.deletedCount });
+    // findOneAndDelete is atomic per-message — the relay can't return a payload
+    // it didn't also remove. Run them in parallel for throughput.
+    const results = await Promise.all(
+      objectIds.map((_id) =>
+        getMessages().findOneAndDelete({ _id, to: me }),
+      ),
+    );
+
+    const messages = results
+      .filter((doc) => doc) // null when not found / not addressed to me
+      .map((doc) => ({
+        id: doc._id.toString(),
+        from: doc.from,
+        payload: doc.payload,
+        createdAt: doc.createdAt.toISOString(),
+      }));
+
+    res.json({ messages });
   } catch (error) {
-    console.error('[messenger/ack]', error.message);
-    res.status(500).json({ error: 'Ack failed' });
+    console.error('[messenger/read]', error.message);
+    res.status(500).json({ error: 'Read failed' });
   }
 });
 

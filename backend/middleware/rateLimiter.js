@@ -159,12 +159,22 @@ export const messengerSendLimiter = rateLimit({
   keyGenerator: (req) => req.user?.username || req.ip,
 });
 
-/** Messenger pulse — 60 per bot per minute (matches heartbeat cadence + headroom) */
-export const messengerPulseLimiter = rateLimit({
+/** Messenger inbox peek — 120 per bot per minute (cheap, widget-safe) */
+export const messengerInboxLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Inbox rate limit exceeded' },
+  keyGenerator: (req) => req.user?.username || req.ip,
+});
+
+/** Messenger read (consume) — 60 per bot per minute */
+export const messengerReadLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Pulse rate limit exceeded' },
+  message: { error: 'Read rate limit exceeded' },
   keyGenerator: (req) => req.user?.username || req.ip,
 });
