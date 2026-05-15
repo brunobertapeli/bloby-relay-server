@@ -83,12 +83,21 @@ router.put('/messenger/key', authenticate, messengerKeyLimiter, async (req, res)
 });
 
 /**
- * If both peers in a pending connection now have a published pubkey, flip
- * the connection to 'active'. Called on key publish and on connect.
+ * If both peers in a MUTUALLY-AGREED pending connection now have a published
+ * pubkey, flip it to 'active'. Called on key publish and on connect.
+ *
+ * The `mutual: true` filter is critical — without it, publishing a key would
+ * silently activate any pending connection where the other side happens to
+ * have a key, even if THIS bloby never agreed to the connection. That race
+ * was the source of the "I tried to accept but it deleted" bug.
  */
 async function maybeActivatePending(username) {
   const conns = await getConnections()
-    .find({ status: 'pending', $or: [{ userA: username }, { userB: username }] })
+    .find({
+      status: 'pending',
+      mutual: true,
+      $or: [{ userA: username }, { userB: username }],
+    })
     .toArray();
 
   if (!conns.length) return;
@@ -114,16 +123,18 @@ async function maybeActivatePending(username) {
 }
 
 // ─── POST /api/messenger/connect ─────────────────────────────────────────────
-// Toggle a 1-on-1 connection with another bloby.
+// Strictly forward-progressing. NEVER destructive — calling this on an active
+// or already-pending connection is a safe no-op.
 //
-// Behavior (idempotent toggle):
-//   - active connection exists  → remove it (and purge all messages)
-//   - peer already requested me → flip to active (if both have keys)
-//   - I already requested peer  → no-op (still pending)
 //   - nothing exists            → create pending request from me to peer
+//   - pending (I initiated)     → no-op (returns pending)
+//   - pending (peer initiated)  → mark mutual; flip to active if both have keys
+//   - active                    → no-op (returns active)
+//
+// To remove a connection, use POST /messenger/disconnect.
 //
 // Body:    { username: string }
-// Returns: { status: 'pending'|'active'|'removed', peer, requiresKey? }
+// Returns: { status: 'pending'|'active', peer, initiator, requiresKey? }
 router.post('/messenger/connect', authenticate, messengerConnectLimiter, async (req, res) => {
   try {
     const me = req.user.username;
@@ -146,45 +157,43 @@ router.post('/messenger/connect', authenticate, messengerConnectLimiter, async (
     const connections = getConnections();
     const existing = await connections.findOne({ userA, userB });
 
-    // Case 1: connection already exists.
-    if (existing) {
-      // Active → toggle off. Wipe all messages so there is no encrypted residue.
-      if (existing.status === 'active') {
-        await getMessages().deleteMany({ connectionId: existing._id });
-        await connections.deleteOne({ _id: existing._id });
-        return res.json({ status: 'removed', peer });
-      }
-
-      // Pending and the peer was the one who requested first → accept.
-      if (existing.status === 'pending' && existing.initiator === peer) {
-        const meUser = await getUsers().findOne({ _id: req.user._id }, { projection: { messengerPubkey: 1 } });
-        const bothHaveKeys = !!meUser?.messengerPubkey && !!peerUser.messengerPubkey;
-
-        if (!bothHaveKeys) {
-          // Mark mutual intent but stay pending until both keys exist.
-          await connections.updateOne(
-            { _id: existing._id },
-            { $set: { mutual: true, updatedAt: new Date() } },
-          );
-          return res.json({
-            status: 'pending',
-            peer,
-            requiresKey: !meUser?.messengerPubkey ? 'self' : 'peer',
-          });
-        }
-
-        await connections.updateOne(
-          { _id: existing._id },
-          { $set: { status: 'active', mutual: true, acceptedAt: new Date(), updatedAt: new Date() } },
-        );
-        return res.json({ status: 'active', peer });
-      }
-
-      // Pending and I'm already the initiator → idempotent no-op.
-      return res.json({ status: 'pending', peer });
+    // Case A: already active → no-op (idempotent).
+    if (existing && existing.status === 'active') {
+      return res.json({ status: 'active', peer, initiator: existing.initiator });
     }
 
-    // Case 2: nothing exists → create a pending request.
+    // Case B: pending where peer initiated → mark mutual; promote if keys exist.
+    if (existing && existing.status === 'pending' && existing.initiator === peer) {
+      const meUser = await getUsers().findOne({ _id: req.user._id }, { projection: { messengerPubkey: 1 } });
+      const bothHaveKeys = !!meUser?.messengerPubkey && !!peerUser.messengerPubkey;
+
+      if (!bothHaveKeys) {
+        await connections.updateOne(
+          { _id: existing._id },
+          { $set: { mutual: true, updatedAt: new Date() } },
+        );
+        return res.json({
+          status: 'pending',
+          peer,
+          initiator: existing.initiator,
+          mutual: true,
+          requiresKey: !meUser?.messengerPubkey ? 'self' : 'peer',
+        });
+      }
+
+      await connections.updateOne(
+        { _id: existing._id },
+        { $set: { status: 'active', mutual: true, acceptedAt: new Date(), updatedAt: new Date() } },
+      );
+      return res.json({ status: 'active', peer, initiator: existing.initiator });
+    }
+
+    // Case C: pending where I initiated → no-op (idempotent).
+    if (existing && existing.status === 'pending') {
+      return res.json({ status: 'pending', peer, initiator: existing.initiator, mutual: !!existing.mutual });
+    }
+
+    // Case D: nothing exists → create a fresh pending request.
     await connections.insertOne({
       userA, userB,
       initiator: me,
@@ -194,14 +203,57 @@ router.post('/messenger/connect', authenticate, messengerConnectLimiter, async (
       updatedAt: new Date(),
     });
 
-    return res.json({ status: 'pending', peer });
+    return res.json({ status: 'pending', peer, initiator: me, mutual: false });
   } catch (error) {
     if (error.code === 11000) {
-      // Lost a race; re-resolve by re-reading.
       return res.status(409).json({ error: 'Connection state changed, retry' });
     }
     console.error('[messenger/connect]', error.message);
     res.status(500).json({ error: 'Connect failed' });
+  }
+});
+
+// ─── POST /api/messenger/disconnect ──────────────────────────────────────────
+// Explicit removal. Symmetric — works regardless of who initiated.
+//
+//   - active                    → delete connection + purge ALL stored messages
+//   - pending (I initiated)     → cancel my outgoing request
+//   - pending (peer initiated)  → reject the incoming request
+//   - nothing exists            → no-op (returns { status: 'none' })
+//
+// Body:    { username: string }
+// Returns: { status: 'removed'|'none', peer, wasActive }
+router.post('/messenger/disconnect', authenticate, messengerConnectLimiter, async (req, res) => {
+  try {
+    const me = req.user.username;
+    const { username: rawTarget } = req.body || {};
+
+    const uv = validateUsername(rawTarget);
+    if (!uv.valid) return res.status(400).json({ error: uv.error });
+    const peer = uv.username;
+
+    if (peer === me) {
+      return res.status(400).json({ error: 'Cannot disconnect from yourself' });
+    }
+
+    const { userA, userB } = canonicalPair(me, peer);
+    const existing = await getConnections().findOne({ userA, userB });
+
+    if (!existing) {
+      return res.json({ status: 'none', peer });
+    }
+
+    const wasActive = existing.status === 'active';
+    if (wasActive) {
+      // Purge ciphertext residue along with the connection.
+      await getMessages().deleteMany({ connectionId: existing._id });
+    }
+    await getConnections().deleteOne({ _id: existing._id });
+
+    return res.json({ status: 'removed', peer, wasActive });
+  } catch (error) {
+    console.error('[messenger/disconnect]', error.message);
+    res.status(500).json({ error: 'Disconnect failed' });
   }
 });
 
