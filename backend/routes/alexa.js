@@ -46,6 +46,35 @@ function getLinks() {
   return getDb().collection('alexa_links');
 }
 
+/**
+ * Strip the invocation name (and common Alexa filler words) from the start of
+ * a query slot. The test simulator and some real-device patterns leak the
+ * invocation into AMAZON.SearchQuery — e.g. "ask my morphy what day is today"
+ * yields query="my morphy what day is today" instead of just "what day is today".
+ *
+ * Idempotent and case-insensitive. Strips at most one invocation/connector pass.
+ */
+function cleanQuery(rawQuery) {
+  let q = String(rawQuery || '').trim();
+  if (!q) return q;
+
+  // Order matters: longer phrases first so "my morphy" wins over "morphy".
+  const invocations = ['my morphy', 'morphy'];
+  for (const name of invocations) {
+    const re = new RegExp(`^${name}\\b[\\s,.:;-]*`, 'i');
+    if (re.test(q)) {
+      q = q.replace(re, '').trim();
+      break;
+    }
+  }
+
+  // Drop a single leading connector word that the user might have said as part
+  // of the invocation phrase ("to ...", "for ...", "about ...").
+  q = q.replace(/^(to|for|about|please)\b[\s,.:;-]+/i, '').trim();
+
+  return q;
+}
+
 /** Build a standard Alexa response envelope. */
 function alexaResponse(speech, { endSession = false, reprompt = null } = {}) {
   const safe = String(speech || '').slice(0, MAX_REPLY_CHARS);
@@ -266,6 +295,12 @@ export async function handleAlexaRequest(req, res) {
         { endSession: false, reprompt: "What would you like to ask?" },
       ));
     }
+    if (intentName === 'AMAZON.FallbackIntent') {
+      return res.json(alexaResponse(
+        "I didn't quite catch that. Try saying it again, starting with: tell me, ask about, or what.",
+        { endSession: false, reprompt: "Try saying: tell me what time it is, or ask about my schedule." },
+      ));
+    }
 
     // ── 6. LinkIntent — redeem pairing code ────────────────────────────────
     if (intentName === 'LinkIntent') {
@@ -334,8 +369,8 @@ export async function handleAlexaRequest(req, res) {
         ));
       }
 
-      const query = slots.query?.value || '';
-      if (!query.trim()) {
+      const query = cleanQuery(slots.query?.value || '');
+      if (!query) {
         return res.json(alexaResponse("What would you like to ask?", { endSession: false }));
       }
 
@@ -367,7 +402,10 @@ export async function handleAlexaRequest(req, res) {
       }
     }
 
-    return res.json(alexaResponse("I don't know that one.", { endSession: false, reprompt: "What can I help with?" }));
+    return res.json(alexaResponse(
+      "I'm not sure how to handle that. Try saying it again, starting with: tell me, or ask about.",
+      { endSession: false, reprompt: "What would you like to ask?" },
+    ));
   } catch (error) {
     console.error('[alexa/handle]', error);
     res.status(500).json({ error: 'Internal error' });
