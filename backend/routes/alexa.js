@@ -29,7 +29,11 @@ const router = Router();
 
 // ─── Limits ────────────────────────────────────────────────────────────────
 const PAIR_TTL_SECONDS = 10 * 60;            // 10 minutes
-const PI_FORWARD_TIMEOUT_MS = 22_000;        // Safety margin under Alexa's ~30s ceiling (Pi internal timeout is 25s — relay aborts first)
+// Alexa's HARD response timeout is ~8s and Progressive Response does NOT reliably
+// extend it. Race the agent against 6.5s — fast queries get spoken, slow ones get
+// the friendly "I'll send to chat" fallback within Alexa's budget. The Pi keeps
+// processing in the background and delivers the actual answer to chat.
+const PI_FORWARD_TIMEOUT_MS = 6_500;
 const MAX_REPLY_CHARS = 4_000;               // Alexa caps SSML around 8k chars; keep headroom
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -77,10 +81,14 @@ function cleanQuery(rawQuery) {
 
 /** Build a standard Alexa response envelope.
  *
- *  When `keepListening: true`, attaches a Dialog.ElicitSlot directive that
- *  tells Alexa "expect another AgentIntent utterance next" — this keeps the
- *  mic open AND signals to NLU that the next input is free-form, which
- *  significantly improves intent-routing reliability inside a session. */
+ *  Session staying open is driven entirely by `shouldEndSession: false` plus
+ *  a `reprompt`. We deliberately do NOT send a Dialog.ElicitSlot directive —
+ *  putting Alexa into dialog mode appears to enforce a stricter response
+ *  timeout (~8s) that defeats our Progressive Response budget extension.
+ *  The simpler form keeps the mic open AND honors Progressive Response.
+ *
+ *  `keepListening` is kept as a parameter for clarity at call sites; it now
+ *  just ensures `reprompt` is set, since open-session behavior is automatic. */
 function alexaResponse(speech, { endSession = false, reprompt = null, keepListening = false } = {}) {
   const safe = String(speech || '').slice(0, MAX_REPLY_CHARS);
   const resp = {
@@ -90,23 +98,11 @@ function alexaResponse(speech, { endSession = false, reprompt = null, keepListen
       shouldEndSession: endSession,
     },
   };
-  if (reprompt) {
+  const effectiveReprompt = reprompt || (keepListening && !endSession ? "I'm listening." : null);
+  if (effectiveReprompt) {
     resp.response.reprompt = {
-      outputSpeech: { type: 'PlainText', text: String(reprompt).slice(0, MAX_REPLY_CHARS) },
+      outputSpeech: { type: 'PlainText', text: String(effectiveReprompt).slice(0, MAX_REPLY_CHARS) },
     };
-  }
-  if (keepListening && !endSession) {
-    resp.response.directives = [{
-      type: 'Dialog.ElicitSlot',
-      slotToElicit: 'Query',
-      updatedIntent: {
-        name: 'AgentIntent',
-        confirmationStatus: 'NONE',
-        slots: {
-          Query: { name: 'Query', confirmationStatus: 'NONE' },
-        },
-      },
-    }];
   }
   return resp;
 }
@@ -441,10 +437,15 @@ export async function handleAlexaRequest(req, res) {
       } catch (err) {
         const dur = Date.now() - t0;
         const isTimeout = err.name === 'AbortError';
+        // Slow path: agent didn't fit in the ~6.5s race. Hand control back to
+        // Alexa with a friendly fallback within its 8s budget. The Pi continues
+        // processing in the background — the agent's actual reply lands in chat
+        // via the supervisor's broadcastBloby('chat:sync', ...) flow, regardless
+        // of whether this HTTP connection is still alive.
         const msg = isTimeout
-          ? "Morphy Agent is still working on this. I'll send the answer to your chat when ready."
+          ? "I'll send the result to your chat when I'm done."
           : `Trouble reaching your Morphy: ${err.message}`;
-        console.warn(`[alexa/handle] Forward ${isTimeout ? 'timeout' : 'error'} after ${dur}ms: ${err.message || err}`);
+        console.warn(`[alexa/handle] Forward ${isTimeout ? 'race-lost' : 'error'} after ${dur}ms: ${err.message || err}`);
         return res.json(alexaResponse(msg, {
           endSession: !isTimeout,             // on timeout, keep session open so user can fire next command
           reprompt: isTimeout ? "Anything else?" : null,
