@@ -90,6 +90,40 @@ async function forwardToTunnel(user, payload) {
   }
 }
 
+/**
+ * Send a Progressive Response directive to Alexa. This buys time — once Alexa
+ * receives a directive, the skill has ~30s total to send the final response
+ * instead of the default ~8s window. The directive itself plays a short
+ * "working on it" line so the user knows something's happening.
+ *
+ * Best-effort: failures are logged but don't break the main flow.
+ */
+async function sendProgressiveResponse(envelope, speech) {
+  const requestId = envelope?.request?.requestId;
+  const token = envelope?.context?.System?.apiAccessToken;
+  const apiEndpoint = envelope?.context?.System?.apiEndpoint || 'https://api.amazonalexa.com';
+  if (!requestId || !token) return;
+
+  try {
+    const r = await fetch(`${apiEndpoint}/v1/directives`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        header: { requestId },
+        directive: { type: 'VoicePlayer.Speak', speech: String(speech || '').slice(0, 600) },
+      }),
+    });
+    if (!r.ok) {
+      console.warn(`[alexa/handle] Progressive Response rejected: ${r.status}`);
+    }
+  } catch (err) {
+    console.warn('[alexa/handle] Progressive Response failed:', err.message);
+  }
+}
+
 // ─── POST /api/alexa/pair ───────────────────────────────────────────────────
 // Auth: bearer relay token (the same token the bot uses for register/heartbeat).
 // Generates a fresh 6-digit code, ensures a per-user shared secret exists.
@@ -305,6 +339,12 @@ export async function handleAlexaRequest(req, res) {
         return res.json(alexaResponse("What would you like to ask?", { endSession: false }));
       }
 
+      // Fire a Progressive Response after 2s if the Pi hasn't replied yet.
+      // This extends Alexa's response window from ~8s to ~30s.
+      const progressiveTimer = setTimeout(() => {
+        sendProgressiveResponse(envelope, "Working on it.").catch(() => {});
+      }, 2_000);
+
       try {
         const { reply, endSession } = await forwardToTunnel(user, {
           text: query,
@@ -312,11 +352,13 @@ export async function handleAlexaRequest(req, res) {
           sessionId,
           kind: 'ask',
         });
+        clearTimeout(progressiveTimer);
         return res.json(alexaResponse(
           reply || "I don't have anything to say to that.",
           { endSession: !!endSession, reprompt: endSession ? null : "Anything else?" },
         ));
       } catch (err) {
+        clearTimeout(progressiveTimer);
         const msg = err.name === 'AbortError'
           ? "I'll reply in your chat when I'm done."
           : `Trouble reaching your Morphy: ${err.message}`;
