@@ -111,6 +111,40 @@ function alexaResponse(speech, { endSession = false, reprompt = null, keepListen
   return resp;
 }
 
+/**
+ * Fire an immediate Progressive Response from the relay so Alexa's budget
+ * extends to ~30s before we even touch the Pi tunnel. Critical for cold-start
+ * reliability — the Pi's own fallback might be too slow on first turn.
+ *
+ * Best-effort, fire-and-forget. Failures logged but don't break the flow.
+ */
+async function sendImmediateProgressive(envelope, speech, t0) {
+  const requestId = envelope?.request?.requestId;
+  const token = envelope?.context?.System?.apiAccessToken;
+  const apiEndpoint = envelope?.context?.System?.apiEndpoint || 'https://api.amazonalexa.com';
+  if (!requestId || !token) return;
+
+  try {
+    const r = await fetch(`${apiEndpoint}/v1/directives`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        header: { requestId },
+        directive: { type: 'VoicePlayer.Speak', speech: String(speech || 'On it.').slice(0, 200) },
+      }),
+    });
+    const dur = Date.now() - t0;
+    if (r.ok) {
+      console.log(`[alexa/progressive-relay] sent at +${dur}ms (status ${r.status})`);
+    } else {
+      const body = await r.text().catch(() => '');
+      console.warn(`[alexa/progressive-relay] REJECTED at +${dur}ms — status ${r.status} body=${body.slice(0, 200)}`);
+    }
+  } catch (err) {
+    console.warn(`[alexa/progressive-relay] FAILED at +${Date.now() - t0}ms — ${err.message}`);
+  }
+}
+
 /** Forward an utterance to a user's tunnel and return the Pi's reply text. */
 async function forwardToTunnel(user, payload) {
   const url = `${user.tunnelUrl.replace(/\/$/, '')}/api/channels/alexa/handle`;
@@ -375,6 +409,11 @@ export async function handleAlexaRequest(req, res) {
       // "Working on it" fallback if the agent emits no text early.
       const t0 = Date.now();
       console.log(`[alexa/handle] AgentIntent start — query="${query.slice(0, 80)}" deviceId=${deviceId?.slice(-8) || 'none'}`);
+
+      // Fire Progressive Response IMMEDIATELY from the relay (parallel with
+      // forward). Guarantees Alexa extends its budget within ~200ms regardless
+      // of whether the Pi is cold. Pi-side preamble/fallback still fires later.
+      sendImmediateProgressive(envelope, "On it.", t0).catch(() => {});
 
       try {
         const { reply, endSession } = await forwardToTunnel(user, {
