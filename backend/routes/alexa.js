@@ -139,21 +139,47 @@ router.post('/alexa/pair', authenticate, async (req, res) => {
 export async function handleAlexaRequest(req, res) {
   try {
     // ── 1. Verify Amazon signature ─────────────────────────────────────────
-    const certUrl = req.headers.signaturecertchainurl;
-    const signature = req.headers.signature;
+    // Header names from Alexa are case-insensitive; Node lowercases them. The
+    // dev-console test simulator sometimes sends mixed-case variants, so check
+    // both shapes defensively.
+    const certUrl = req.headers.signaturecertchainurl
+      || req.headers.signaturecertchainurl_1_0
+      || req.headers['signaturecertchainurl'];
+    const signature = req.headers.signature || req.headers.signature_256;
     const rawBody = req.body instanceof Buffer ? req.body.toString('utf-8') : String(req.body || '');
 
     if (!certUrl || !signature) {
+      console.warn('[alexa/handle] Missing signature headers — header keys:', Object.keys(req.headers).filter((k) => k.toLowerCase().includes('sig')));
       return res.status(400).json({ error: 'Missing Alexa signature headers' });
     }
 
-    try {
-      await new Promise((resolve, reject) => {
-        verifier(certUrl, signature, rawBody, (err) => (err ? reject(err) : resolve()));
-      });
-    } catch (verErr) {
-      console.warn('[alexa/handle] Signature verification failed:', verErr.message || verErr);
-      return res.status(400).json({ error: 'Invalid Alexa signature' });
+    // Opt-in bypass for the dev-console simulator while diagnosing signature issues.
+    // Set ALEXA_SKIP_VERIFY=true on the relay env, restart, retest, then UNSET it
+    // before publishing. Logs a loud warning on every request so it can't be left on by accident.
+    const skipVerify = process.env.ALEXA_SKIP_VERIFY === 'true';
+
+    if (skipVerify) {
+      console.warn('[alexa/handle] ⚠ ALEXA_SKIP_VERIFY=true — accepting unverified request');
+    } else {
+      try {
+        await new Promise((resolve, reject) => {
+          verifier(certUrl, signature, rawBody, (err) => (err ? reject(err) : resolve()));
+        });
+      } catch (verErr) {
+        // Print enough to diagnose body-integrity vs cert-fetch vs format errors.
+        console.warn('[alexa/handle] Signature verification failed:', {
+          msg: verErr?.message || String(verErr),
+          name: verErr?.name,
+          certUrl,
+          sigLen: signature.length,
+          bodyLen: rawBody.length,
+          bodyFirst80: rawBody.slice(0, 80),
+          bodyLast40: rawBody.slice(-40),
+          contentType: req.headers['content-type'],
+          contentLength: req.headers['content-length'],
+        });
+        return res.status(400).json({ error: 'Invalid Alexa signature' });
+      }
     }
 
     let envelope;
