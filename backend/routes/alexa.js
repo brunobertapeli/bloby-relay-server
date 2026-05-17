@@ -29,7 +29,7 @@ const router = Router();
 
 // ─── Limits ────────────────────────────────────────────────────────────────
 const PAIR_TTL_SECONDS = 10 * 60;            // 10 minutes
-const PI_FORWARD_TIMEOUT_MS = 27_000;        // < Alexa's ~30s ceiling
+const PI_FORWARD_TIMEOUT_MS = 22_000;        // Safety margin under Alexa's ~30s ceiling (Pi internal timeout is 25s — relay aborts first)
 const MAX_REPLY_CHARS = 4_000;               // Alexa caps SSML around 8k chars; keep headroom
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -401,11 +401,16 @@ export async function handleAlexaRequest(req, res) {
         ));
       } catch (err) {
         const dur = Date.now() - t0;
-        const msg = err.name === 'AbortError'
-          ? "I'll reply in your chat when I'm done."
+        const isTimeout = err.name === 'AbortError';
+        const msg = isTimeout
+          ? "Morphy Agent is still working on this. I'll send the answer to your chat when ready."
           : `Trouble reaching your Morphy: ${err.message}`;
-        console.warn(`[alexa/handle] Forward error after ${dur}ms: ${err.message || err}`);
-        return res.json(alexaResponse(msg, { endSession: true }));
+        console.warn(`[alexa/handle] Forward ${isTimeout ? 'timeout' : 'error'} after ${dur}ms: ${err.message || err}`);
+        return res.json(alexaResponse(msg, {
+          endSession: !isTimeout,             // on timeout, keep session open so user can fire next command
+          reprompt: isTimeout ? "Anything else?" : null,
+          keepListening: isTimeout,
+        }));
       }
     }
 
