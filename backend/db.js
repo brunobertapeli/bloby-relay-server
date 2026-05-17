@@ -89,6 +89,23 @@ async function createIndexes() {
     messengerMessages.createIndex({ connectionId: 1 }),
     messengerMessages.createIndex({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 }),
   ]);
+
+  // ─── Alexa channel ────────────────────────────────────────────────────────
+  // Pairing codes minted by /api/alexa/pair, redeemed by LinkIntent inside /handle.
+  // TTL auto-deletes after expiresAt so unused codes don't pile up.
+  const alexaPairingCodes = db.collection('alexa_pairing_codes');
+  await Promise.all([
+    alexaPairingCodes.createIndex({ code: 1 }, { unique: true }),
+    alexaPairingCodes.createIndex({ username: 1 }),
+    alexaPairingCodes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+  ]);
+
+  // Persistent links: { alexaUserId → username }. One alexa user maps to one bloby.
+  const alexaLinks = db.collection('alexa_links');
+  await Promise.all([
+    alexaLinks.createIndex({ alexaUserId: 1 }, { unique: true }),
+    alexaLinks.createIndex({ username: 1 }),
+  ]);
 }
 
 export function getDb() {

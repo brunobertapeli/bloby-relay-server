@@ -23,6 +23,7 @@ import extensionRoutes from './routes/extension.js';
 import resolveRoutes from './routes/resolve.js';
 import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
+import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 
 dotenv.config();
@@ -72,6 +73,10 @@ app.use(subdomainResolver);
 // ─── Stripe webhook (raw body — must be BEFORE express.json()) ──────────────
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
 
+// ─── Alexa skill webhook (raw body — must be BEFORE express.json()) ─────────
+// Signature verification needs the exact bytes Amazon signed.
+app.post('/api/alexa/handle', express.raw({ type: 'application/json', limit: '64kb' }), handleAlexaRequest);
+
 // ─── Body parsing (relay API only — after subdomain proxy) ───────────────────
 app.use('/api', express.json({ limit: '16kb' }));
 
@@ -91,6 +96,7 @@ app.use('/api', serviceRoutes);
 app.use('/api', extensionRoutes);
 app.use('/api', worldRoutes);
 app.use('/api', messengerRoutes);
+app.use('/api', alexaRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
