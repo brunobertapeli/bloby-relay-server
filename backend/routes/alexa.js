@@ -257,6 +257,8 @@ export async function handleAlexaRequest(req, res) {
       || envelope?.context?.System?.user?.userId
       || null;
     const sessionId = envelope?.session?.sessionId || null;
+    const deviceId = envelope?.context?.System?.device?.deviceId || null;
+    const locale = envelope?.request?.locale || null;
 
     // ── 3. SessionEndedRequest — just acknowledge ──────────────────────────
     if (requestType === 'SessionEndedRequest') {
@@ -385,6 +387,8 @@ export async function handleAlexaRequest(req, res) {
           text: query,
           alexaUserId,
           sessionId,
+          deviceId,
+          locale,
           kind: 'ask',
         });
         clearTimeout(progressiveTimer);
