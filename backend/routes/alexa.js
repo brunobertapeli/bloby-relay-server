@@ -23,7 +23,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { getDb, getUsers } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
-import verifier from 'alexa-verifier';
+import { verifyAlexaRequest } from '../lib/alexa-verify.js';
 
 const router = Router();
 
@@ -139,39 +139,46 @@ router.post('/alexa/pair', authenticate, async (req, res) => {
 export async function handleAlexaRequest(req, res) {
   try {
     // ── 1. Verify Amazon signature ─────────────────────────────────────────
-    // Header names from Alexa are case-insensitive; Node lowercases them. The
-    // dev-console test simulator sometimes sends mixed-case variants, so check
-    // both shapes defensively.
-    const certUrl = req.headers.signaturecertchainurl
-      || req.headers.signaturecertchainurl_1_0
-      || req.headers['signaturecertchainurl'];
-    const signature = req.headers.signature || req.headers.signature_256;
+    // Node lowercases all incoming header names. Amazon may send EITHER the
+    // legacy SHA1 `Signature` header, OR the newer `Signature-256` (SHA256),
+    // or both. The inline verifier prefers SHA256 when present and falls back
+    // to SHA1 to cover the dev-console test simulator and older devices.
+    const certUrl = req.headers.signaturecertchainurl;
+    const sigSha1 = req.headers.signature;
+    const sigSha256 = req.headers['signature-256'];
     const rawBody = req.body instanceof Buffer ? req.body.toString('utf-8') : String(req.body || '');
 
-    if (!certUrl || !signature) {
-      console.warn('[alexa/handle] Missing signature headers — header keys:', Object.keys(req.headers).filter((k) => k.toLowerCase().includes('sig')));
+    if (!certUrl || (!sigSha1 && !sigSha256)) {
+      console.warn('[alexa/handle] Missing signature headers — sig keys present:',
+        Object.keys(req.headers).filter((k) => k.toLowerCase().includes('sig')));
       return res.status(400).json({ error: 'Missing Alexa signature headers' });
     }
 
-    // Opt-in bypass for the dev-console simulator while diagnosing signature issues.
-    // Set ALEXA_SKIP_VERIFY=true on the relay env, restart, retest, then UNSET it
-    // before publishing. Logs a loud warning on every request so it can't be left on by accident.
+    let envelope;
+    try { envelope = JSON.parse(rawBody); }
+    catch { return res.status(400).json({ error: 'Malformed JSON' }); }
+
+    const requestTimestamp = envelope?.request?.timestamp;
+    if (!requestTimestamp) return res.status(400).json({ error: 'Request timestamp missing' });
+
+    // Opt-in bypass for diagnosis. Logs loudly on every request so it can't
+    // be silently left on. UNSET before publishing.
     const skipVerify = process.env.ALEXA_SKIP_VERIFY === 'true';
 
     if (skipVerify) {
       console.warn('[alexa/handle] ⚠ ALEXA_SKIP_VERIFY=true — accepting unverified request');
     } else {
       try {
-        await new Promise((resolve, reject) => {
-          verifier(certUrl, signature, rawBody, (err) => (err ? reject(err) : resolve()));
+        const { algo } = await verifyAlexaRequest({
+          certUrl, sigSha256, sigSha1, rawBody, timestamp: requestTimestamp,
         });
+        console.log(`[alexa/handle] verified (${algo})`);
       } catch (verErr) {
-        // Print enough to diagnose body-integrity vs cert-fetch vs format errors.
         console.warn('[alexa/handle] Signature verification failed:', {
           msg: verErr?.message || String(verErr),
-          name: verErr?.name,
           certUrl,
-          sigLen: signature.length,
+          sigSha1Len: sigSha1?.length || 0,
+          sigSha256Len: sigSha256?.length || 0,
           bodyLen: rawBody.length,
           bodyFirst80: rawBody.slice(0, 80),
           bodyLast40: rawBody.slice(-40),
@@ -180,16 +187,6 @@ export async function handleAlexaRequest(req, res) {
         });
         return res.status(400).json({ error: 'Invalid Alexa signature' });
       }
-    }
-
-    let envelope;
-    try { envelope = JSON.parse(rawBody); }
-    catch { return res.status(400).json({ error: 'Malformed JSON' }); }
-
-    // ── 2. Reject stale timestamps (defense in depth) ──────────────────────
-    const ts = envelope?.request?.timestamp ? Date.parse(envelope.request.timestamp) : 0;
-    if (!ts || Math.abs(Date.now() - ts) > 150_000) {
-      return res.status(400).json({ error: 'Request timestamp out of range' });
     }
 
     const requestType = envelope?.request?.type;
