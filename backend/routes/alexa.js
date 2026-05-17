@@ -10,7 +10,7 @@
  *   POST /api/alexa/handle  (Amazon-signed webhook)
  *     The public endpoint configured on the Alexa skill. Verifies the request
  *     came from Amazon (signature + cert + timestamp), dispatches on intent,
- *     and forwards AskBlobyIntent to the linked user's tunnel. Returns the
+ *     and forwards AskMorphyIntent to the linked user's tunnel. Returns the
  *     Alexa-flavored JSON envelope.
  *
  * The signature/cert verification depends on the `alexa-verifier` npm package
@@ -200,17 +200,17 @@ export async function handleAlexaRequest(req, res) {
       return res.json({ version: '1.0', response: { shouldEndSession: true } });
     }
 
-    // ── 4. LaunchRequest — "Alexa, open Bloby" ─────────────────────────────
+    // ── 4. LaunchRequest — "Alexa, open Morphy" ────────────────────────────
     if (requestType === 'LaunchRequest') {
       const link = alexaUserId ? await getLinks().findOne({ alexaUserId }) : null;
       if (!link) {
         return res.json(alexaResponse(
-          "Welcome to Bloby. To get started, open your bloby dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
+          "Welcome to Morphy. To get started, open your Morphy dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
           { endSession: false, reprompt: "Say: link with code, followed by your six digits." },
         ));
       }
       return res.json(alexaResponse(
-        "Bloby here, what can I help with?",
+        "Morphy here, what can I help with?",
         { endSession: false, reprompt: "I'm listening." },
       ));
     }
@@ -228,7 +228,7 @@ export async function handleAlexaRequest(req, res) {
     }
     if (intentName === 'AMAZON.HelpIntent') {
       return res.json(alexaResponse(
-        "You can ask me anything you'd ask in your bloby chat. For example: what's on my schedule, or summarize my emails.",
+        "You can ask me anything you'd ask in your Morphy chat. For example: what's on my schedule, or summarize my emails.",
         { endSession: false, reprompt: "What would you like to ask?" },
       ));
     }
@@ -251,12 +251,12 @@ export async function handleAlexaRequest(req, res) {
       const codeDoc = pending?.value || pending; // mongo driver v5 vs v6
       if (!codeDoc?.username) {
         return res.json(alexaResponse(
-          "That code didn't match or has expired. Generate a fresh one from your bloby dashboard and try again.",
+          "That code didn't match or has expired. Generate a fresh one from your Morphy dashboard and try again.",
           { endSession: false, reprompt: "Try saying: link with code, then your new six digits." },
         ));
       }
 
-      // Upsert the link: an Alexa user can only be linked to one bloby at a time;
+      // Upsert the link: an Alexa user can only be linked to one Morphy at a time;
       // a fresh pair replaces any prior linkage.
       await getLinks().updateOne(
         { alexaUserId },
@@ -265,20 +265,20 @@ export async function handleAlexaRequest(req, res) {
       );
 
       return res.json(alexaResponse(
-        `Linked to ${codeDoc.username}. What can I help with?`,
+        "Linked successfully. What can I help with?",
         { endSession: false, reprompt: "I'm listening." },
       ));
     }
 
-    // ── 7. AskBlobyIntent — forward to the user's tunnel ──────────────────
-    if (intentName === 'AskBlobyIntent') {
+    // ── 7. AskMorphyIntent — forward to the user's tunnel ─────────────────
+    if (intentName === 'AskMorphyIntent') {
       if (!alexaUserId) {
         return res.json(alexaResponse("I couldn't identify your Alexa account.", { endSession: true }));
       }
       const link = await getLinks().findOne({ alexaUserId });
       if (!link) {
         return res.json(alexaResponse(
-          "This Alexa isn't linked to a bloby yet. Open your bloby dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
+          "This Alexa isn't linked to a Morphy yet. Open your Morphy dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
           { endSession: false, reprompt: "Say: link with code, followed by your six digits." },
         ));
       }
@@ -289,13 +289,13 @@ export async function handleAlexaRequest(req, res) {
       );
       if (!user || !user.tunnelUrl || !user.alexaSharedSecret) {
         return res.json(alexaResponse(
-          `I can't reach ${link.username} right now. Make sure your bloby is online and the Alexa channel is enabled.`,
+          "I can't reach your Morphy right now. Make sure it's online and the Alexa channel is enabled.",
           { endSession: true },
         ));
       }
       if (user.isOnline === false) {
         return res.json(alexaResponse(
-          `${link.username} appears to be offline. Start it up and try again.`,
+          "Your Morphy appears to be offline. Start it up and try again.",
           { endSession: true },
         ));
       }
@@ -319,7 +319,7 @@ export async function handleAlexaRequest(req, res) {
       } catch (err) {
         const msg = err.name === 'AbortError'
           ? "I'll reply in your chat when I'm done."
-          : `Trouble reaching your bloby: ${err.message}`;
+          : `Trouble reaching your Morphy: ${err.message}`;
         console.warn('[alexa/handle] Forward error:', err.message || err);
         return res.json(alexaResponse(msg, { endSession: true }));
       }
