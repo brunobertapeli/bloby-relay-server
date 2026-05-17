@@ -58,8 +58,8 @@ function cleanQuery(rawQuery) {
   let q = String(rawQuery || '').trim();
   if (!q) return q;
 
-  // Order matters: longer phrases first so "my morphy" wins over "morphy".
-  const invocations = ['my morphy', 'morphy'];
+  // Order matters: longer phrases first so "morphy agent" wins over "morphy".
+  const invocations = ['morphy agent', 'my morphy', 'morphy'];
   for (const name of invocations) {
     const re = new RegExp(`^${name}\\b[\\s,.:;-]*`, 'i');
     if (re.test(q)) {
@@ -75,8 +75,13 @@ function cleanQuery(rawQuery) {
   return q;
 }
 
-/** Build a standard Alexa response envelope. */
-function alexaResponse(speech, { endSession = false, reprompt = null } = {}) {
+/** Build a standard Alexa response envelope.
+ *
+ *  When `keepListening: true`, attaches a Dialog.ElicitSlot directive that
+ *  tells Alexa "expect another AgentIntent utterance next" — this keeps the
+ *  mic open AND signals to NLU that the next input is free-form, which
+ *  significantly improves intent-routing reliability inside a session. */
+function alexaResponse(speech, { endSession = false, reprompt = null, keepListening = false } = {}) {
   const safe = String(speech || '').slice(0, MAX_REPLY_CHARS);
   const resp = {
     version: '1.0',
@@ -89,6 +94,19 @@ function alexaResponse(speech, { endSession = false, reprompt = null } = {}) {
     resp.response.reprompt = {
       outputSpeech: { type: 'PlainText', text: String(reprompt).slice(0, MAX_REPLY_CHARS) },
     };
+  }
+  if (keepListening && !endSession) {
+    resp.response.directives = [{
+      type: 'Dialog.ElicitSlot',
+      slotToElicit: 'Query',
+      updatedIntent: {
+        name: 'AgentIntent',
+        confirmationStatus: 'NONE',
+        slots: {
+          Query: { name: 'Query', confirmationStatus: 'NONE' },
+        },
+      },
+    }];
   }
   return resp;
 }
@@ -231,18 +249,18 @@ export async function handleAlexaRequest(req, res) {
       return res.json({ version: '1.0', response: { shouldEndSession: true } });
     }
 
-    // ── 4. LaunchRequest — "Alexa, open Morphy" ────────────────────────────
+    // ── 4. LaunchRequest — "Alexa, open Morphy Agent" ──────────────────────
     if (requestType === 'LaunchRequest') {
       const link = alexaUserId ? await getLinks().findOne({ alexaUserId }) : null;
       if (!link) {
         return res.json(alexaResponse(
-          "Welcome to Morphy. To get started, open your Morphy dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
+          "Welcome to Morphy Agent. To get started, open your Morphy dashboard, grab a pairing code, then say: link with code, followed by your six digits.",
           { endSession: false, reprompt: "Say: link with code, followed by your six digits." },
         ));
       }
       return res.json(alexaResponse(
         "Morphy here, what can I help with?",
-        { endSession: false, reprompt: "I'm listening." },
+        { endSession: false, reprompt: "I'm listening.", keepListening: true },
       ));
     }
 
@@ -260,13 +278,15 @@ export async function handleAlexaRequest(req, res) {
     if (intentName === 'AMAZON.HelpIntent') {
       return res.json(alexaResponse(
         "You can ask me anything you'd ask in your Morphy chat. For example: what's on my schedule, or summarize my emails.",
-        { endSession: false, reprompt: "What would you like to ask?" },
+        { endSession: false, reprompt: "What would you like to ask?", keepListening: true },
       ));
     }
     if (intentName === 'AMAZON.FallbackIntent') {
+      // Don't dead-end — keep the session alive and elicit another Query attempt.
+      // The next utterance gets the loosened NLU treatment from Dialog.ElicitSlot.
       return res.json(alexaResponse(
-        "I didn't quite catch that. Try saying it again, starting with: tell me, ask about, or what.",
-        { endSession: false, reprompt: "Try saying: tell me what time it is, or ask about my schedule." },
+        "Sorry, I didn't catch that. Try again?",
+        { endSession: false, reprompt: "I'm listening.", keepListening: true },
       ));
     }
 
@@ -307,8 +327,11 @@ export async function handleAlexaRequest(req, res) {
       ));
     }
 
-    // ── 7. AskMorphyIntent — forward to the user's tunnel ─────────────────
-    if (intentName === 'AskMorphyIntent') {
+    // ── 7. AgentIntent — forward the user's raw utterance to the tunnel ───
+    //    Uses a custom slot type (OpenInput) instead of AMAZON.SearchQuery so
+    //    NLU is permissive about free-form input. Always read .value (raw) —
+    //    never .resolutions.* which would give us the closest seeded value.
+    if (intentName === 'AgentIntent') {
       if (!alexaUserId) {
         return res.json(alexaResponse("I couldn't identify your Alexa account.", { endSession: true }));
       }
@@ -337,9 +360,12 @@ export async function handleAlexaRequest(req, res) {
         ));
       }
 
-      const query = cleanQuery(slots.query?.value || '');
+      // Read the raw slot value — NOT the resolved value (which would snap to
+      // the closest seeded sample). cleanQuery strips invocation leakage
+      // ("morphy agent ..." appearing as part of the slot).
+      const query = cleanQuery(slots.Query?.value || '');
       if (!query) {
-        return res.json(alexaResponse("What would you like to ask?", { endSession: false }));
+        return res.json(alexaResponse("What would you like to ask?", { endSession: false, keepListening: true }));
       }
 
       // Pi handles all Progressive Response logic — we just pass it the
@@ -348,7 +374,7 @@ export async function handleAlexaRequest(req, res) {
       // message to Cortex now...") as Progressive Response, with a static
       // "Working on it" fallback if the agent emits no text early.
       const t0 = Date.now();
-      console.log(`[alexa/handle] AskMorphyIntent start — query="${query.slice(0, 80)}" deviceId=${deviceId?.slice(-8) || 'none'}`);
+      console.log(`[alexa/handle] AgentIntent start — query="${query.slice(0, 80)}" deviceId=${deviceId?.slice(-8) || 'none'}`);
 
       try {
         const { reply, endSession } = await forwardToTunnel(user, {
@@ -364,10 +390,14 @@ export async function handleAlexaRequest(req, res) {
           requestId: envelope?.request?.requestId || null,
         });
         const dur = Date.now() - t0;
-        console.log(`[alexa/handle] AskMorphyIntent done in ${dur}ms — reply="${(reply || '').slice(0, 80)}"`);
+        console.log(`[alexa/handle] AgentIntent done in ${dur}ms — reply="${(reply || '').slice(0, 80)}"`);
         return res.json(alexaResponse(
           reply || "I don't have anything to say to that.",
-          { endSession: !!endSession, reprompt: endSession ? null : "Anything else?" },
+          {
+            endSession: !!endSession,
+            reprompt: endSession ? null : "Anything else?",
+            keepListening: !endSession,
+          },
         ));
       } catch (err) {
         const dur = Date.now() - t0;
