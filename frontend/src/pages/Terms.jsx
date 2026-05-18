@@ -31,7 +31,7 @@ export default function Terms() {
             Terms of Use
           </h1>
           <p className="text-sm text-muted-foreground mb-10">
-            Last updated: April 7, 2026
+            Last updated: May 17, 2026
           </p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-muted-foreground">
@@ -143,6 +143,42 @@ export default function Terms() {
                   including shell access — are effectively public.
                 </p>
               </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold font-display text-foreground mb-3">Alexa Skill (Morphy Agent)</h2>
+              <p className="mb-3">
+                Use of the Morphy Agent Alexa skill is also governed by Amazon's{' '}
+                <a
+                  href="https://www.amazon.com/gp/help/customer/display.html?nodeId=201809740"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+                >
+                  Alexa Terms of Use
+                </a>
+                {' '}and{' '}
+                <a
+                  href="https://www.amazon.com/gp/help/customer/display.html?nodeId=GVP69FUJ48X9DK8V"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+                >
+                  Alexa Privacy Policy
+                </a>
+                . The skill simply forwards your voice requests to your own self-hosted Bloby agent — we do
+                not control what your agent does in response. The same{' '}
+                <strong className="text-foreground">AI Agent Risks & Safety</strong> rules above apply: a
+                voice request can trigger any action your agent is capable of, so treat it exactly like a
+                typed prompt.
+              </p>
+              <p>
+                <strong className="text-foreground">
+                  Amazon, Alexa, Echo, and all related trademarks are the property of Amazon.com, Inc.
+                  Morphy Agent and Bloby are not affiliated with, endorsed by, or sponsored by Amazon in
+                  any way.
+                </strong>
+              </p>
             </section>
 
             <section>

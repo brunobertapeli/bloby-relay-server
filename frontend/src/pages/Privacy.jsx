@@ -31,7 +31,7 @@ export default function Privacy() {
             Privacy Policy
           </h1>
           <p className="text-sm text-muted-foreground mb-10">
-            Last updated: April 7, 2026
+            Last updated: May 17, 2026
           </p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-muted-foreground">
@@ -134,6 +134,56 @@ export default function Privacy() {
                   appears in agent logs or output, treat it as compromised and replace it immediately.
                 </p>
               </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold font-display text-foreground mb-3">Alexa Skill (Morphy Agent)</h2>
+              <p className="mb-3">
+                The Morphy Agent Alexa skill lets you talk to your Bloby agent through any Echo device. When
+                you use the skill, here is exactly what happens to your voice data:
+              </p>
+              <ul className="list-disc list-inside space-y-2 mb-3">
+                <li>
+                  <strong className="text-foreground">Amazon transcribes your speech to text.</strong> The
+                  audio recording itself stays with Amazon under their{' '}
+                  <a
+                    href="https://www.amazon.com/gp/help/customer/display.html?nodeId=GVP69FUJ48X9DK8V"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+                  >
+                    Alexa Privacy Policy
+                  </a>
+                  . We never receive the raw audio.
+                </li>
+                <li>
+                  <strong className="text-foreground">Amazon sends us the text transcript</strong> along with
+                  your anonymous Alexa user ID. Our relay forwards it directly to your own Bloby instance
+                  (the tunnel running on your machine). The transcript is held in memory only for the
+                  duration of the request — we do not store it in any database or log file.
+                </li>
+                <li>
+                  <strong className="text-foreground">Your agent processes the request and replies</strong>{' '}
+                  on your machine. The reply travels back through our relay to Alexa, which speaks it on
+                  your device. Again, nothing about the conversation is retained on our servers.
+                </li>
+                <li>
+                  <strong className="text-foreground">The only thing we persist</strong> is the link between
+                  your anonymous Alexa user ID and your Bloby handle, plus a per-user shared secret used to
+                  authenticate the relay-to-tunnel forward. This link exists so we know which Bloby to
+                  forward your voice requests to. You can delete it at any time by disabling the skill in
+                  the Alexa app or unlinking from your dashboard.
+                </li>
+              </ul>
+              <p className="mb-3">
+                <strong className="text-foreground">No third parties</strong> beyond Amazon (who you've
+                already chosen to use by enabling the skill) ever see your voice data. We do not sell,
+                share, or analyze it. Voice transcripts are never used to train AI models on our end.
+              </p>
+              <p>
+                <strong className="text-foreground">Children:</strong> the skill is not directed to children
+                under 13. We do not knowingly collect data from children.
+              </p>
             </section>
 
             <section>
