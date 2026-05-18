@@ -178,18 +178,23 @@ function shell(title, body) {
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',system-ui,sans-serif;
       background:#0a0a0b;color:#e4e4e7;display:flex;align-items:center;
-      justify-content:center;min-height:100vh;padding:1.5rem}
-    .c{text-align:center;max-width:460px}
+      justify-content:center;min-height:100vh;padding:1.5rem;overflow-x:hidden}
+    .c{text-align:center;max-width:460px;animation:fade-up .6s ease-out both}
     h1{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;
-      margin-bottom:.5rem;display:flex;align-items:center;
+      margin-bottom:.6rem;display:flex;align-items:center;
       justify-content:center;gap:.5rem}
-    p{color:#a1a1aa;line-height:1.6;margin-bottom:.75rem;font-size:.95rem}
+    p{color:#a1a1aa;line-height:1.6;margin-bottom:.6rem;font-size:.95rem}
+    .lead{color:#e4e4e7;font-size:1rem}
     strong{color:#e4e4e7}
     .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
     .red{background:#ef4444;animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes pulse-scale{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.85)}}
+    @keyframes pulse-glow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+    @keyframes fade-up{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
     .badge{display:inline-block;background:#18181b;border:1px solid #27272a;
-      border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;margin-top:.5rem}
+      border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;
+      margin-top:1.2rem;font-family:'Space Grotesk',sans-serif}
     .gradient{background:linear-gradient(135deg,#04D1FE,#AF27E3,#FB4072);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
       background-clip:text}
@@ -202,6 +207,20 @@ function shell(title, body) {
     .btn:hover{opacity:.9}
     .actions{display:flex;justify-content:center;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
     video{pointer-events:none}
+    .video-wrap{position:relative;width:220px;height:220px;margin:0 auto 1.4rem;
+      display:flex;align-items:center;justify-content:center}
+    .video-wrap::before{content:'';position:absolute;inset:-20px;
+      background:radial-gradient(circle,rgba(175,39,227,0.18) 0%,transparent 60%);
+      filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
+    .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;
+      border-radius:50%}
+    .status-pill{font-size:.85rem;color:#71717a;display:inline-flex;align-items:center;
+      gap:.5rem;background:#18181b;border:1px solid #27272a;border-radius:9999px;
+      padding:.35rem .9rem;margin-top:.4rem}
+    .status-dot{width:8px;height:8px;border-radius:50%;
+      background:linear-gradient(135deg,#04D1FE,#AF27E3);
+      box-shadow:0 0 8px rgba(175,39,227,0.6);
+      animation:pulse-scale 1.6s ease-in-out infinite}
   </style>
 </head>
 <body><div class="c">${body}</div></body>
@@ -209,16 +228,25 @@ function shell(title, body) {
 }
 
 function offlinePage(username) {
+  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
+  const videoBase = `https://www.${domain}/assets/videos/bloby_restarting`;
   return shell(
-    `${esc(username)} — Offline`,
-    `<h1><span class="dot red"></span> Bot Offline</h1>
-     <p><strong>${esc(username)}</strong>'s bot is currently unreachable.
-        It may be restarting or the host machine is powered off.</p>
-     <p class="sub" id="status">Retrying...</p>
-     <span class="badge">Powered by Bloby</span>
+    `${esc(username)} — Restarting`,
+    `<div class="video-wrap">
+       <video autoplay loop muted playsinline>
+         <source src="${videoBase}.webm" type="video/webm">
+       </video>
+     </div>
+     <h1 class="gradient">Agent is restarting</h1>
+     <p class="lead"><strong>${esc(username)}</strong>'s bot is coming back online.</p>
+     <p>This can happen after an update, a restart, or if the host machine is briefly offline.
+        No action needed — the page will refresh automatically once it's back.</p>
+     <div class="status-pill" id="status"><span class="status-dot"></span><span id="statusText">Reconnecting…</span></div>
+     <div><span class="badge">Powered by Bloby</span></div>
      <script>
      (function(){
        var a=0;
+       var t=document.getElementById('statusText');
        function retry(){a++;
          fetch(location.href,{cache:'no-store',redirect:'follow'})
            .then(function(r){if(r.ok||(r.status!==502&&r.status!==503))location.reload();else sched()})
@@ -226,7 +254,7 @@ function offlinePage(username) {
        }
        function sched(){
          var d=Math.min(3000,1000+a*300);
-         document.getElementById('status').textContent='Retrying in '+Math.ceil(d/1000)+'s...';
+         t.textContent='Reconnecting in '+Math.ceil(d/1000)+'s… (attempt '+a+')';
          setTimeout(retry,d);
        }
        setTimeout(retry,2000);
