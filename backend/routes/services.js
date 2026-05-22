@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { ObjectId } from 'mongodb';
 import { authenticateBlobyHeader } from '../middleware/auth.js';
 import { recordTransaction } from '../lib/transactions.js';
@@ -11,12 +12,15 @@ import {
 } from '../lib/payment-chain.js';
 import youtubeToText from '../services/youtube-to-text.js';
 import imageGen from '../services/image-gen.js';
+import audioToText from '../services/audio-to-text.js';
 
 const router = Router();
 
 // ─── Service handlers ───────────────────────────────────────────────────────
 // Each service ID maps to a handler. Signature: (body, ctx) → { contentType, body, status? }
 //   ctx.paidVia: 'free' | 'balance' | 'mpp' | 'mpp-base'
+//   ctx.file:           multer file object (only set for multipart routes)
+//   ctx.estimatedMinutes / ctx.priceUsd / ctx.assumedBitrateBps: per-minute pricing fields
 
 const TEST_MESSAGES = [
   '# PINEAPPLE-RADAR-7\n\nThis is a verified Bloby test service response. If your agent is reading this, the full services pipeline works: auth, transaction recording, and delivery.\n\n**Timestamp:** {{time}}',
@@ -32,6 +36,7 @@ const serviceHandlers = {
   },
   'youtube-to-text': youtubeToText,
   'image-gen': imageGen,
+  'audio-to-text': audioToText,
   'test-mpp': (_body, ctx) => ({
     contentType: 'text/markdown',
     body: `PINEAPPLE-MPP-OK · paid via ${ctx.paidVia} · ${new Date().toISOString()}`,
@@ -52,10 +57,33 @@ async function loadService(req, res, next) {
   next();
 }
 
+// Resolves `req.product.price` for `pricingModel === 'per-minute'` products.
+// Estimates duration from file size + `assumedBitrateBps` (default 32 kbps).
+// Must run AFTER multer and `loadService`, BEFORE the payment chain.
+function applyPerMinutePricing(req, res, next) {
+  if (!req.product || req.product.pricingModel !== 'per-minute') return next();
+  if (!req.file) {
+    return res.status(400).json({ error: 'Missing audio file (multipart field "file")' });
+  }
+  const assumedBitrate = req.product.assumedBitrateBps || 32000;
+  const unitPriceUsd = req.product.unitPriceUsd || 0;
+  const estimatedSec = (req.file.size * 8) / assumedBitrate;
+  const estimatedMinutes = Math.max(1, Math.ceil(estimatedSec / 60));
+  req.estimatedMinutes = estimatedMinutes;
+  req.product.price = parseFloat((estimatedMinutes * unitPriceUsd).toFixed(6));
+  next();
+}
+
 async function runHandler(req, res) {
   const handler = serviceHandlers[req.product.id];
   try {
-    const result = await handler(req.body, { paidVia: req.paidVia });
+    const result = await handler(req.body, {
+      paidVia: req.paidVia,
+      file: req.file,
+      estimatedMinutes: req.estimatedMinutes,
+      priceUsd: req.product.price,
+      assumedBitrateBps: req.product.assumedBitrateBps,
+    });
 
     attachReceiptHeader(req, res);
 
@@ -82,6 +110,63 @@ async function runHandler(req, res) {
     res.status(500).json({ error: 'Service execution failed' });
   }
 }
+
+// ─── Multipart upload (audio-to-text) ──────────────────────────────────────
+// In-memory storage (small files, ≤25MB). No temp files, no cleanup.
+
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // matches Groq's hard cap
+});
+
+function audioUploadHandler(req, res, next) {
+  audioUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'Audio file too large (max 25MB)' });
+      }
+      return res.status(400).json({ error: err.message || 'Upload error' });
+    }
+    next();
+  });
+}
+
+// Inject `serviceId` into the params for downstream middleware (loadService
+// reads `req.params.serviceId`). The explicit route bypasses the param route.
+function pinServiceId(serviceId) {
+  return (req, _res, next) => {
+    req.params.serviceId = serviceId;
+    next();
+  };
+}
+
+// ─── POST /api/services/audio-to-text/use[-base] ───────────────────────────
+// Specific routes registered BEFORE the parameterized /:serviceId/use routes
+// so Express matches them first.
+
+router.post(
+  '/services/audio-to-text/use',
+  audioUploadHandler,
+  pinServiceId('audio-to-text'),
+  authenticateBlobyHeader,
+  loadService,
+  applyPerMinutePricing,
+  tryAccountBalance,
+  mppxIfNotPaid,
+  runHandler,
+);
+
+router.post(
+  '/services/audio-to-text/use-base',
+  audioUploadHandler,
+  pinServiceId('audio-to-text'),
+  authenticateBlobyHeader,
+  loadService,
+  applyPerMinutePricing,
+  tryAccountBalance,
+  baseX402IfNotPaid,
+  runHandler,
+);
 
 // ─── POST /api/services/:serviceId/use ──────────────────────────────────────
 // Order: authenticate bot → load service → try balance → fall back to MPP → run handler.
