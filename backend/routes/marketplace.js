@@ -181,11 +181,22 @@ function generateBundleSection(bundle) {
 }
 
 function generateServiceSection(service) {
-  const price = service.price > 0 ? `$${Number(service.price).toFixed(2)}/use` : 'Free';
-  const lines = [`### ${service.name} — ${price}`, '', service.description || ''];
+  let priceLabel;
+  if (service.pricingModel === 'per-minute' && service.unitPriceUsd) {
+    const perHour = service.unitPriceUsd * 60;
+    priceLabel = `$${Number(service.unitPriceUsd).toFixed(4)}/min ($${perHour.toFixed(2)}/hr)`;
+  } else if (service.price > 0) {
+    priceLabel = `$${Number(service.price).toFixed(2)}/use`;
+  } else {
+    priceLabel = 'Free';
+  }
+  const lines = [`### ${service.name} — ${priceLabel}`, '', service.description || ''];
 
   lines.push('', `- **Version: ${service.version || '1.0.0'}**`);
-  if (service.price > 0) {
+  if (service.pricingModel === 'per-minute' && service.unitPriceUsd) {
+    const perHour = service.unitPriceUsd * 60;
+    lines.push(`- **Pricing:** $${Number(service.unitPriceUsd).toFixed(4)} per estimated minute, rounded up (≈ $${perHour.toFixed(2)}/hour). Deducted from owner's credit balance, with MPP/Base fallback.`);
+  } else if (service.price > 0) {
     lines.push(`- **Price:** $${Number(service.price).toFixed(2)} per use (deducted from owner's credit balance)`);
   }
 
