@@ -1022,13 +1022,23 @@ router.get('/marketplace/products', async (req, res) => {
       ? `https://${process.env.RELAY_DOMAIN}`
       : `${req.protocol}://${req.get('host')}`;
 
-    const enrichProduct = (p) => ({
-      ...p,
-      free: p.price === 0,
-      ...(p.price === 0 && {
-        download_url: `${baseUrl}/api/marketplace/download/free/${p.id}`,
-      }),
-    });
+    const enrichProduct = (p) => {
+      const isPerMinute = p.pricingModel === 'per-minute' && p.unitPriceUsd > 0;
+      const isFree = !isPerMinute && p.price === 0;
+      const perHour = isPerMinute ? parseFloat((p.unitPriceUsd * 60).toFixed(4)) : null;
+      return {
+        ...p,
+        free: isFree,
+        ...(isPerMinute && {
+          pricePerMinuteUsd: p.unitPriceUsd,
+          pricePerHourUsd: perHour,
+          priceLabel: `$${p.unitPriceUsd.toFixed(4)}/min ($${perHour.toFixed(2)}/hr)`,
+        }),
+        ...(isFree && {
+          download_url: `${baseUrl}/api/marketplace/download/free/${p.id}`,
+        }),
+      };
+    };
 
     res.json({
       skills: catalog.skills.map(enrichProduct),
