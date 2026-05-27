@@ -1297,7 +1297,7 @@ function BlobyWorldSection() {
           variants={fadeUp}
         >
           <div className="mx-auto mb-5 sm:mb-6">
-            <img src="/assets/images/bloby.png" alt="Bloby" className="h-16 sm:h-20 w-auto mx-auto" />
+            <img src="/assets/images/morphy.png" alt="Bloby" className="h-16 sm:h-20 w-auto mx-auto" />
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
@@ -1336,7 +1336,7 @@ function Footer() {
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/assets/images/bloby_mascot.png" alt="Bloby" className="h-8 w-auto" />
+              <img src="/assets/images/morphy_mascot.png" alt="Bloby" className="h-8 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               AI agent platform under BSL. Your agent, your rules.

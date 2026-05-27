@@ -63,7 +63,7 @@ function DashNavbar({ user, onLogout }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="group">
             <motion.img
-              src="/assets/images/bloby_mascot.png"
+              src="/assets/images/morphy_mascot.png"
               alt="Bloby"
               className="h-[35px] w-auto"
               whileHover={{ scale: 1.05 }}
@@ -133,7 +133,7 @@ function DashNavbar({ user, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/bloby.png" alt="Bloby" className="h-7 w-auto" />
+                  <img src="/assets/images/morphy.png" alt="Bloby" className="h-7 w-auto" />
                   <span className="font-bold font-display text-foreground">Bloby</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
@@ -759,7 +759,7 @@ function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
-              src="/assets/images/bloby.png"
+              src="/assets/images/morphy.png"
               alt={bloby.name}
               className="w-9 h-9 object-contain"
               style={{ filter: 'grayscale(1) opacity(0.55)' }}

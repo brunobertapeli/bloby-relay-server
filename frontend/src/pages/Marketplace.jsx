@@ -204,7 +204,7 @@ function FilterTabs({ active, onChange }) {
 function BlobyIcon({ active }) {
   return (
     <img
-      src="/assets/images/bloby.png"
+      src="/assets/images/morphy.png"
       alt=""
       className="w-5 h-5 object-contain transition-all duration-200"
       style={{ filter: active ? 'brightness(1.3) saturate(0.3)' : 'grayscale(1) opacity(0.55)' }}

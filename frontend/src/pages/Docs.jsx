@@ -400,7 +400,7 @@ export default function Docs() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <img src="/assets/images/bloby.png" alt="Bloby" className="h-8 w-auto" />
+              <img src="/assets/images/morphy.png" alt="Bloby" className="h-8 w-auto" />
               <span className="text-lg font-bold font-display text-foreground">Bloby</span>
             </Link>
             <HiChevronRight className="w-4 h-4 text-muted-foreground/40 hidden sm:block" />

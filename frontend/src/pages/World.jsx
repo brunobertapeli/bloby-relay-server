@@ -587,7 +587,7 @@ function BlobyCard({ bloby, onClose }) {
 
           <img
             className="bloby-card__avatar"
-            src="/assets/images/bloby.png"
+            src="/assets/images/morphy.png"
             alt={bloby.username}
           />
 
