@@ -117,47 +117,45 @@ export default function MorphyMascot() {
       y: mouse.y + MOUSE_OFFSET_Y + DISPLAY_H / 2,
     })
 
-    // ── Helpers ──
-    const startTravelTo = (target, nextPhase) => {
-      travelFromX = posX
-      travelFromY = posY
-      travelToX = target.x
-      travelToY = target.y
-      const dx = travelToX - travelFromX
-      const dy = travelToY - travelFromY
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      travelDuration = Math.min(
-        TRAVEL_MAX_MS,
-        Math.max(TRAVEL_MIN_MS, dist / TRAVEL_PX_PER_MS),
-      )
-      travelStart = performance.now()
-      currentFrame = cfg.clips.enter.from
-      phase = 'enter-out'
-      // Remember where we're heading so exit-in knows next phase
-      phase._next = nextPhase
+    // ── Trip endpoints ──
+    // Each teleport is a trip with a tripFrom (where we're leaving from) and a
+    // tripTo (where we're heading). Both are looked up *live* each frame via
+    // positionFor, so all three phases (melt, travel, reform) chase the cursor
+    // when relevant — not just the travel phase.
+    let tripFrom = 'header' // 'header' | 'mouse'
+    let tripTo = 'header'
+    let pendingFinal = 'header-idle'
+
+    const positionFor = (where) => {
+      if (where === 'mouse' && mouse.has) return mouseTarget()
+      return anchorPos()
     }
 
-    // Track travel intent so we know which final state to settle in.
-    let pendingFinal = 'follow-mouse'
+    const startTrip = (toWhere) => {
+      // Snapshot the current settled location as the leaving point. Mid-trip
+      // re-entries are guarded out below, so we only hit this from a static
+      // phase in practice.
+      if (phase === 'header-idle') tripFrom = 'header'
+      else if (phase === 'follow-mouse') tripFrom = 'mouse'
+      tripTo = toWhere
+      pendingFinal = toWhere === 'mouse' ? 'follow-mouse' : 'header-idle'
+      phase = 'enter-out'
+      currentFrame = cfg.clips.enter.from
+      lastFrameTime = performance.now()
+    }
 
     const triggerTeleportToMouse = () => {
       if (!cfg) return
-      if (phase === 'follow-mouse' || phase === 'enter-out' || phase === 'travel' || phase === 'exit-in') {
-        // Already on the way somewhere — only retarget if heading the wrong way.
-        if (pendingFinal === 'follow-mouse') return
-      }
-      pendingFinal = 'follow-mouse'
-      const target = mouse.has ? mouseTarget() : anchorPos()
-      startTravelTo(target)
+      if (phase === 'follow-mouse') return
+      if (pendingFinal === 'follow-mouse') return // already heading there
+      startTrip('mouse')
     }
 
     const triggerTeleportToHeader = () => {
       if (!cfg) return
-      if (phase === 'header-idle' || phase === 'enter-out' || phase === 'travel' || phase === 'exit-in') {
-        if (pendingFinal === 'header-idle') return
-      }
-      pendingFinal = 'header-idle'
-      startTravelTo(anchorPos())
+      if (phase === 'header-idle') return
+      if (pendingFinal === 'header-idle') return
+      startTrip('header')
     }
 
     const onScroll = () => {
@@ -185,16 +183,63 @@ export default function MorphyMascot() {
       const advance = now - lastFrameTime >= frameInterval
       if (advance) lastFrameTime = now - ((now - lastFrameTime) % frameInterval)
 
-      // Advance state machine
+      // ── Position (live-tracked in every phase) ─────────────────────
+      // melt: sits at leaving endpoint
+      // travel: lerp from snapshot-of-melt-end to live destination
+      // reform: sits at arriving endpoint
+      // settled phases: track their respective endpoint
+      if (phase === 'enter-out') {
+        const p = positionFor(tripFrom)
+        posX = p.x
+        posY = p.y
+      } else if (phase === 'travel') {
+        // Destination chases live; from-point was snapshotted at travel start.
+        const tgt = positionFor(tripTo)
+        travelToX = tgt.x
+        travelToY = tgt.y
+        const t = Math.min(1, (now - travelStart) / travelDuration)
+        const e = easeInOutCubic(t)
+        posX = travelFromX + (travelToX - travelFromX) * e
+        posY = travelFromY + (travelToY - travelFromY) * e
+      } else if (phase === 'exit-in') {
+        const p = positionFor(tripTo)
+        posX = p.x
+        posY = p.y
+      } else if (phase === 'header-idle') {
+        const a = anchorPos()
+        posX = a.x
+        posY = a.y
+      } else if (phase === 'follow-mouse') {
+        if (mouse.has) {
+          const tgt = mouseTarget()
+          posX = tgt.x
+          posY = tgt.y
+        }
+      }
+
+      // ── Frame advancement + phase transitions ──────────────────────
       if (phase === 'enter-out' && advance) {
         currentFrame++
         if (currentFrame > cfg.clips.enter.to) {
+          // Snapshot the final melt position as the travel's starting point so
+          // the lerp begins from where the mascot visibly is, even if the
+          // leaving endpoint (e.g. mouse) drifted during melt.
+          travelFromX = posX
+          travelFromY = posY
+          const tgt = positionFor(tripTo)
+          travelToX = tgt.x
+          travelToY = tgt.y
+          const dx = travelToX - travelFromX
+          const dy = travelToY - travelFromY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          travelDuration = Math.min(
+            TRAVEL_MAX_MS,
+            Math.max(TRAVEL_MIN_MS, dist / TRAVEL_PX_PER_MS),
+          )
+          travelStart = now
           phase = 'travel'
           currentFrame = cfg.clips.active.from
           pingPong = 1
-          // Travel duration was set when enter-out started; reset travelStart
-          // so motion interpolates over the active phase too.
-          travelStart = now
         }
       } else if (phase === 'travel') {
         if (advance) {
@@ -207,23 +252,7 @@ export default function MorphyMascot() {
             pingPong = 1
           }
         }
-        // Chase a live target: refresh the destination each frame so a moving
-        // mouse (or a layout reflow at the anchor) doesn't leave us landing
-        // at a stale spot.
-        if (pendingFinal === 'follow-mouse' && mouse.has) {
-          const tgt = mouseTarget()
-          travelToX = tgt.x
-          travelToY = tgt.y
-        } else if (pendingFinal === 'header-idle') {
-          const tgt = anchorPos()
-          travelToX = tgt.x
-          travelToY = tgt.y
-        }
-        // Position interpolation
         const t = Math.min(1, (now - travelStart) / travelDuration)
-        const e = easeInOutCubic(t)
-        posX = travelFromX + (travelToX - travelFromX) * e
-        posY = travelFromY + (travelToY - travelFromY) * e
         if (t >= 1) {
           phase = 'exit-in'
           currentFrame = cfg.clips.exit.from
@@ -233,19 +262,6 @@ export default function MorphyMascot() {
         if (currentFrame > cfg.clips.exit.to) {
           phase = pendingFinal
           currentFrame = cfg.clips.idle.from
-        }
-      }
-
-      // Static phases: position tracks anchor or mouse
-      if (phase === 'header-idle') {
-        const a = anchorPos()
-        posX = a.x
-        posY = a.y
-      } else if (phase === 'follow-mouse') {
-        if (mouse.has) {
-          const tgt = mouseTarget()
-          posX = tgt.x
-          posY = tgt.y
         }
       }
 
