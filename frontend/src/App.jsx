@@ -54,8 +54,8 @@ function AnimatedGridBg() {
         className="absolute inset-0 animate-grid-fade"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(175, 39, 227, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(175, 39, 227, 0.04) 1px, transparent 1px)
+            linear-gradient(rgba(0, 105, 254, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 105, 254, 0.04) 1px, transparent 1px)
           `,
           backgroundSize: '60px 60px',
         }}
@@ -69,11 +69,11 @@ function AnimatedGridBg() {
 function FloatingOrbs() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute top-20 left-[10%] w-2 h-2 rounded-full animate-float" style={{ backgroundColor: 'rgba(4, 209, 254, 0.3)' }} />
-      <div className="absolute top-40 right-[15%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(175, 39, 227, 0.25)', animationDelay: '1s' }} />
+      <div className="absolute top-20 left-[10%] w-2 h-2 rounded-full animate-float" style={{ backgroundColor: 'rgba(74, 238, 255, 0.3)' }} />
+      <div className="absolute top-40 right-[15%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(0, 105, 254, 0.25)', animationDelay: '1s' }} />
       <div className="absolute top-60 left-[25%] w-1 h-1 rounded-full animate-float-slower" style={{ backgroundColor: 'rgba(251, 64, 114, 0.25)', animationDelay: '3s' }} />
-      <div className="absolute top-32 right-[30%] w-2.5 h-2.5 rounded-full animate-float" style={{ backgroundColor: 'rgba(175, 39, 227, 0.15)', animationDelay: '2s' }} />
-      <div className="absolute top-72 left-[60%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(4, 209, 254, 0.2)', animationDelay: '4s' }} />
+      <div className="absolute top-32 right-[30%] w-2.5 h-2.5 rounded-full animate-float" style={{ backgroundColor: 'rgba(0, 105, 254, 0.15)', animationDelay: '2s' }} />
+      <div className="absolute top-72 left-[60%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(74, 238, 255, 0.2)', animationDelay: '4s' }} />
     </div>
   )
 }
@@ -178,7 +178,7 @@ function Hero({ user, onLogin, onLogout }) {
             Demo
             <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
           </Button>
-          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
             <FaGithub className="w-4 h-4" /> Star on GitHub
           </Button>
         </motion.div>
@@ -272,7 +272,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
               <ul className="space-y-1">
                 {plan.specs.map(spec => (
                   <li key={spec} className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-[#04D1FE] shrink-0" />
+                    <span className="w-1 h-1 rounded-full bg-[#0069FE] shrink-0" />
                     {spec}
                   </li>
                 ))}
@@ -424,7 +424,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
         <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Bloby is ready!</h4>
         <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Bloby at:</p>
         <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border mb-4">
-          <span className="text-sm font-mono text-[#04D1FE]">{tunnelUrl}</span>
+          <span className="text-sm font-mono text-[#0069FE]">{tunnelUrl}</span>
           <CopyButton text={tunnelUrl} />
         </div>
         <div>
@@ -505,7 +505,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
                   )}
                   {(inst.relayUrl || inst.tunnelUrl) && !isTerminated && (
                     <CopyButton text={inst.relayUrl || inst.tunnelUrl}>
-                      <span className="text-[9px] font-mono text-[#04D1FE] truncate">{inst.relayUrl || inst.tunnelUrl}</span>
+                      <span className="text-[9px] font-mono text-[#0069FE] truncate">{inst.relayUrl || inst.tunnelUrl}</span>
                     </CopyButton>
                   )}
                   {!isTerminated && (
@@ -857,7 +857,7 @@ function Terminal({ user, onLogin, onLogout }) {
             onClick={() => setMode(m.id)}
             className={`relative flex-1 text-left px-4 sm:px-5 py-3.5 sm:py-4 rounded-xl border transition-all duration-300 ${
               mode === m.id
-                ? 'border-primary/40 bg-primary/[0.06] shadow-[0_0_20px_-6px_rgba(175,39,227,0.25)]'
+                ? 'border-primary/40 bg-primary/[0.06] shadow-[0_0_20px_-6px_rgba(0, 105, 254,0.25)]'
                 : 'border-border bg-card/50 hover:border-border/80'
             }`}
           >
@@ -977,7 +977,7 @@ function Terminal({ user, onLogin, onLogout }) {
                         <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
                         <div className="flex items-center justify-between gap-2 sm:gap-3">
                           <div className="min-w-0 overflow-x-auto no-scrollbar">
-                            <span className="text-[#04D1FE]">{line.prompt || '$'}</span>{' '}
+                            <span className="text-[#0069FE]">{line.prompt || '$'}</span>{' '}
                             <span className="text-foreground whitespace-nowrap">{line.command}</span>
                           </div>
                           <CopyButton text={line.command} />
@@ -1274,7 +1274,7 @@ function OpenSource() {
               Install Bloby
               <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
             </a>
-            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#AF27E3]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
               <FaGithub className="w-4 h-4" /> Star on GitHub
             </Button>
           </div>
@@ -1288,7 +1288,7 @@ function BlobyWorldSection() {
   return (
     <section id="bloby-world" className="py-16 sm:py-24 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#04D1FE]/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#0069FE]/[0.03] rounded-full blur-[150px]" />
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
@@ -1314,7 +1314,7 @@ function BlobyWorldSection() {
 
           <a
             href="/world"
-            className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#04D1FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
+            className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
           >
             Enter world
             <span className="text-xs">-&gt;</span>

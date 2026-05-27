@@ -195,11 +195,11 @@ function shell(title, body) {
     .badge{display:inline-block;background:#18181b;border:1px solid #27272a;
       border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;
       margin-top:1.2rem;font-family:'Space Grotesk',sans-serif}
-    .gradient{background:linear-gradient(135deg,#04D1FE,#AF27E3,#FB4072);
+    .gradient{background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;
       background-clip:text}
     .btn{display:inline-flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg,#04D1FE,#AF27E3,#FB4072);
+      background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
       border:none;border-radius:9999px;
       padding:.55rem 1.4rem;color:#fff;font-size:.875rem;font-weight:500;
       text-decoration:none;transition:all .2s;font-family:'Space Grotesk',sans-serif;
@@ -210,7 +210,7 @@ function shell(title, body) {
     .video-wrap{position:relative;width:220px;height:220px;margin:0 auto 1.4rem;
       display:flex;align-items:center;justify-content:center}
     .video-wrap::before{content:'';position:absolute;inset:-20px;
-      background:radial-gradient(circle,rgba(175,39,227,0.18) 0%,transparent 60%);
+      background:radial-gradient(circle,rgba(0, 105, 254,0.18) 0%,transparent 60%);
       filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
     .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;
       border-radius:50%}
@@ -218,8 +218,8 @@ function shell(title, body) {
       gap:.5rem;background:#18181b;border:1px solid #27272a;border-radius:9999px;
       padding:.35rem .9rem;margin-top:.4rem}
     .status-dot{width:8px;height:8px;border-radius:50%;
-      background:linear-gradient(135deg,#04D1FE,#AF27E3);
-      box-shadow:0 0 8px rgba(175,39,227,0.6);
+      background:linear-gradient(135deg, #0166FF, #009AFE);
+      box-shadow:0 0 8px rgba(0, 105, 254,0.6);
       animation:pulse-scale 1.6s ease-in-out infinite}
   </style>
 </head>

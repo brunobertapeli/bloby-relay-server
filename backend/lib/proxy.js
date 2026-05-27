@@ -44,12 +44,12 @@ function errorPage() {
     .video-wrap{position:relative;width:220px;height:220px;margin:0 auto 1.4rem;
       display:flex;align-items:center;justify-content:center}
     .video-wrap::before{content:'';position:absolute;inset:-20px;
-      background:radial-gradient(circle,rgba(175,39,227,0.18) 0%,transparent 60%);
+      background:radial-gradient(circle,rgba(0, 105, 254,0.18) 0%,transparent 60%);
       filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
     .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;
       pointer-events:none;border-radius:50%}
     h1{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;
-      margin-bottom:.6rem;background:linear-gradient(135deg,#04D1FE,#AF27E3,#FB4072);
+      margin-bottom:.6rem;background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     p{color:#a1a1aa;line-height:1.6;margin-bottom:.6rem;font-size:.95rem}
     .lead{color:#e4e4e7;font-size:1rem}
@@ -57,8 +57,8 @@ function errorPage() {
       background:#18181b;border:1px solid #27272a;border-radius:9999px;
       padding:.35rem .9rem;margin-top:.4rem}
     .sub .dot{width:8px;height:8px;border-radius:50%;
-      background:linear-gradient(135deg,#04D1FE,#AF27E3);
-      box-shadow:0 0 8px rgba(175,39,227,0.6);animation:pulse 1.6s ease-in-out infinite}
+      background:linear-gradient(135deg, #0166FF, #009AFE);
+      box-shadow:0 0 8px rgba(0, 105, 254,0.6);animation:pulse 1.6s ease-in-out infinite}
     .badge{display:inline-block;background:#18181b;border:1px solid #27272a;
       border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;
       margin-top:1.2rem;font-family:'Space Grotesk',sans-serif}

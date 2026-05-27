@@ -135,7 +135,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
           <div
             className={`rounded-2xl p-px transition-shadow duration-300 ${
               inputFocused
-                ? 'animated-border shadow-[0_0_24px_-6px_rgba(175,39,227,0.3)]'
+                ? 'animated-border shadow-[0_0_24px_-6px_rgba(0, 105, 254,0.3)]'
                 : 'bg-border'
             }`}
           >
@@ -165,7 +165,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
                 className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
               >
                 {status === 'checking' && (
-                  <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-[#04D1FE] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-[#0069FE] rounded-full animate-spin" />
                 )}
                 {status === 'invalid' && (
                   <div className="w-6 h-6 rounded-full bg-amber-500/15 flex items-center justify-center">

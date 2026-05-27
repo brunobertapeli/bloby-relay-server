@@ -823,7 +823,7 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b border-border/30 last:border-b-0 gap-2 sm:gap-4">
       <span className="font-mono text-sm text-foreground">
-        bloby.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AF27E3] to-[#04D1FE] font-semibold">{handle.handle}</span>
+        bloby.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE] font-semibold">{handle.handle}</span>
       </span>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
