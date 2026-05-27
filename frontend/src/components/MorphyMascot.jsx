@@ -32,6 +32,10 @@ const TRAVEL_MIN_MS = 380
 const TRAVEL_MAX_MS = 900
 // Scroll threshold (px). Above this we sit in the header; below we travel.
 const SCROLL_THRESHOLD = 20
+// Mascot sits down-and-right of the cursor (like a Mac cursor companion).
+// These offset the sprite's top-left from the cursor tip in pixels.
+const MOUSE_OFFSET_X = 12
+const MOUSE_OFFSET_Y = 12
 
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
@@ -107,6 +111,12 @@ export default function MorphyMascot() {
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     }
 
+    // Sprite *center* position so its top-left lands down-right of the cursor.
+    const mouseTarget = () => ({
+      x: mouse.x + MOUSE_OFFSET_X + displayW / 2,
+      y: mouse.y + MOUSE_OFFSET_Y + DISPLAY_H / 2,
+    })
+
     // ── Helpers ──
     const startTravelTo = (target, nextPhase) => {
       travelFromX = posX
@@ -137,7 +147,7 @@ export default function MorphyMascot() {
         if (pendingFinal === 'follow-mouse') return
       }
       pendingFinal = 'follow-mouse'
-      const target = mouse.has ? { x: mouse.x, y: mouse.y } : anchorPos()
+      const target = mouse.has ? mouseTarget() : anchorPos()
       startTravelTo(target)
     }
 
@@ -197,6 +207,18 @@ export default function MorphyMascot() {
             pingPong = 1
           }
         }
+        // Chase a live target: refresh the destination each frame so a moving
+        // mouse (or a layout reflow at the anchor) doesn't leave us landing
+        // at a stale spot.
+        if (pendingFinal === 'follow-mouse' && mouse.has) {
+          const tgt = mouseTarget()
+          travelToX = tgt.x
+          travelToY = tgt.y
+        } else if (pendingFinal === 'header-idle') {
+          const tgt = anchorPos()
+          travelToX = tgt.x
+          travelToY = tgt.y
+        }
         // Position interpolation
         const t = Math.min(1, (now - travelStart) / travelDuration)
         const e = easeInOutCubic(t)
@@ -221,8 +243,9 @@ export default function MorphyMascot() {
         posY = a.y
       } else if (phase === 'follow-mouse') {
         if (mouse.has) {
-          posX = mouse.x
-          posY = mouse.y
+          const tgt = mouseTarget()
+          posX = tgt.x
+          posY = tgt.y
         }
       }
 
