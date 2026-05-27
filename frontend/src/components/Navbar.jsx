@@ -61,14 +61,20 @@ export default function Navbar({ user, onLogin, onLogout }) {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="group">
-            <motion.img
-              src="/assets/images/morphy_mascot.png"
-              alt="Bloby"
-              className="h-[35px] w-auto"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: 'spring', stiffness: 300 }}
+          <Link to="/" className="group flex items-center gap-2">
+            {/* Anchor for the MorphyMascot canvas. The mascot is rendered to a
+                viewport-fixed canvas; this empty box reserves layout space and
+                acts as the position target (resolved via getBoundingClientRect
+                + data-morphy-anchor selector). Sized to match the old logo. */}
+            <span
+              data-morphy-anchor
+              aria-hidden="true"
+              className="block"
+              style={{ width: 40, height: 35 }}
             />
+            <span className="font-display font-semibold text-lg tracking-tight text-foreground">
+              Morphy
+            </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">

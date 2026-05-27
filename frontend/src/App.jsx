@@ -13,6 +13,7 @@ import {
 } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
 import Navbar from './components/Navbar'
+import MorphyMascot from './components/MorphyMascot'
 import Docs from './pages/Docs'
 import Marketplace from './pages/Marketplace'
 import Dashboard from './pages/Dashboard'
@@ -1603,6 +1604,10 @@ function BotRedirect() {
 function App() {
   return (
     <BrowserRouter>
+      {/* Mascot overlay: rendered to a viewport-fixed canvas, finds its rest
+          position via [data-morphy-anchor] in the navbar. Pages without a
+          navbar fall back to a safe corner position. */}
+      <MorphyMascot />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/docs" element={<Docs />} />

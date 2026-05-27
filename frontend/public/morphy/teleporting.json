@@ -1,0 +1,38 @@
+{
+  "name": "teleporting",
+  "spritesheet": "teleporting.png",
+  "frame": {
+    "w": 218,
+    "h": 180
+  },
+  "grid": {
+    "cols": 16,
+    "rows": 8
+  },
+  "totalFrames": 121,
+  "fps": 24,
+  "clips": {
+    "idle": {
+      "from": 19,
+      "to": 19,
+      "mode": "hold"
+    },
+    "enter": {
+      "from": 20,
+      "to": 45,
+      "mode": "forward",
+      "next": "active"
+    },
+    "active": {
+      "from": 46,
+      "to": 68,
+      "mode": "pingpong"
+    },
+    "exit": {
+      "from": 69,
+      "to": 121,
+      "mode": "forward",
+      "next": "idle"
+    }
+  }
+}
