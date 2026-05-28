@@ -31,7 +31,9 @@ const TRAVEL_PX_PER_MS = 0.9
 const TRAVEL_MIN_MS = 380
 const TRAVEL_MAX_MS = 900
 // Scroll threshold (px). Above this we sit in the header; below we travel.
-const SCROLL_THRESHOLD = 20
+// Applies symmetrically: returning to the header also needs to cross back
+// under this value, so a small scroll wiggle doesn't trigger a teleport.
+const SCROLL_THRESHOLD = 120
 // Mascot sits down-and-right of the cursor (like a Mac cursor companion).
 // These offset the sprite's top-left from the cursor tip in pixels.
 const MOUSE_OFFSET_X = 12
