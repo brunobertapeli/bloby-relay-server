@@ -399,9 +399,17 @@ export default function Docs() {
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <img src="/assets/images/morphy.png" alt="Bloby" className="h-8 w-auto" />
-              <span className="text-lg font-bold font-display text-foreground">Bloby</span>
+            <Link to="/" className="flex items-center gap-2 group">
+              {/* Anchor for the MorphyMascot canvas — same pattern as Navbar / DashNavbar. */}
+              <span
+                data-morphy-anchor
+                aria-hidden="true"
+                className="block"
+                style={{ width: 40, height: 35 }}
+              />
+              <span className="font-display font-semibold text-lg tracking-tight text-foreground">
+                Morphy
+              </span>
             </Link>
             <HiChevronRight className="w-4 h-4 text-muted-foreground/40 hidden sm:block" />
             <span className="text-sm text-muted-foreground hidden sm:block">Docs</span>

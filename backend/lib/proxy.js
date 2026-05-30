@@ -25,7 +25,7 @@ proxy.on('error', (err, req, res) => {
 
 function errorPage() {
   const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
-  const videoBase = `https://www.${domain}/assets/videos/bloby_restarting`;
+  const videoBase = `https://www.${domain}/assets/videos/what-happened`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,7 +70,9 @@ function errorPage() {
 <body><div class="c">
   <div class="video-wrap">
     <video autoplay loop muted playsinline>
+      <!-- webm first: keeps the transparent alpha channel (incl. iPhone Safari). mp4 is a no-alpha fallback. -->
       <source src="${videoBase}.webm" type="video/webm">
+      <source src="${videoBase}.mp4" type="video/mp4">
     </video>
   </div>
   <h1>Agent is restarting</h1>
@@ -83,8 +85,10 @@ function errorPage() {
 (function(){
   var attempt = 0;
   var statusEl = document.getElementById('statusText');
-  function retry() {
+
+  function check() {
     attempt++;
+    statusEl.textContent = 'Reconnecting…';
     fetch(location.href, { cache: 'no-store', redirect: 'follow' })
       .then(function(r) {
         if (r.ok || (r.status !== 502 && r.status !== 503)) {
@@ -93,14 +97,22 @@ function errorPage() {
           schedule();
         }
       })
-      .catch(function() { schedule(); });
+      .catch(schedule);
   }
+
+  // Live countdown so the timer actually ticks down instead of freezing on a fixed number.
   function schedule() {
-    var delay = Math.min(3000, 1000 + attempt * 250);
-    statusEl.textContent = 'Reconnecting in ' + Math.ceil(delay/1000) + 's… (attempt ' + attempt + ')';
-    setTimeout(retry, delay);
+    var secs = Math.min(3, 1 + Math.floor(attempt / 2)); // ramp 1s -> 3s, then hold
+    tick(secs);
   }
-  setTimeout(retry, 1800);
+
+  function tick(secs) {
+    if (secs <= 0) { check(); return; }
+    statusEl.textContent = 'Retrying in ' + secs + 's… (attempt ' + attempt + ')';
+    setTimeout(function(){ tick(secs - 1); }, 1000);
+  }
+
+  setTimeout(check, 1800);
 })();
 </script>
 </body>
