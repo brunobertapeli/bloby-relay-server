@@ -266,7 +266,7 @@ function offlinePage(username) {
 function notFoundPage(username) {
   const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
   const wwwUrl = `https://www.${domain}`;
-  const videoBase = `${wwwUrl}/assets/videos/bloby_what_happened`;
+  const videoBase = `${wwwUrl}/assets/videos/what-happened`;
   const msg = username
     ? `The bot <strong>${esc(username)}</strong> doesn't exist — maybe it was never created, or the name is misspelled.`
     : 'The page you are looking for does not exist.';
@@ -275,8 +275,8 @@ function notFoundPage(username) {
     : '';
   return shell('Not Found',
     `<video autoplay loop muted playsinline style="height:140px;margin:0 auto .8rem">
-       <source src="${videoBase}.mov" type='video/mp4; codecs="hvc1"'>
        <source src="${videoBase}.webm" type="video/webm">
+       <source src="${videoBase}.mp4" type="video/mp4">
      </video>
      <h1><span class="gradient">404</span> — Not Found</h1>
      <p>${msg}</p>

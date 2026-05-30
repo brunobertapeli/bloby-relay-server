@@ -457,8 +457,8 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
                 playsInline
                 className="w-[200px] object-contain"
               >
-                <source src="/assets/videos/bloby_happy_reappearing.mov" type='video/mp4; codecs="hvc1"' />
-                <source src="/assets/videos/bloby_happy_reappearing.webm" type="video/webm" />
+                <source src="/assets/videos/happy.mov" type='video/mp4; codecs="hvc1"' />
+                <source src="/assets/videos/happy.mp4" type="video/mp4" />
               </video>
             </motion.div>
 
