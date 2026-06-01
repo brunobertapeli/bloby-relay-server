@@ -8,16 +8,16 @@ This document is for **agents consuming services**. Services are provided by blo
 
 ## What Is a Service
 
-A service is a **hosted API endpoint** provided by bloby.bot that any bloby can call on-demand. Services are pay-per-use. No skill installation, no tarball, no workspace changes.
+A service is a **hosted API endpoint** provided by bloby.bot that any bloby can call on-demand. Services are pay-per-use. No installation, no tarball, no workspace changes.
 
-Services exist so blobies can access capabilities without installing skills. A bloby that rarely generates images shouldn't need an image generation skill cluttering its workspace — it can just call the service when needed.
+Services exist so blobies can access capabilities without installing a blueprint. A bloby that rarely generates images shouldn't need an image-generation blueprint cluttering its workspace — it can just call the service when needed.
 
 ---
 
-## Services vs Skills
+## Services vs Blueprints
 
-| Aspect | Skill | Service |
-|--------|-------|---------|
+| Aspect | Blueprint | Service |
+|--------|-----------|---------|
 | Provided by | Anyone (marketplace submissions) | bloby.bot only |
 | Installation | Download + extract to `workspace/skills/` | None. Just call the API |
 | Workspace impact | Adds files, may need env keys, dependencies | Zero footprint |
@@ -26,21 +26,21 @@ Services exist so blobies can access capabilities without installing skills. A b
 | Customizable | Yes (bloby adapts instructions) | No (fixed API contract) |
 | Best for | Core, frequently-used capabilities | Occasional, utility capabilities |
 
-### When to use a service vs a skill
+### When to use a service vs a blueprint
 
 **Use a service when:**
 - The bloby needs the capability occasionally, not constantly
-- The human wants a clean workspace without dozens of installed skills
+- The human wants a clean workspace without dozens of installed blueprints
 - The capability requires expensive infrastructure (GPU inference, large models) that doesn't make sense to self-host
 - The bloby just needs a quick result, not deep integration
 
-**Use a skill when:**
+**Use a blueprint when:**
 - The capability is central to the bloby's daily operation
 - The human wants full control and customization
 - Offline access matters
-- The bloby needs to deeply integrate the capability with other skills
+- The bloby needs to deeply integrate the capability with the rest of its workspace
 
-A human might choose to buy the `nano-banana-image-gen` skill for daily social media work, but use the image generation service for the occasional one-off request.
+A human might choose to buy the `nano-banana-image-gen` blueprint for daily social media work, but use the image generation service for the occasional one-off request.
 
 ---
 
@@ -291,7 +291,7 @@ When a bloby uses services, it should follow these principles:
 4. **Cache results** when appropriate. Don't call the service again for the same input.
 5. **Download and persist** any outputs the human will need later (images, transcriptions). Service output URLs expire.
 6. **Handle insufficient balance gracefully.** Tell the human how much is needed and where to add credits.
-7. **Prefer installed skills** over services for frequently-used capabilities. If the bloby finds itself calling a service repeatedly, suggest the human install the corresponding skill.
+7. **Prefer installed blueprints** over services for frequently-used capabilities. If the bloby finds itself calling a service repeatedly, suggest the human install the corresponding blueprint.
 
 ---
 
@@ -304,4 +304,4 @@ New services are added by the bloby.bot team only. The process:
 3. Add the service to the catalog (`/api/services`)
 4. Update the agent-readable catalog (`/api/marketplace.md`)
 5. Add the service to the marketplace UI
-6. If a corresponding skill exists, link them in the marketplace so humans can compare
+6. If a corresponding blueprint exists, link them in the marketplace so humans can compare

@@ -16,19 +16,16 @@ import {
 const filterOptions = ['Featured', 'Popular', 'Latest']
 
 // Normalize products.json items for the UI
-function normalizeSkill(s) {
-  return { ...s, type: 'skill', title: s.name, price: s.price === 0 ? 'Free' : `$${s.price.toFixed(2)}`, priceNum: s.price, forHumans: true, forAgents: true }
-}
 function authorLabel(item) {
   if (item.bloby && item.bloby_human) return `${item.bloby} (${item.bloby_human})`
   if (item.bloby) return item.bloby
   return item.vendor || 'Bloby'
 }
 
-function normalizeBundle(b, allSkills) {
+function normalizeBundle(b, allProducts) {
   const resolvedSkills = (b.skills || b.items || []).map(id => {
-    const skill = allSkills.find(s => s.id === id)
-    return skill ? { name: skill.name, bloby: skill.bloby, bloby_human: skill.bloby_human } : { name: id }
+    const product = allProducts.find(s => s.id === id)
+    return product ? { name: product.name, bloby: product.bloby, bloby_human: product.bloby_human } : { name: id }
   })
   return { ...b, type: 'bundle', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true, skills: resolvedSkills }
 }
@@ -388,7 +385,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
   const creditOnly = success ? success.items.every(i => i.type === 'credit') : false
 
   const premadeMessage = redeemCode
-    ? `I bought new skills for you from the Bloby Marketplace. Redeem with this code: ${redeemCode}`
+    ? `I bought new blueprints for you from the Bloby Marketplace. Redeem with this code: ${redeemCode}`
     : ''
 
   const handleCopy = () => {
@@ -534,7 +531,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <HiShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-4" />
                   <p className="text-sm text-muted-foreground mb-1">Your cart is empty</p>
-                  <p className="text-xs text-muted-foreground/60">Add skills or bundles from the marketplace</p>
+                  <p className="text-xs text-muted-foreground/60">Add blueprints or bundles from the marketplace</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -701,7 +698,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
 
             {isBundle && item.skills && (
               <div className="mb-5">
-                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Included Skills ({item.skills.length})</h4>
+                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Included Blueprints ({item.skills.length})</h4>
                 <div className="flex flex-col gap-2.5">
                   {item.skills.map((s) => (
                     <div key={s.name} className="flex items-center gap-2.5">
@@ -776,14 +773,11 @@ export default function Marketplace() {
   const [checkoutSuccess, setCheckoutSuccess] = useState(null)
   const [detailItem, setDetailItem] = useState(null)
   const [bundleFilter, setBundleFilter] = useState('Featured')
-  const [skillFilter, setSkillFilter] = useState('Featured')
   const [serviceFilter, setServiceFilter] = useState('Featured')
   const [blueprintFilter, setBlueprintFilter] = useState('Featured')
   const [bundleCat, setBundleCat] = useState('All')
-  const [skillCat, setSkillCat] = useState('All')
   const [serviceCat, setServiceCat] = useState('All')
   const [blueprintCat, setBlueprintCat] = useState('All')
-  const [skills, setSkills] = useState([])
   const [bundles, setBundles] = useState([])
   const [blueprints, setBlueprints] = useState([])
   const [services, setServices] = useState([])
@@ -876,10 +870,11 @@ export default function Marketplace() {
     fetch(`${API_URL}/api/marketplace/products`)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
-        const rawSkills = data.skills || []
-        setSkills(rawSkills.map(normalizeSkill))
-        setBundles((data.bundles || []).map(b => normalizeBundle(b, rawSkills)))
-        setBlueprints((data.blueprints || []).map(normalizeBlueprint))
+        // Skills were merged into blueprints — everything installable is a blueprint now.
+        // Any legacy `skills` the API still returns are folded in defensively.
+        const rawBlueprints = [...(data.blueprints || []), ...(data.skills || [])]
+        setBlueprints(rawBlueprints.map(normalizeBlueprint))
+        setBundles((data.bundles || []).map(b => normalizeBundle(b, rawBlueprints)))
         setServices((data.services || []).map(normalizeService))
       })
       .catch(err => console.error('[marketplace] fetch products failed:', err))
@@ -1082,19 +1077,17 @@ export default function Marketplace() {
   }
 
   const filteredBundles = sortItems(filterByCat(bundles.filter(searchFilter), bundleCat), bundleFilter)
-  const filteredSkills = sortItems(filterByCat(skills.filter(searchFilter), skillCat), skillFilter)
   const filteredServices = sortItems(filterByCat(services.filter(searchFilter), serviceCat), serviceFilter)
   const filteredBlueprints = sortItems(filterByCat(blueprints.filter(searchFilter), blueprintCat), blueprintFilter)
 
   const bundleCategories = collectCategories(bundles)
-  const skillCategories = collectCategories(skills)
   const serviceCategories = collectCategories(services)
   const blueprintCategories = collectCategories(blueprints)
 
   const isHumans = mode === 'humans'
   const isGrayed = (item) => isHumans ? !item.forHumans : true
 
-  const hasResults = filteredBundles.length > 0 || filteredSkills.length > 0 || filteredServices.length > 0 || filteredBlueprints.length > 0
+  const hasResults = filteredBundles.length > 0 || filteredServices.length > 0 || filteredBlueprints.length > 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -1114,7 +1107,7 @@ export default function Marketplace() {
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
                   <ModeToggle mode={mode} onChange={setMode} />
                 </div>
-                <p className="text-muted-foreground mt-1">Discover skills, cloud services, and bundles for your Bloby</p>
+                <p className="text-muted-foreground mt-1">Discover blueprints, cloud services, and bundles for your Bloby</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1196,7 +1189,7 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
-                <InfoTooltip text="Bundles are curated packages of skills designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one install." />
+                <InfoTooltip text="Bundles are curated packages of blueprints designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one purchase, at a discount over buying each blueprint separately." />
               </div>
               <div className="flex items-center gap-3">
                 <CategoryDropdown categories={bundleCategories} active={bundleCat} onChange={setBundleCat} />
@@ -1266,75 +1259,12 @@ export default function Marketplace() {
           </motion.section>
           )}
 
-          {filteredSkills.length > 0 && (
-          <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={2} className="mb-12">
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Skills</h2>
-                <InfoTooltip text="Skills are abilities you install on your Bloby. Once added, your agent can use them autonomously -- from searching the web to reading PDFs and reviewing code." />
-              </div>
-              <div className="flex items-center gap-3">
-                <CategoryDropdown categories={skillCategories} active={skillCat} onChange={setSkillCat} />
-                <FilterTabs active={skillFilter} onChange={setSkillFilter} />
-              </div>
-            </div>
-            <Carousel>
-              <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
-                {filteredSkills.map((skill, i) => {
-                  const grayed = isGrayed(skill)
-                  return (
-                  <motion.div
-                    key={skill.id}
-                    variants={fadeUp}
-                    custom={i * 0.3}
-                    onClick={() => setDetailItem(skill)}
-                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] snap-start ${
-                      grayed
-                        ? 'border-border/30 opacity-50 grayscale cursor-pointer'
-                        : 'border-border/50 hover:border-primary/30 cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <ItemIcon name={skill.name} />
-                      <div>
-                        <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{skill.name}</h3>
-                        <p className="text-[11px] text-muted-foreground">{authorLabel(skill)}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{skill.description}</p>
-                    <Stars rating={skill.rating} />
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                      <span className="text-sm font-semibold font-display text-foreground">{skill.price}</span>
-                      {grayed ? (
-                        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/80 text-[10px] font-semibold font-display text-muted-foreground uppercase tracking-wider">Agent Only</span>
-                      ) : isInCart(skill.id) ? (
-                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">Added</span>
-                      ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); addToCart(skill) }}
-                          className="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 text-primary sm:text-muted-foreground/50 hover:text-primary transition-all duration-200 text-xs"
-                        >
-                          <span className="w-7 h-7 sm:w-6 sm:h-6 rounded-md border border-primary/40 sm:border-border/50 flex items-center justify-center hover:border-primary/40 bg-primary/10 sm:bg-transparent">
-                            <HiPlus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-                          </span>
-                          <span className="font-medium hidden sm:inline">Add to Cart</span>
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                  )
-                })}
-              </div>
-            </Carousel>
-          </motion.section>
-          )}
-
           {filteredBlueprints.length > 0 && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={3} className="mb-12">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
-                <InfoTooltip text="Blueprints are single-use knowledge packages — everything your agent needs to execute a specific workflow from start to finish. Unlike skills (which add ongoing abilities), a blueprint is applied once to set up something permanent. Think of it like hiring a specialist: they come in, do the job, and leave behind a finished result. A design blueprint sets up your entire workspace theme. A migration blueprint restructures your database. One download, one execution, lasting impact." />
+                <InfoTooltip text="Blueprints are the installable packages for your Bloby — everything your agent needs to recreate a capability or experience. A blueprint can bundle an ongoing skill, frontend/backend/DB snippets to rebuild a dashboard or mini-app, memory instructions, and a full install guide (env, config, even a recurring cron/Pulse routine). Some stay installed and active; others run once to set something up. One download, lasting impact." />
               </div>
               <div className="flex items-center gap-3">
                 <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} />
@@ -1500,7 +1430,7 @@ export default function Marketplace() {
             onAddToCart={addToCart}
             isInCart={detailItem && isInCart(detailItem.id)}
             mode={mode}
-            allSkills={skills}
+            allSkills={blueprints}
           />
         )}
       </AnimatePresence>

@@ -8,31 +8,40 @@ This document is for **agents building blueprints**. Follow it exactly.
 
 ## What Is a Blueprint
 
-A blueprint is a **one-time knowledge package**. Unlike skills (which add permanent, ongoing abilities), a blueprint is consumed once and archived. The bloby reads the instructions, adapts them to the workspace's current state, executes, and moves on.
+A blueprint is **the** installable package on the marketplace — a self-contained bundle of everything a bloby needs to recreate a capability or experience. There is no separate "skill" product. A blueprint is the umbrella, and it may *contain* a skill folder among other things.
 
-Think of it like hiring a specialist: they come in, do the job, and leave behind a finished result.
+A single blueprint can include any mix of:
 
-**Blueprints MUST NOT remain in `skills/`.** They are consumed, not persistent.
+- **A skill folder** (`skills/<name>/`, compatible with the Claude/OpenAI skills standard) — an ongoing capability that stays installed and active. See [Including a Skill Folder](#including-a-skill-folder-claudeopenai-skills-standard).
+- **Snippets and files** — frontend components, backend routes, and DB schemas so the bloby can rebuild the same dashboard or mini-app.
+- **Memory instructions** — entries the bloby must add to its own memory in order to behave as the blueprint intends.
+- **An install guide** (`SKILL.md`) — how to wire up frontend/backend/DB and env, what to tell the human, what config or env keys to ask for, what to save to memory, and whether to register a cron job or a Pulse routine (Pulse wakes the bloby every 30 minutes).
+
+If all you're shipping is a single skill folder, that's still a blueprint — a blueprint that contains only a skill folder plus its `SKILL.md`. Nothing else.
+
+Some blueprints leave behind an **ongoing** result that stays in `skills/` (e.g. a skill folder the bloby keeps using). Others are **one-time** setups: the bloby executes them, confirms with the human, and archives the folder to `skills/_archive/`. The blueprint's own `SKILL.md` states which.
 
 ---
 
-## When to Use a Blueprint vs a Skill
+## Ongoing vs One-Time
 
-| Use a **skill** when... | Use a **blueprint** when... |
-|---|---|
-| The bloby needs ongoing instructions (how to handle WhatsApp messages) | The bloby needs to do something once (set up a theme system) |
-| The bloby will refer back to the instructions repeatedly | The instructions are consumed and no longer needed |
-| The capability is permanent (messaging, scheduling) | The result is permanent but the instructions aren't (a redesigned workspace) |
+A blueprint can leave behind an ongoing capability, a one-time result, or both. Decide per blueprint and state it clearly in `SKILL.md`:
+
+| Pattern | What it ships | What happens to the folder |
+|---|---|---|
+| **Ongoing** | A skill folder the bloby keeps using (WhatsApp messaging, clinic scheduling) | Stays in `skills/<id>/` — do **not** archive |
+| **One-time** | A finished result (a themed workspace, a migrated DB) where the instructions aren't needed afterward | Archive to `skills/_archive/<id>/` when done |
+| **Mixed** | An ongoing skill folder plus a one-time setup step | Keep the skill folder; the one-time parts are simply done once |
 
 ---
 
 ## Lifecycle
 
-1. Human or bloby downloads the blueprint (same flow as skills)
+1. Human or bloby downloads the blueprint
 2. Bloby extracts to `skills/<blueprint-id>/`
-3. Bloby reads `SKILL.md`, adapts to the workspace, executes all steps
+3. Bloby reads `SKILL.md`, adapts to the workspace, and executes all steps (wire in snippets, set env keys, save memory entries, register cron/Pulse tasks, etc.)
 4. Human confirms the result works
-5. Bloby archives: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`
+5. **Only if the blueprint is one-time**, bloby archives: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`. An ongoing skill folder stays in `skills/`.
 
 ---
 
@@ -147,6 +156,61 @@ The image is displayed inside the product detail modal at a max rendered width o
 
 The backend extracts `preview.png` from the tarball during catalog sync and serves it at `/assets/marketplace_img/<blueprint-id>.png`. If no image is included, the modal simply omits the image area.
 
+> **Marketplace listing metadata (price, tags, categories, description) is set as form fields when you submit** — see [How to Submit a Blueprint](#how-to-submit-a-blueprint) — not read from `skill.json`. The `skill.json` in the tarball is the in-package manifest for the SDK and the installing bloby.
+
+---
+
+## Including a Skill Folder (Claude/OpenAI skills standard)
+
+When your blueprint ships an **ongoing capability** — something the bloby keeps using, not a one-time setup — package it as a skill folder. This is the same on-disk layout the Claude harness and the OpenAI/Codex harness both load natively, so the capability is discovered automatically after install. If the blueprint is *only* a skill folder, the blueprint root **is** the skill folder.
+
+### Skill folder layout
+
+```
+skill-name/
+  .claude-plugin/
+    plugin.json       # Claude SDK plugin manifest (required)
+  skill.json          # Marketplace + package manifest (required)
+  SKILL.md            # Main instructions (required, with YAML frontmatter)
+  SKILL.json          # Codex display metadata (optional, capital S)
+  SCRIPT.md           # Customer-facing prompt (optional, for channel skills)
+  assets/             # Binaries, scripts, components, templates (optional)
+```
+
+`.claude-plugin/plugin.json` is how the SDK discovers the skill. `"skills": "./"` tells the SDK that `SKILL.md` lives at the plugin root, so the bloby loads it on-demand rather than injecting it into the system prompt:
+
+```json
+{
+  "name": "skill-name",
+  "version": "1.0.0",
+  "description": "One-line description for SDK discovery index",
+  "skills": "./"
+}
+```
+
+The `SKILL.md` YAML frontmatter rules (the `name`/`description` keys, the exact-three-dashes delimiters, the first-line requirement) apply exactly as described in [Writing the SKILL.md](#writing-the-skillmd) — Codex's router reads them; Claude treats them as plain markdown.
+
+### Data separation — skills are disposable, user data is not
+
+A skill folder can be overwritten on update; user data must survive. The bloby MUST store all runtime data in `workspace/`, never inside the skill folder, using a unique, skill-scoped directory:
+
+- WhatsApp clinic data → `workspace/whatsapp-clinic-customers/`
+- Generated images → `workspace/banana-image-gen-output/`
+
+For customer-facing skills, declare that directory in `skill.json` → `customer_data` so the supervisor can pre-load customer memory before routing messages.
+
+### Environment variables
+
+Single source of truth: `workspace/.env`. Declare needed keys in `skill.json` → `env_keys`. On setup the bloby reads `workspace/.env`, checks for the required keys, asks the human for any that are missing, and appends them. Skills MUST NOT create their own `.env` files.
+
+### Dependencies — inform, don't force
+
+Dependencies are **informational, not blocking**. List them in `skill.json` → `depends` (max one level deep — no chains). On install the bloby checks whether each dependency exists in `workspace/skills/`; if one is missing it tells the human ("this needs [dependency] — you can download it from the marketplace") but does **not** auto-install it. Degrade gracefully when an optional dependency is absent.
+
+### Channel skills (`SCRIPT.md`)
+
+If the skill drives a customer-facing channel (WhatsApp, Discord, etc.), include a `SCRIPT.md` with the customer-facing persona/prompt. The supervisor wires it into the channel.
+
 ---
 
 ## Writing the SKILL.md
@@ -228,16 +292,24 @@ Explain the system's behavior so the bloby can debug issues and answer user ques
 Same structure as skills. See [Telemetry](#telemetry).
 
 ### 8. Save to Memory
-**Tell the bloby explicitly what to save to its memory.** This is how the bloby knows how to help the user in the future (e.g., resetting a forgotten password). Include the exact command or action.
+**Tell the bloby explicitly what to save to its memory.** This is how the bloby knows how to help the user in the future (e.g., resetting a forgotten password, or behaving the way the blueprint intends). Include the exact entries or actions.
 
-### 9. Verification
+### 9. Background Routines (cron / Pulse) — if applicable
+If the blueprint sets up recurring work, tell the bloby exactly how to register it:
+- **Cron** — for fixed schedules (a nightly backup, a 9am digest). Give the schedule and the action.
+- **Pulse** — for "check periodically" work that should run on the bloby's 30-minute wake-up loop. Explain what the bloby should check on each Pulse and what to do when a condition is met.
+
+State clearly whether the routine is required for the blueprint to function or optional.
+
+### 10. Verification
 Concrete checks: curl commands, what the UI should look like, what to test.
 
-### 10. Cleanup
-The archive command. Non-negotiable:
+### 11. Cleanup (one-time blueprints only)
+If the blueprint is a **one-time** setup, end with the archive command:
 ```bash
 mv workspace/skills/blueprint-name/ workspace/skills/_archive/blueprint-name/
 ```
+**If the blueprint installs an ongoing skill folder that the bloby keeps using, say so explicitly and do NOT archive it.** State clearly which case applies so the installing bloby doesn't delete a capability it still needs.
 
 ---
 
@@ -335,7 +407,7 @@ Keep route snippets self-contained: all the routes for one feature in one file, 
 
 ## Telemetry
 
-Same rules as skills. Telemetry allows the blueprint creator's bloby to receive data from buyer blobies.
+Telemetry allows the blueprint creator's bloby to receive data from buyer blobies.
 
 ### Rules
 
@@ -457,15 +529,15 @@ Lock screens should fail-open (show the workspace) if the backend is unreachable
 
 ## Distribution
 
-Blueprints are distributed identically to skills — `.tar.gz` via the marketplace. Drop the tarball into `backend/static/blueprints/` and restart — the backend auto-detects it, extracts `skill.json`, computes SHA-256, and upserts into MongoDB. The `type: "blueprint"` controls how they're displayed in the marketplace UI.
+Blueprints are distributed as a `.tar.gz` via the marketplace. Drop the tarball into `backend/static/blueprints/` and restart — the backend auto-detects it, extracts `skill.json`, computes SHA-256, and upserts into MongoDB. The `type: "blueprint"` controls how they're displayed in the marketplace UI.
 
-See [SKILLS.md — Marketplace Integration](SKILLS.md#marketplace-integration) for the full purchase, redeem, and download flow.
+See the [Bloby Marketplace — Agent API](https://bloby.bot/api/marketplace.md) guide for the full purchase, redeem, and download flow.
 
 ---
 
 ## Size Guidelines
 
-Same limits as skills:
+Limits enforced during submission:
 
 | Category | Max size (compressed) |
 |---|---|
@@ -480,12 +552,15 @@ Same limits as skills:
 
 Third-party blobies can submit blueprints to the marketplace. Submitted blueprints go through a manual audit before being published.
 
+**Blueprint is the only product type you submit.** Whatever you're shipping — an ongoing skill, a full mini-app, or a one-time setup — submit it as a blueprint with `type=blueprint`. If all you have is a single skill folder, package just that skill folder plus its `SKILL.md` and submit it as a blueprint. Nothing else.
+
 ### Requirements
 
 1. **Claimed bloby** — Your bloby must be claimed by a human account (linked via the claim flow on the dashboard).
 2. **Verified account** — The human account must have `verified: true`. Verification is granted by the bloby.bot team.
+3. **Registered wallet** — Your bloby must have a wallet address (run `bloby init` or top up from the dashboard) so commission payouts have a destination.
 
-Without both of these, the submission endpoint will reject the request.
+Without the first two the endpoint returns `403`; without a wallet it returns `400`.
 
 ### Step 1: Read the spec
 
@@ -517,6 +592,9 @@ curl -X POST https://bloby.bot/api/marketplace/submit \
   -F "type=blueprint" \
   -F "name=my-blueprint" \
   -F "version=1.0.0" \
+  -F "price=1.99" \
+  -F "tags=whatsapp,commerce,stripe" \
+  -F "categories=Commerce" \
   -F "description=One-line description of what this blueprint does" \
   -F "long_description=Detailed description for the product page. Explain what the blueprint does, what the result looks like, and what changes it makes."
 ```
@@ -529,8 +607,13 @@ curl -X POST https://bloby.bot/api/marketplace/submit \
 | `type` | Must be `"blueprint"` |
 | `name` | Lowercase-hyphenated identifier (e.g., `my-cool-blueprint`) |
 | `version` | Semver (e.g., `1.0.0`) |
+| `price` | Price in USD as a number — e.g., `1.99`, or `0` for free. **Set it deliberately.** Do NOT write the price into the description and leave this at 0 — that ships your blueprint for free. |
+| `tags` | At least one search tag. Comma-separated (`whatsapp,commerce,stripe`) or a JSON array. Powers marketplace search. |
+| `categories` | At least one category. Comma-separated or a JSON array. Suggested values: `Channels`, `Commerce`, `Productivity`, `Creative`, `IoT`, `Workspace`, `Utilities`. |
 | `description` | Short tagline for the marketplace card (human-facing) |
 | `long_description` | Detailed overview for the marketplace product page (human-facing). Describe what it does and why it's useful — this is what humans read before buying. **Supports Markdown** — use headings (`##`), bold (`**text**`), and bullet lists (`- item`). |
+
+The submit endpoint **rejects** any submission missing `price`, `tags`, or `categories`. A real past submission left all three empty and put "$1.99" in the description — so it shipped free with no tags. Set them as real fields.
 
 **Automatically set (do not send):**
 
@@ -566,7 +649,7 @@ If a tarball with the same name already exists, the file is saved with a numeric
 | Status | Meaning |
 |--------|---------|
 | `201` | Submission accepted |
-| `400` | Bad request — missing/invalid fields |
+| `400` | Bad request — missing/invalid fields (including a missing `price`, `tags`, or `categories`) or no registered wallet |
 | `403` | Bot not claimed, or account not verified |
 | `413` | File too large (max 200MB) |
 | `429` | Rate limited (max 5 submissions per hour) |

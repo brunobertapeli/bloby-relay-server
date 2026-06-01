@@ -35,8 +35,12 @@ const approved = { $or: [{ status: 'approved' }, { status: { $exists: false } }]
 async function getLiveCatalog() {
   const col = getDb().collection('products');
   const all = await col.find(approved).toArray();
+  // The marketplace has three product kinds: blueprints, bundles, services.
+  // "Skills" are no longer a separate category — a blueprint is the umbrella
+  // package and may itself carry an ongoing skill folder. Only type
+  // "blueprint" surfaces here, so any legacy type "skill"/"setup" product must
+  // be migrated to type "blueprint" in MongoDB to remain visible.
   return {
-    skills: all.filter((p) => p.type === 'skill' || p.type === 'setup'),
     blueprints: all.filter((p) => p.type === 'blueprint'),
     bundles: all.filter((p) => p.type === 'bundle'),
     services: all.filter((p) => p.type === 'service'),
@@ -50,54 +54,6 @@ const templatePath = path.join(staticDir, 'marketplace.md');
 function priceLabel(p) {
   if (p.price === 0) return 'Free';
   return `$${Number(p.price).toFixed(2)}`;
-}
-
-function generateSkillSection(skill) {
-  const price = priceLabel(skill);
-  const lines = [`### ${skill.name} — ${price}`, '', skill.description || ''];
-
-  lines.push('', `- **Version: ${skill.version || '1.0.0'}**`);
-  if (skill.depends && skill.depends.length > 0) {
-    lines.push(`- **Requires:** \`${skill.depends.join('`, `')}\``);
-  } else {
-    lines.push('- Dependencies: none');
-  }
-  if (skill.size) lines.push(`- Size: ${skill.size}`);
-
-  if (skill.price === 0) {
-    lines.push('', '**Download (free — no purchase required):**', '',
-      '```bash',
-      `curl -sL https://bloby.bot/api/marketplace/download/free/${skill.id} \\`,
-      '  -H "Authorization: Bearer $RELAY_TOKEN" \\',
-      `  -o /tmp/${skill.id}.tar.gz`);
-    if (skill.sha256) {
-      lines.push(`echo "${skill.sha256}  /tmp/${skill.id}.tar.gz" | shasum -a 256 -c`);
-    }
-    lines.push(`tar xzf /tmp/${skill.id}.tar.gz -C skills/`,
-      `rm /tmp/${skill.id}.tar.gz`,
-      '```');
-  } else {
-    lines.push('', '**Purchase options.** Both return JSON `{ skills: [{ url, sha256, ... }] }` — follow each `url` to download the .tar.gz, then extract to `skills/`.', '');
-    lines.push('a. *If your human gave you a redeem code* — they paid via Stripe on the website:', '',
-      '```bash',
-      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
-      '  -H "Content-Type: application/json" \\',
-      '  -d \'{"code":"<REDEEM_CODE>"}\'',
-      '```', '');
-    lines.push('b. *Buy autonomously (Tempo USDC)* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP on Tempo:', '',
-      '```bash',
-      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
-      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${skill.id} \\`,
-      '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
-      '```', '');
-    lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
-      '```',
-      `POST https://bloby.bot/api/marketplace/buy-base/${skill.id}`,
-      'Header: X-Bloby-Token: $RELAY_TOKEN',
-      '```');
-  }
-
-  return lines.join('\n');
 }
 
 function generateBlueprintSection(bp) {
@@ -124,7 +80,7 @@ function generateBlueprintSection(bp) {
     lines.push(`tar xzf /tmp/${bp.id}.tar.gz -C skills/`,
       `rm /tmp/${bp.id}.tar.gz`,
       '```');
-    lines.push('', `**After executing:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
+    lines.push('', `**After downloading:** Read \`skills/${bp.id}/SKILL.md\` and follow it exactly. The blueprint's own instructions tell you what to do — install an ongoing skill folder that stays active, run a one-time setup and archive it to \`skills/_archive/\` when done, add env vars, write entries to your memory, and/or register cron/Pulse tasks. Do only what the blueprint says, then confirm with your human.`);
   } else {
     lines.push('', '**Purchase options.** Both return JSON `{ skills: [{ url, sha256, ... }] }` — follow each `url` to download the .tar.gz, then extract to `skills/`.', '');
     lines.push('a. *If your human gave you a redeem code* — they paid via Stripe on the website:', '',
@@ -144,7 +100,7 @@ function generateBlueprintSection(bp) {
       `POST https://bloby.bot/api/marketplace/buy-base/${bp.id}`,
       'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```', '');
-    lines.push(`**After downloading:** Read \`skills/${bp.id}/SKILL.md\`, follow the steps, confirm with your human, then archive: \`mv skills/${bp.id}/ skills/_archive/${bp.id}/\``);
+    lines.push(`**After downloading:** Read \`skills/${bp.id}/SKILL.md\` and follow it exactly. The blueprint's own instructions tell you what to do — install an ongoing skill folder that stays active, run a one-time setup and archive it to \`skills/_archive/\` when done, add env vars, write entries to your memory, and/or register cron/Pulse tasks. Do only what the blueprint says, then confirm with your human.`);
   }
 
   return lines.join('\n');
@@ -215,30 +171,34 @@ function generateServiceSection(service) {
   return lines.join('\n');
 }
 
+const BLUEPRINTS_INTRO = `Blueprints are the installable packages on the marketplace. Each one is a self-contained bundle of everything an agent needs to recreate a capability or experience. A blueprint may contain any mix of:
+
+- **A skill folder** (\`skills/<name>/\`, compatible with the Claude/OpenAI skills standard) — an ongoing capability that stays installed and active.
+- **Snippets and files** — frontend components, backend routes, and DB schemas so you can rebuild the same dashboard or mini-app.
+- **Memory instructions** — entries the blueprint tells you to add to your own memory so you behave as intended.
+- **Install instructions** — a single guide explaining how to wire up frontend, backend, DB and env; what to tell your human; what config or env keys to ask for; what to save to memory; and whether to register cron or Pulse (the 30-minute wake-up loop) tasks.
+
+You download a blueprint, read its \`SKILL.md\`, and follow it exactly. Some blueprints leave behind an ongoing skill that stays in \`skills/\`; others are one-time setups you archive to \`skills/_archive/\` when finished. The blueprint's own instructions tell you which.`;
+
 async function buildMarketplaceMd() {
   const catalog = await getLiveCatalog();
   const template = fs.readFileSync(templatePath, 'utf-8');
 
-  const skillsMd = catalog.skills.length > 0
-    ? `## Available Skills\n\n${catalog.skills.map(generateSkillSection).join('\n\n---\n\n')}`
-    : '## Available Skills\n\nNo skills available yet.';
+  const blueprintsMd = catalog.blueprints.length > 0
+    ? `## Blueprints\n\n${BLUEPRINTS_INTRO}\n\n${catalog.blueprints.map(generateBlueprintSection).join('\n\n---\n\n')}`
+    : `## Blueprints\n\n${BLUEPRINTS_INTRO}\n\nNo blueprints available yet.`;
 
   const bundlesMd = catalog.bundles.length > 0
-    ? `## Bundles\n\n${catalog.bundles.map(generateBundleSection).join('\n\n---\n\n')}`
+    ? `## Bundles\n\nBundles are discounted packages of multiple blueprints sold together. At checkout a bundle resolves into its individual blueprints.\n\n${catalog.bundles.map(generateBundleSection).join('\n\n---\n\n')}`
     : '## Bundles\n\nNo bundles available yet.';
-
-  const blueprintsMd = catalog.blueprints.length > 0
-    ? `## Blueprints\n\nBlueprints are one-time knowledge packages. You download, execute, confirm with your human, then **archive to \`skills/_archive/\`**. They do not stay in \`skills/\`.\n\n${catalog.blueprints.map(generateBlueprintSection).join('\n\n---\n\n')}`
-    : '## Blueprints\n\nNo blueprints available yet.';
 
   const servicesMd = catalog.services.length > 0
     ? `## Available Services\n\nServices are cloud API endpoints you call on demand. Each call is recorded as a transaction.\n\n${catalog.services.map(generateServiceSection).join('\n\n---\n\n')}`
     : '## Available Services\n\nNo services available yet.';
 
   return template
-    .replace('{{SKILLS}}', skillsMd)
-    .replace('{{BUNDLES}}', bundlesMd)
     .replace('{{BLUEPRINTS}}', blueprintsMd)
+    .replace('{{BUNDLES}}', bundlesMd)
     .replace('{{SERVICES}}', servicesMd);
 }
 
@@ -248,10 +208,6 @@ async function findDownloadable(id) {
 
 async function findBundle(id) {
   return getDb().collection('products').findOne({ id, type: 'bundle', ...approved });
-}
-
-async function findProduct(id, type) {
-  return getDb().collection('products').findOne({ id, type, ...approved });
 }
 
 const REDEEM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -293,10 +249,9 @@ async function validateCartItems(items) {
   for (const item of items) {
     if (item.type === 'bundle') {
       if (!(await findBundle(item.id))) return `Unknown bundle: ${item.id}`;
-    } else if (item.type === 'skill') {
-      if (!(await findProduct(item.id, 'skill')) && !(await findProduct(item.id, 'setup'))) return `Unknown skill: ${item.id}`;
-    } else if (item.type === 'blueprint') {
-      if (!(await findProduct(item.id, 'blueprint'))) return `Unknown blueprint: ${item.id}`;
+    } else if (item.type === 'skill' || item.type === 'blueprint') {
+      // "skill" is accepted for backward-compat — both resolve to a downloadable blueprint by id.
+      if (!(await findDownloadable(item.id))) return `Unknown product: ${item.id}`;
     } else if (item.type === 'credit') {
       const amount = parseFloat(item.amount);
       if (!amount || amount < 1) return 'Credit amount must be at least $1';
@@ -1041,7 +996,9 @@ router.get('/marketplace/products', async (req, res) => {
     };
 
     res.json({
-      skills: catalog.skills.map(enrichProduct),
+      // `skills` is retained as an empty array for backward-compat with older
+      // clients — every installable product is now a blueprint.
+      skills: [],
       blueprints: catalog.blueprints.map(enrichProduct),
       bundles: catalog.bundles,
       services: catalog.services,
@@ -1204,6 +1161,30 @@ const upload = multer({
 
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+// Multipart list fields (tags, categories) may arrive as a JSON array string,
+// a comma-separated string, or repeated fields (multer gives an array). Accept
+// all three and normalize to a deduped array of trimmed, non-empty strings.
+function parseListField(raw) {
+  if (raw == null) return [];
+  let parts;
+  if (Array.isArray(raw)) {
+    parts = raw.map(String);
+  } else {
+    const s = String(raw).trim();
+    if (s.startsWith('[')) {
+      try {
+        const arr = JSON.parse(s);
+        parts = Array.isArray(arr) ? arr.map(String) : [s];
+      } catch {
+        parts = s.split(',');
+      }
+    } else {
+      parts = s.split(',');
+    }
+  }
+  return [...new Set(parts.map((p) => p.trim()).filter(Boolean))];
+}
+
 router.post(
   '/marketplace/submit',
   authenticate,
@@ -1244,16 +1225,21 @@ router.post(
         return res.status(400).json({ error: 'File must be a .tar.gz archive' });
       }
 
-      // ── Type & name ──────────────────────────────────────────────────
-      const type = req.body.type;
-      if (!type || !['skill', 'blueprint'].includes(type)) {
-        return res.status(400).json({ error: 'Field "type" is required and must be "skill" or "blueprint".' });
+      // ── Type ─────────────────────────────────────────────────────────
+      // The marketplace has a single submittable product type: blueprint.
+      // "skill" is still accepted from older agents but is stored as a
+      // blueprint (a blueprint may simply carry a skill folder and nothing else).
+      const submittedType = req.body.type;
+      if (submittedType && !['skill', 'blueprint'].includes(submittedType)) {
+        return res.status(400).json({ error: 'Field "type" must be "blueprint".' });
       }
+      const type = 'blueprint';
 
+      // ── Name ─────────────────────────────────────────────────────────
       const name = req.body.name;
       if (!name || !NAME_RE.test(name)) {
         return res.status(400).json({
-          error: 'Field "name" is required and must be lowercase-hyphenated (e.g., "my-cool-skill").',
+          error: 'Field "name" is required and must be lowercase-hyphenated (e.g., "my-cool-blueprint").',
         });
       }
 
@@ -1268,8 +1254,34 @@ router.post(
         return res.status(400).json({ error: 'Field "version" is required (semver, e.g., "1.0.0").' });
       }
 
+      // ── Price (required — 0 means free; set it deliberately) ──────────
+      if (req.body.price === undefined || req.body.price === null || req.body.price === '') {
+        return res.status(400).json({
+          error: 'Field "price" is required. Use a number in USD — e.g., "1.99", or "0" for free. Do NOT put the price in the description.',
+        });
+      }
+      const price = Number(req.body.price);
+      if (!Number.isFinite(price) || price < 0) {
+        return res.status(400).json({ error: 'Field "price" must be a non-negative number (e.g., 1.99 or 0 for free).' });
+      }
+      const priceRounded = Math.round(price * 100) / 100;
+
+      // ── Tags & categories (required — used for marketplace discovery) ─
+      const tags = parseListField(req.body.tags);
+      if (tags.length === 0) {
+        return res.status(400).json({
+          error: 'Field "tags" is required — provide at least one search tag (comma-separated or JSON array), e.g., "whatsapp,commerce".',
+        });
+      }
+      const categories = parseListField(req.body.categories);
+      if (categories.length === 0) {
+        return res.status(400).json({
+          error: 'Field "categories" is required — provide at least one category (comma-separated or JSON array), e.g., "Productivity".',
+        });
+      }
+
       // ── Determine key (handle collisions with _1, _2, etc.) ────────
-      const folder = type === 'blueprint' ? 'blueprints' : 'skills';
+      const folder = 'blueprints';
 
       let filename = `${name}.tar.gz`;
       let suffix = 0;
@@ -1286,7 +1298,7 @@ router.post(
       const sha256 = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
 
       // ── Create pending product entry ─────────────────────────────────
-      // Display name: derive from name (e.g., "my-cool-skill" → "My Cool Skill")
+      // Display name: derive from name (e.g., "my-cool-blueprint" → "My Cool Blueprint")
       const displayName = name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
       const submission = {
@@ -1301,12 +1313,12 @@ router.post(
         type,
         depends: [],
         has_telemetry: false,
-        price: 0,
+        price: priceRounded,
         file: filename,
         folder,
         sha256,
-        tags: [],
-        categories: [],
+        tags,
+        categories,
         featured: false,
         popular: false,
         status: 'pending',
@@ -1353,14 +1365,15 @@ router.get('/marketplace.md', async (_req, res) => {
 });
 
 // ─── GET /api/marketplace/docs/:type ───────────────────────────────────────
-// Public — serves the marketplace docs (SKILLS.md / BLUEPRINTS.md).
-// Any agent can read these to learn how to build and submit products.
-const docsMap = { skills: 'SKILLS.md', blueprints: 'BLUEPRINTS.md' };
+// Public — serves the blueprint build/submit specification. Any agent can read
+// it to learn how to build and submit products. "skills" is kept as an alias to
+// the blueprint spec so older agents that hit /docs/skills still get the doc.
+const docsMap = { blueprints: 'BLUEPRINTS.md', skills: 'BLUEPRINTS.md' };
 
 router.get('/marketplace/docs/:type', (req, res) => {
   const file = docsMap[req.params.type];
   if (!file) {
-    return res.status(404).json({ error: 'Unknown doc type. Use "skills" or "blueprints".' });
+    return res.status(404).json({ error: 'Unknown doc type. Use "blueprints".' });
   }
   res.type('text/markdown').sendFile(path.join(staticDir, 'marketplace_docs', file));
 });

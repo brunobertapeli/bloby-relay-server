@@ -8,15 +8,15 @@ This document is for **agents building bundles**. Follow it exactly.
 
 ## What Is a Bundle
 
-A bundle is a **pricing and marketing concept**, NOT a separate downloadable file. A bundle groups multiple skills (and/or blueprints) into a single purchase at a discounted price.
+A bundle is a **pricing and marketing concept**, NOT a separate downloadable file. A bundle groups multiple blueprints into a single purchase at a discounted price.
 
-At checkout, bundles are resolved into their individual items. The buyer downloads and installs each item separately. There is no "bundle file" — only a bundle entry in the product catalog.
+At checkout, bundles are resolved into their individual blueprints. The buyer downloads and installs each one separately. There is no "bundle file" — only a bundle entry in the product catalog.
 
 ---
 
 ## Bundle vs Individual Items
 
-| Aspect | Individual skill/blueprint | Bundle |
+| Aspect | Individual blueprint | Bundle |
 |--------|---------------------------|--------|
 | Has its own tarball | Yes | No |
 | Has its own folder structure | Yes | No |
@@ -57,7 +57,7 @@ Bundles are defined as individual JSON files in `backend/static/bundles/`. On se
 | `author` | Yes | Publisher name for marketplace listing |
 | `description` | Yes | One-sentence description of what the bundle provides |
 | `type` | Yes | Must be `"bundle"` |
-| `items` | Yes | Array of skill/blueprint IDs included in this bundle |
+| `items` | Yes | Array of blueprint IDs included in this bundle |
 | `price` | Yes | Bundle price in USD. Should be less than the sum of individual item prices |
 | `has_telemetry` | Yes | `true` if ANY item in the bundle has telemetry. This is a rollup flag for marketplace display |
 | `tags` | Yes | Array of tags for marketplace search/filtering |
@@ -70,7 +70,7 @@ When a human purchases a bundle:
 
 1. `POST /api/marketplace/checkout` receives the cart (e.g., `[{ "id": "doctors-secretary-bundle", "type": "bundle" }]`)
 2. Backend resolves the bundle into its individual items: `["whatsapp", "whatsapp-clinic-secretary"]`
-3. **Deduplication** — if a skill appears both as an individual cart item AND inside a bundle, it resolves once
+3. **Deduplication** — if a blueprint appears both as an individual cart item AND inside a bundle, it resolves once
 4. A purchase record is created with both `cartItems` (what was in the cart) and `resolvedSkills` (the deduplicated list)
 5. The redeem code unlocks downloads for all resolved items
 
@@ -82,7 +82,7 @@ The bundle contains `["whatsapp", "whatsapp-clinic-secretary"]`.
 
 Resolved (deduplicated): `["whatsapp", "whatsapp-clinic-secretary"]`
 
-WhatsApp appears once, not twice. The buyer pays the bundle price + individual whatsapp price, but gets each skill only once.
+WhatsApp appears once, not twice. The buyer pays the bundle price + individual whatsapp price, but gets each blueprint only once.
 
 ---
 
@@ -90,7 +90,7 @@ WhatsApp appears once, not twice. The buyer pays the bundle price + individual w
 
 Bundles don't have a folder structure, tarball, or SKILL.md. To create a bundle:
 
-1. **Ensure all referenced items exist** as published skills or blueprints (tarballs in their respective folders)
+1. **Ensure all referenced items exist** as published blueprints (tarballs in their respective folders)
 2. **Create a JSON file** in `backend/static/bundles/` with the structure above (e.g. `doctors-secretary-bundle.json`)
 3. **Set a fair price** — bundles should cost less than buying each item individually
 4. **Set `has_telemetry`** — check if ANY of the included items have `has_telemetry: true`. If so, the bundle's `has_telemetry` must also be `true`

@@ -567,9 +567,8 @@ function BlobyCard({ bloby, onClose }) {
       .then(data => {
         if (!data) return
         const all = [
-          ...(data.skills || []).map(s => ({ name: s.name, type: 'skill', price: s.price, bloby: s.bloby })),
-          ...(data.bundles || []).map(b => ({ name: b.name, type: 'bundle', price: b.price, bloby: b.bloby })),
           ...(data.blueprints || []).map(b => ({ name: b.name, type: 'blueprint', price: b.price, bloby: b.bloby })),
+          ...(data.bundles || []).map(b => ({ name: b.name, type: 'bundle', price: b.price, bloby: b.bloby })),
           ...(data.services || []).map(s => ({ name: s.name, type: 'service', price: s.price, bloby: s.bloby })),
         ]
         const mine = all.filter(i => i.bloby?.toLowerCase() === bloby.username.toLowerCase())

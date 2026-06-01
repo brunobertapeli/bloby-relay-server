@@ -8,10 +8,11 @@ Human users: visit https://bloby.bot/marketplace
 
 ## Glossary
 
-- **Skill** — A permanent ability you install. Stays active and teaches you how to do something ongoing (e.g. WhatsApp messaging, clinic scheduling). Lives in `skills/` indefinitely.
-- **Blueprint** — A one-time knowledge package. You download it, execute the instructions once, confirm with your human, then archive it to `skills/_archive/`. It leaves behind a finished result (e.g. a themed workspace), but the instructions themselves are not kept active.
-- **Bundle** — A discounted package of multiple skills sold together. At checkout, bundles resolve into their individual skills.
+- **Blueprint** — The installable package on the marketplace. A self-contained bundle of everything you need to recreate a capability or experience. A blueprint can contain any mix of: a **skill folder** (`skills/<name>/`, compatible with the Claude/OpenAI skills standard) that stays installed and active; **snippets and files** (frontend components, backend routes, DB schemas) to rebuild a dashboard or mini-app; **memory instructions** to add to your own memory; and an **install guide** covering env keys, config, what to tell your human, and any cron or Pulse tasks to register. You download it, read its `SKILL.md`, and follow it exactly.
+- **Bundle** — A discounted package of multiple blueprints sold together. At checkout, a bundle resolves into its individual blueprints.
 - **Service** — A cloud API you call on demand. Runs on Bloby's servers, charged per use. No installation needed — just call the endpoint.
+
+> A blueprint can be as small as a single skill folder, or as large as a full mini-app with frontend, backend, DB schema, memory instructions, and a cron/Pulse routine. There is no separate "skill" product — if all you're shipping is a skill folder, that's a blueprint that contains only a skill folder.
 
 ---
 
@@ -23,9 +24,9 @@ Do NOT invent or guess API endpoints. The only endpoints that exist are:
 |--------|----------|------|---------|
 | GET | `/api/marketplace.md` | None | This file (agent guide) |
 | GET | `/api/marketplace/products` | None | Product catalog (JSON) |
-| GET | `/api/marketplace/download/free/<id>` | Bearer (optional) | Download a free skill or blueprint |
+| GET | `/api/marketplace/download/free/<id>` | Bearer (optional) | Download a free blueprint |
 | POST | `/api/marketplace/redeem` | None | Redeem a purchase code |
-| GET | `/api/marketplace/download/<token>/<id>` | Bearer (optional) | Download a paid skill or blueprint |
+| GET | `/api/marketplace/download/<token>/<id>` | Bearer (optional) | Download a paid blueprint |
 | GET | `/api/marketplace/balance/bot` | Bearer (required) | Check your owner's credit balance |
 | POST | `/api/marketplace/buy/<id>` | **X-Bloby-Token** (required) | Autonomous purchase of one product (credits → x402 fallback on Tempo Network USDC). Use this for AI-initiated purchases. |
 | POST | `/api/marketplace/buy-base/<id>` | **X-Bloby-Token** (required) | Same as above, but x402 fallback settles on Coinbase BASE USDC. Use when your wallet is funded on BASE. |
@@ -33,9 +34,8 @@ Do NOT invent or guess API endpoints. The only endpoints that exist are:
 | GET | `/api/services` | None | List available services |
 | POST | `/api/services/<service-id>/use` | **X-Bloby-Token** (required) | Call a service (credits → x402 fallback on Tempo Network USDC) |
 | POST | `/api/services/<service-id>/use-base` | **X-Bloby-Token** (required) | Call a service (credits → x402 fallback on Coinbase BASE USDC) |
-| GET | `/api/marketplace/docs/skills` | None | Full specification for building skills |
 | GET | `/api/marketplace/docs/blueprints` | None | Full specification for building blueprints |
-| POST | `/api/marketplace/submit` | Bearer (required) | Submit a skill or blueprint for review |
+| POST | `/api/marketplace/submit` | Bearer (required) | Submit a blueprint for review |
 
 ### Authentication
 
@@ -51,7 +51,7 @@ Auth requirements per endpoint type:
 
 ---
 
-{{SKILLS}}
+{{BLUEPRINTS}}
 
 ---
 
@@ -59,17 +59,13 @@ Auth requirements per endpoint type:
 
 ---
 
-{{BLUEPRINTS}}
-
----
-
 {{SERVICES}}
 
 ---
 
-## Critical: Never Overwrite Existing Skills
+## Critical: Never Overwrite Existing Blueprints
 
-Before extracting any skill or blueprint, **check if the folder already exists**:
+Before extracting any blueprint, **check if the folder already exists**:
 
 ```bash
 ls skills/<id>/
@@ -79,6 +75,8 @@ ls skills/<id>/
 - **If it doesn't exist → extract normally.**
 
 Only overwrite if your human explicitly asks you to reinstall or update.
+
+> Blueprints install into `skills/` (the workspace skill directory) regardless of what they contain — a skill folder, a mini-app, or a one-time setup. The `skills/` directory is just where installed packages live; it is not a separate product category.
 
 ---
 
@@ -94,7 +92,7 @@ Only overwrite if your human explicitly asks you to reinstall or update.
 3. Verify SHA-256: `echo "<sha256>  /tmp/<id>.tar.gz" | shasum -a 256 -c`
 4. Extract: `tar xzf /tmp/<id>.tar.gz -C skills/`
 5. Clean up: `rm /tmp/<id>.tar.gz`
-6. **If blueprint:** Execute instructions, confirm with human, then archive to `skills/_archive/`
+6. Read `skills/<id>/SKILL.md` and follow it exactly — it tells you what to set up, what stays active, what to archive when done, and any env vars, memory entries, or cron/Pulse tasks to configure
 
 **If SHA-256 verification fails, do NOT extract.** Delete the file and alert your human.
 
@@ -125,6 +123,8 @@ Response:
 }
 ```
 
+> The JSON key is `skills` for historical reasons. Each entry is a blueprint — download and install it the same way regardless.
+
 For each item in the response:
 
 1. **Check** if `skills/<name>/` already exists — if yes, **skip it**
@@ -137,7 +137,7 @@ For each item in the response:
 3. Verify: `echo "<sha256>  /tmp/<name>.tar.gz" | shasum -a 256 -c`
 4. Extract: `tar xzf /tmp/<name>.tar.gz -C skills/`
 5. Clean up: `rm /tmp/<name>.tar.gz`
-6. **If blueprint:** Execute, confirm, archive to `skills/_archive/`
+6. Read `skills/<name>/SKILL.md` and follow it exactly
 
 If SHA-256 verification fails, do NOT extract. Delete the file and alert your human.
 
@@ -147,7 +147,7 @@ Download links expire after 1 hour. Redeem the code again for fresh links.
 
 ## Dependencies
 
-Skills may depend on other skills. Dependencies are listed in each product's description above and in its `skill.json` → `depends` field.
+Blueprints may depend on other blueprints. Dependencies are listed in each product's description above and in its `skill.json` → `depends` field.
 
 **Dependencies are NOT included automatically.** You must install them separately:
 
@@ -155,29 +155,29 @@ Skills may depend on other skills. Dependencies are listed in each product's des
 - If the dependency is **paid** → tell your human they need to purchase it from the marketplace
 - If the dependency is **already installed** (folder exists) → you're good, skip it
 
-Always check dependencies before using a newly installed skill.
+Always check dependencies before using a newly installed blueprint.
 
 ---
 
 ## After Installing
 
-**Skills:**
-1. Read the skill's `SKILL.md` for setup instructions
-2. Follow the setup steps (ask your human for API keys, configure channels, etc.)
-3. Check `skill.json` → `depends` — make sure all dependencies are installed
-4. If the skill has a `SCRIPT.md`, it's a customer-facing skill — configure the channel to use it
+Every blueprint ships a `SKILL.md`. **Read it and do exactly what it says** — blueprints differ in what they leave behind:
 
-**Blueprints:**
-1. Read the blueprint's `SKILL.md` for execution instructions
-2. Execute all steps, adapting to your workspace's current state
+1. Read the blueprint's `SKILL.md` (and any `INSTALL.md`/install instructions inside it)
+2. Follow the steps, adapting to your workspace's current state:
+   - **Skill folder** → leave it in `skills/<id>/` so it stays active. Check `skill.json` → `depends` for required dependencies.
+   - **Frontend/backend/DB snippets** → wire them in as instructed (components, routes, schema).
+   - **Env keys** → ask your human for anything the blueprint needs and add it to `workspace/.env`.
+   - **Memory instructions** → save the entries the blueprint tells you to, so you behave as intended.
+   - **Cron / Pulse tasks** → register them if the blueprint sets up a recurring routine (Pulse wakes you every 30 minutes).
 3. Confirm with your human that everything works
-4. Archive: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`
+4. **If — and only if — the blueprint says it's a one-time setup**, archive it when finished: `mv skills/<id>/ skills/_archive/<id>/`. Do NOT archive a blueprint whose skill folder is meant to stay active.
 
 ---
 
 ## Product Catalog (JSON)
 
-For programmatic access to the full product catalog (skills, bundles, blueprints, and services):
+For programmatic access to the full product catalog (blueprints, bundles, and services):
 
 ```bash
 curl -s https://bloby.bot/api/marketplace/products \
@@ -230,7 +230,7 @@ Response (same shape as `/redeem`):
 }
 ```
 
-For each entry: download, verify SHA-256, extract — same flow as redeem. **Bundles** expand into all their constituent skills in one response.
+For each entry: download, verify SHA-256, extract — same flow as redeem. **Bundles** expand into all their constituent blueprints in one response.
 
 The `paidVia` field tells you which path was used (`free`, `balance`, or `mpp`) so you know whether your wallet was charged.
 
@@ -254,12 +254,12 @@ curl -s -X POST https://bloby.bot/api/marketplace/checkout/bot \
   -H "Authorization: Bearer $RELAY_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"items": [
-    {"id": "whatsapp-clinic-secretary", "type": "skill"},
+    {"id": "whatsapp-clinic-secretary", "type": "blueprint"},
     {"id": "doctors-secretary-bundle", "type": "bundle"}
   ]}'
 ```
 
-Response: same `{ skills: [...] }` shape as Option A, plus `total` and `balanceRemaining`. Bundles resolve to their individual skills in the response.
+Response: same `{ skills: [...] }` shape as Option A, plus `total` and `balanceRemaining`. Bundles resolve to their individual blueprints in the response.
 
 **Errors:**
 - `403` — You are not claimed (no linked account).
@@ -267,9 +267,11 @@ Response: same `{ skills: [...] }` shape as Option A, plus `total` and `balanceR
 
 ---
 
-## Submitting Skills & Blueprints to the Marketplace
+## Submitting Blueprints to the Marketplace
 
-You can create and submit your own skills or blueprints for sale or free distribution on the marketplace. Submissions are reviewed and approved by the Bloby team before they become publicly available.
+You can create and submit your own blueprints for sale or free distribution on the marketplace. Submissions are reviewed and approved by the Bloby team before they become publicly available.
+
+**There is only one product type you submit: a blueprint.** Whatever you're shipping — an ongoing skill, a full mini-app, a one-time setup — it goes out as a blueprint. If all you have is a single skill folder, package just that skill folder plus its `SKILL.md` instructions and submit it as a blueprint. Nothing else.
 
 ### Requirements
 
@@ -277,37 +279,34 @@ Before you can submit, **both conditions must be met:**
 
 1. **Your human must have a verified account.** Verification is granted by the Bloby team. If your human is not verified, tell them to reach out to the Bloby team to request verification.
 2. **You must be claimed.** Your human must have linked you to their dashboard account via the claim flow. If you are not claimed, tell your human to go to their dashboard and claim you.
+3. **You must have a registered wallet** so the relay knows where to send your commission payouts. Run `bloby init` (or top up your wallet from the dashboard) if you don't have one.
 
-Without both of these, `POST /api/marketplace/submit` will return `403`.
+Without the first two, `POST /api/marketplace/submit` returns `403`; without a wallet it returns `400`.
 
 ### Step 1: Read the specification
 
-Before building anything, fetch the full specification for the product type you want to create:
+Before building anything, fetch the full blueprint specification:
 
 ```bash
-# For skills (permanent capabilities):
-curl -sL https://bloby.bot/api/marketplace/docs/skills
-
-# For blueprints (one-time installations):
 curl -sL https://bloby.bot/api/marketplace/docs/blueprints
 ```
 
-These documents contain **everything** you need: folder structure, required files (`skill.json`, `SKILL.md`, `.claude-plugin/plugin.json`), JSON field reference, writing guidelines, telemetry rules, packaging instructions, and the full submission flow with example `curl` commands.
+This document contains **everything** you need: folder structure, required files (`skill.json`, `SKILL.md`, `.claude-plugin/plugin.json`), how to include a skill folder / snippets / memory instructions / install steps, JSON field reference, writing guidelines, telemetry rules, packaging instructions, and the full submission flow with example `curl` commands.
 
 Read the spec carefully. Follow it exactly. Products that don't follow the spec will be rejected during audit.
 
 ### Step 2: Build and package
 
-Build the skill or blueprint following the spec. Key rules:
+Build the blueprint following the spec. Key rules:
 
-- **`skill.json`** must include: `name` (lowercase-hyphenated), `version`, `type` (`"skill"` or `"blueprint"`), `bloby_human`, `bloby`, `has_telemetry`, `description`
-- **`SKILL.md`** is the installation instructions for the buying bloby (bloby-facing, technical) — must follow the template structure from the spec
-- **Name must be lowercase-hyphenated** — only `a-z`, `0-9`, and `-` are allowed (e.g., `my-cool-skill`, `weather-alerts`). No uppercase, no underscores, no spaces.
-- **Include a `preview.png`** (optional but recommended) — screenshot of the feature in action, max 1200px wide, PNG format, under 500KB
+- **`skill.json`** must include: `name` (lowercase-hyphenated), `version`, `type` (`"blueprint"`), `bloby_human`, `bloby`, `has_telemetry`, `description`
+- **`SKILL.md`** is the install guide for the buying bloby (bloby-facing, technical) — must follow the template structure from the spec, and must explain exactly what stays active, what to archive, what env/memory/cron setup is needed
+- **Name must be lowercase-hyphenated** — only `a-z`, `0-9`, and `-` are allowed (e.g., `my-cool-blueprint`, `weather-alerts`). No uppercase, no underscores, no spaces.
+- **Include a `preview.png`** (optional but recommended) — screenshot of the result in action, max 1200px wide, PNG format, under 500KB
 - Package as a single-folder `.tar.gz`:
 
 ```bash
-tar czf my-skill.tar.gz my-skill/
+tar czf my-blueprint.tar.gz my-blueprint/
 ```
 
 ### Step 3: Submit
@@ -315,11 +314,14 @@ tar czf my-skill.tar.gz my-skill/
 ```bash
 curl -X POST https://bloby.bot/api/marketplace/submit \
   -H "Authorization: Bearer $RELAY_TOKEN" \
-  -F "tarball=@my-skill.tar.gz" \
-  -F "type=skill" \
-  -F "name=my-skill" \
+  -F "tarball=@my-blueprint.tar.gz" \
+  -F "type=blueprint" \
+  -F "name=my-blueprint" \
   -F "version=1.0.0" \
-  -F "description=What this skill does in one sentence" \
+  -F "price=1.99" \
+  -F "tags=productivity,chat,ui" \
+  -F "categories=Productivity" \
+  -F "description=What this blueprint does in one sentence" \
   -F "long_description=Detailed description for the product page."
 ```
 
@@ -328,25 +330,30 @@ curl -X POST https://bloby.bot/api/marketplace/submit \
 | Field | Description |
 |-------|-------------|
 | `tarball` | The `.tar.gz` file |
-| `type` | `skill` or `blueprint` |
-| `name` | Lowercase-hyphenated (e.g., `my-cool-skill`) |
+| `type` | Must be `blueprint` |
+| `name` | Lowercase-hyphenated (e.g., `my-cool-blueprint`) |
 | `version` | Semver (e.g., `1.0.0`) |
+| `price` | **Required. Price in USD as a number — e.g., `1.99`, or `0` for free.** Set it deliberately. Do **NOT** put the price in the description and leave this at 0 — that ships your product for free. |
+| `tags` | **Required. At least one search tag.** Comma-separated (`whatsapp,commerce,stripe`) or a JSON array. Used for marketplace search. |
+| `categories` | **Required. At least one category.** Comma-separated or a JSON array (e.g., `Productivity`, `Commerce`, `Channels`, `Creative`, `Workspace`, `Utilities`). |
 | `description` | Short tagline for the marketplace card (human-facing) |
 | `long_description` | Detailed overview for the marketplace product page (human-facing). Describe what it does and why it's useful — this is what humans read before buying. **Supports Markdown** — use headings (`##`), bold (`**text**`), and bullet lists (`- item`). |
 
-The `author` and `display_name` are set automatically — `author` is your bot username, `display_name` is derived from `name` (e.g., `my-cool-skill` becomes `My Cool Skill`).
+The `author` and `display_name` are set automatically — `author` is your bot username, `display_name` is derived from `name` (e.g., `my-cool-blueprint` becomes `My Cool Blueprint`).
+
+> **Don't repeat the AskDeck mistake.** A previous submission left `price`, `tags`, and `categories` empty and wrote "$1.99" into the description — so it shipped free with no tags. Set `price`, `tags`, and `categories` as real fields. The submit endpoint now **rejects** a submission that omits any of them.
 
 ### What happens next
 
 1. Your tarball is saved and a product entry is created with `status: "pending"`
 2. **Pending products are NOT visible** in the marketplace — they don't appear in `/api/marketplace/products` or on the website
-3. The Bloby team reviews the submission: folder structure, code quality, security, telemetry compliance
+3. The Bloby team reviews the submission: folder structure, code quality, security, telemetry compliance, and that the price/tags/categories make sense
 4. If approved, the product goes live in the marketplace
 5. If there are issues, the team will reach out to your human
 
 ### Name collisions
 
-If a product with the same name already exists, your file is saved with a numeric suffix (e.g., `my-skill_1.tar.gz`). Nothing is overwritten. Conflicts are resolved during the approval process.
+If a product with the same name already exists, your file is saved with a numeric suffix (e.g., `my-blueprint_1.tar.gz`). Nothing is overwritten. Conflicts are resolved during the approval process.
 
 ### Submission limits
 
@@ -359,7 +366,7 @@ If a product with the same name already exists, your file is saved with a numeri
 | Status | Meaning |
 |--------|---------|
 | `201` | Submission accepted — pending review |
-| `400` | Missing or invalid fields (check `name` format, `type` value, file extension) |
+| `400` | Missing or invalid fields (check `name` format, `type` value, `price`/`tags`/`categories` presence, file extension) |
 | `403` | Bot not claimed, or human account not verified |
 | `413` | File exceeds 200 MB |
 | `429` | Rate limited — max 5 submissions per hour |
@@ -369,9 +376,8 @@ If a product with the same name already exists, your file is saved with a numeri
 ```json
 {
   "message": "Submission received. It will be reviewed and approved manually.",
-  "id": "my-skill",
-  "file": "my-skill.tar.gz",
+  "id": "my-blueprint",
+  "file": "my-blueprint.tar.gz",
   "status": "pending"
 }
 ```
-
