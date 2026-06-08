@@ -2,32 +2,46 @@ import { Router } from 'express';
 import { getUsers } from '../db.js';
 import { redirectLimiter } from '../middleware/rateLimiter.js';
 import { parseTierFromSubdomain, buildSubdomainUrl, RESERVED } from '../lib/validate.js';
-import proxy from '../lib/proxy.js';
+import proxy, { reqContext } from '../lib/proxy.js';
+import { NO_CACHE, notFoundPage, errorPage, offlinePage, restartingPage } from '../lib/pages.js';
 
-const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '120000', 10);
+const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '90000', 10);
+// How long a Cloudflare error may persist (while the DB still thinks the bot is live) before the
+// substituted page flips from the optimistic "restarting" to the calm "offline" variant. Covers an
+// ungraceful hard kill / power-off, where the heartbeat hasn't gone stale yet.
+const RESTART_GRACE_MS = parseInt(process.env.RESTART_GRACE_MS || '25000', 10);
+
+// username → first-seen timestamp of a Cloudflare error while the DB still says online.
+// Set by the proxy's onCfError hook, cleared on a real agent response (onLive) or when resolveBot
+// serves the offline page (DB-confirmed down). Bounded: entries self-clean within the heartbeat
+// timeout, since a stale bot lands in the down branch which deletes its entry.
+const cfErrorSince = new Map();
 
 const router = Router();
 
-// ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
+// Error/status pages must never be cached — a stale 502/503 page causes a "Host Error" on restart.
+const NO_CACHE_HEADERS = NO_CACHE;
 
-// Error/status pages must never be cached — stale 502/503 pages cause "Host Error" on restart
-const NO_CACHE_HEADERS = {
-  'Cache-Control': 'no-store, no-cache, must-revalidate',
-  'Pragma': 'no-cache',
-};
+// ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
 
 async function resolveBot(username, tier, req, res) {
   if (username.includes('.') || username.length < 3 || username.length > 30) {
     return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage());
   }
 
-  const query = { username };
-  if (tier) query.tier = tier;
-
-  const user = await getUsers().findOne(
-    query,
-    { projection: { username: 1, tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
-  );
+  let user;
+  try {
+    const query = { username };
+    if (tier) query.tier = tier;
+    user = await getUsers().findOne(
+      query,
+      { projection: { username: 1, tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
+    );
+  } catch (err) {
+    // A transient DB blip must not surface as a raw 500 — treat it as a transient restart.
+    console.error('[resolve] db lookup failed:', err.message);
+    return res.set(NO_CACHE_HEADERS).status(503).send(restartingPage(username));
+  }
 
   if (!user) {
     return res.set(NO_CACHE_HEADERS).status(404).send(notFoundPage(username));
@@ -42,17 +56,30 @@ async function resolveBot(username, tier, req, res) {
     user.lastHeartbeat &&
     Date.now() - user.lastHeartbeat.getTime() > HEARTBEAT_TIMEOUT;
 
+  // The relay KNOWS the bot is down → the calm, distinct "offline" page (no proxy round-trip).
   if (!user.tunnelUrl || !user.isOnline || stale) {
     if (user.isOnline && stale) {
       getUsers()
         .updateOne({ _id: user._id }, { $set: { isOnline: false } })
         .catch(() => {});
     }
+    cfErrorSince.delete(username);
     return res.set(NO_CACHE_HEADERS).status(503).send(offlinePage(username));
   }
 
-  // Reverse-proxy to the bot's tunnel (URL stays in the address bar)
-  proxy.web(req, res, { target: user.tunnelUrl });
+  // The DB believes the bot is live. Reverse-proxy to its tunnel; if Cloudflare answers with a
+  // tunnel error (1033/530), the proxy substitutes a branded page — "restarting" during the grace
+  // window, "offline" once the error has persisted past it.
+  const since = cfErrorSince.get(username);
+  const page = since && Date.now() - since > RESTART_GRACE_MS ? 'offline' : 'restarting';
+  reqContext.set(req, {
+    username,
+    page,
+    onCfError: () => { if (!cfErrorSince.has(username)) cfErrorSince.set(username, Date.now()); },
+    onLive: () => { cfErrorSince.delete(username); },
+  });
+
+  proxy.web(req, res, { target: user.tunnelUrl, selfHandleResponse: true });
 }
 
 // ─── Lookup-only helper (for WS upgrade in server.js) ───────────────────────
@@ -153,144 +180,3 @@ router.get('/:username', redirectLimiter, async (req, res) => {
 });
 
 export default router;
-
-// ─── Static HTML pages ──────────────────────────────────────────────────────
-
-function esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function shell(title, body) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} | Bloby</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',system-ui,sans-serif;
-      background:#0a0a0b;color:#e4e4e7;display:flex;align-items:center;
-      justify-content:center;min-height:100vh;padding:1.5rem;overflow-x:hidden}
-    .c{text-align:center;max-width:460px;animation:fade-up .6s ease-out both}
-    h1{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;
-      margin-bottom:.6rem;display:flex;align-items:center;
-      justify-content:center;gap:.5rem}
-    p{color:#a1a1aa;line-height:1.6;margin-bottom:.6rem;font-size:.95rem}
-    .lead{color:#e4e4e7;font-size:1rem}
-    strong{color:#e4e4e7}
-    .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
-    .red{background:#ef4444;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-    @keyframes pulse-scale{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.85)}}
-    @keyframes pulse-glow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
-    @keyframes fade-up{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
-    .badge{display:inline-block;background:#18181b;border:1px solid #27272a;
-      border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;
-      margin-top:1.2rem;font-family:'Space Grotesk',sans-serif}
-    .gradient{background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-      background-clip:text}
-    .btn{display:inline-flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
-      border:none;border-radius:9999px;
-      padding:.55rem 1.4rem;color:#fff;font-size:.875rem;font-weight:500;
-      text-decoration:none;transition:all .2s;font-family:'Space Grotesk',sans-serif;
-      cursor:pointer;height:2.25rem}
-    .btn:hover{opacity:.9}
-    .actions{display:flex;justify-content:center;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
-    video{pointer-events:none}
-    .video-wrap{position:relative;width:220px;height:220px;margin:0 auto 1.4rem;
-      display:flex;align-items:center;justify-content:center}
-    .video-wrap::before{content:'';position:absolute;inset:-20px;
-      background:radial-gradient(circle,rgba(0, 105, 254,0.18) 0%,transparent 60%);
-      filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
-    .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;
-      border-radius:50%}
-    .status-pill{font-size:.85rem;color:#71717a;display:inline-flex;align-items:center;
-      gap:.5rem;background:#18181b;border:1px solid #27272a;border-radius:9999px;
-      padding:.35rem .9rem;margin-top:.4rem}
-    .status-dot{width:8px;height:8px;border-radius:50%;
-      background:linear-gradient(135deg, #0166FF, #009AFE);
-      box-shadow:0 0 8px rgba(0, 105, 254,0.6);
-      animation:pulse-scale 1.6s ease-in-out infinite}
-  </style>
-</head>
-<body><div class="c">${body}</div></body>
-</html>`;
-}
-
-function offlinePage(username) {
-  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
-  const videoBase = `https://www.${domain}/assets/videos/bloby_restarting`;
-  return shell(
-    `${esc(username)} — Restarting`,
-    `<div class="video-wrap">
-       <video autoplay loop muted playsinline>
-         <source src="${videoBase}.webm" type="video/webm">
-       </video>
-     </div>
-     <h1 class="gradient">Agent is restarting</h1>
-     <p class="lead"><strong>${esc(username)}</strong>'s bot is coming back online.</p>
-     <p>This can happen after an update, a restart, or if the host machine is briefly offline.
-        No action needed — the page will refresh automatically once it's back.</p>
-     <div class="status-pill" id="status"><span class="status-dot"></span><span id="statusText">Reconnecting…</span></div>
-     <div><span class="badge">Powered by Bloby</span></div>
-     <script>
-     (function(){
-       var a=0;
-       var t=document.getElementById('statusText');
-       function retry(){a++;
-         fetch(location.href,{cache:'no-store',redirect:'follow'})
-           .then(function(r){if(r.ok||(r.status!==502&&r.status!==503))location.reload();else sched()})
-           .catch(function(){sched()});
-       }
-       function sched(){
-         var d=Math.min(3000,1000+a*300);
-         t.textContent='Reconnecting in '+Math.ceil(d/1000)+'s… (attempt '+a+')';
-         setTimeout(retry,d);
-       }
-       setTimeout(retry,2000);
-     })();
-     </script>`,
-  );
-}
-
-function notFoundPage(username) {
-  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
-  const wwwUrl = `https://www.${domain}`;
-  const videoBase = `${wwwUrl}/assets/videos/what-happened`;
-  const msg = username
-    ? `The bot <strong>${esc(username)}</strong> doesn't exist — maybe it was never created, or the name is misspelled.`
-    : 'The page you are looking for does not exist.';
-  const reserveHint = username
-    ? `<p style="color:#71717a;font-size:.85rem">Want <strong style="color:#a1a1aa">${domain}/${esc(username)}</strong>? You can reserve it.</p>`
-    : '';
-  return shell('Not Found',
-    `<video autoplay loop muted playsinline style="height:140px;margin:0 auto .8rem">
-       <source src="${videoBase}.webm" type="video/webm">
-       <source src="${videoBase}.mp4" type="video/mp4">
-     </video>
-     <h1><span class="gradient">404</span> — Not Found</h1>
-     <p>${msg}</p>
-     ${reserveHint}
-     <div class="actions">
-       <a href="${wwwUrl}/#reserve" class="btn btn-primary">Reserve a Handle</a>
-     </div>`);
-}
-
-function errorPage() {
-  return shell(
-    'Error',
-    `<meta http-equiv="refresh" content="10">
-     <h1>Something went wrong</h1>
-     <p>Please try again in a moment. This page auto-refreshes.</p>`,
-  );
-}

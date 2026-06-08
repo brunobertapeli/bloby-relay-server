@@ -1,122 +1,260 @@
 import httpProxy from 'http-proxy';
+import zlib from 'node:zlib';
+import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Why this file is more than a one-liner:
+//
+// The relay reverse-proxies user.bloby.bot → https://<random>.trycloudflare.com (a Cloudflare
+// "quick tunnel" running on the user's box). When that tunnel's connector dies but the relay DB
+// still thinks the bot is online, the trycloudflare hostname STILL resolves (Cloudflare anycast),
+// and the edge answers with a fully-formed HTTP response: status 530 + the raw "Error 1033 /
+// Argo Tunnel error" HTML page. To http-proxy that is a *successful* upstream response, not a
+// transport error — so proxy.on('error') never fires and the ugly Cloudflare page is piped
+// straight to the user. (Confirmed against http-proxy@1.18.1 web-incoming/web-outgoing: the
+// error path is only reached for socket/connection failures.)
+//
+// Fix: own the response. resolveBot/server.js pass selfHandleResponse per request, so http-proxy
+// emits 'proxyRes' and does NOT auto-pipe. We classify the upstream response; for a Cloudflare-edge
+// error we substitute a branded page; otherwise we faithfully forward it (status + headers + body,
+// streaming-safe for SSE/binary). The agent's OWN branded error pages (which also come back through
+// the CF edge) are recognised and passed through untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SNIFF_LIMIT = 4096; // enough to see the agent's <title> markers AND its "Powered by Bloby" badge
+const SNIFF_MS = 1500;    // cap how long we'll buffer an ambiguous error body before deciding
+const HOP_BY_HOP = [
+  'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+  'te', 'trailer', 'transfer-encoding', 'upgrade',
+];
+
+// Per-request context set by resolveBot: { username, page:'restarting'|'offline', onCfError, onLive }.
+// Keyed by req so it never serializes onto the upstream wire and is GC'd with the request.
+export const reqContext = new WeakMap();
+
+// NOTE: selfHandleResponse is passed PER REQUEST via proxy.web(req,res,{selfHandleResponse:true}).
+// We deliberately do NOT set proxyTimeout globally — http-proxy implements it as an inactivity
+// timeout (proxyReq.setTimeout) that would abort the agent's long-lived SSE chat (25s keep-alive
+// pings). The dead-tunnel case returns a 530 we already catch; it doesn't hang.
 const proxy = httpProxy.createProxyServer({
   changeOrigin: true,
   xfwd: true,
   ws: true,
   secure: false,
+  preserveHeaderKeyCase: true,
 });
 
+// ─── Classification ──────────────────────────────────────────────────────────
+// Returns 'pass' | 'cf-error' | 'maybe' | 'maybe-compressed'. Header-first; body sniff only when
+// a CF-fronted 4xx/5xx is genuinely ambiguous.
+function classifyByHeaders(req, proxyRes) {
+  const status = proxyRes.statusCode;
+  const h = proxyRes.headers || {};
+
+  // Authoritative agent proof: the agent stamped its own bytes → never substitute.
+  if (h['x-bloby-origin']) return 'pass';
+  // 530 is exclusively Cloudflare's wrapper for 1xxx tunnel/DNS errors (the bug). Header-only.
+  if (status === 530) return 'cf-error';
+  // Cloudflare managed-challenge / Turnstile interstitial.
+  if (h['cf-mitigated']) return 'cf-error';
+
+  // server:cloudflare + cf-ray are stamped on EVERY response through a quick tunnel (success too),
+  // so they carry almost no signal on their own — use them only to gate the body sniff.
+  const isCf = String(h['server'] || '').toLowerCase().includes('cloudflare') || !!h['cf-ray'];
+  if (!(isCf && status >= 400)) return 'pass';
+
+  // CF-fronted 4xx/5xx with no body to inspect → fail safe to branded (never leak a raw CF page).
+  if (req.method === 'HEAD' || status === 204 || status === 304) return 'cf-error';
+
+  const enc = String(h['content-encoding'] || '').toLowerCase();
+  return (enc && enc !== 'identity') ? 'maybe-compressed' : 'maybe';
+}
+
+// CF error-template STRUCTURAL markers (never prose a normal app would print).
+const CF_MARKERS = [
+  'cf-error-details', 'cf-wrapper', '| Cloudflare</title>',
+  'data-translate="error"', 'data-translate="what_happened"', 'window._cf_',
+];
+// Positive AGENT proof inside the first prefix (early <title>s; badge if it lands in-window).
+const AGENT_MARKERS = ['Powered by Bloby', 'Reconnecting · Bloby', 'Backend down · Bloby', 'x-bloby'];
+
+function bodyLooksLikeCf(prefix) {
+  for (const a of AGENT_MARKERS) if (prefix.includes(a)) return false; // agent bytes → pass
+  let hits = 0;
+  for (const m of CF_MARKERS) if (prefix.includes(m)) hits++;
+  return hits >= 2; // two independent CF structural markers ⇒ genuine CF template
+}
+
+function decodePrefix(buf, enc) {
+  try {
+    if (enc.includes('br')) return zlib.brotliDecompressSync(buf).toString('utf8');
+    if (enc.includes('gzip')) return zlib.gunzipSync(buf).toString('utf8');
+    if (enc.includes('deflate')) return zlib.inflateSync(buf).toString('utf8');
+  } catch {
+    return null; // truncated/partial prefix won't decode → caller fail-safes to branded
+  }
+  return buf.toString('utf8');
+}
+
+// A request is a top-level navigation only if it clearly wants an HTML document.
+function isNavigation(req) {
+  if (req.headers['sec-fetch-mode'] === 'navigate') return true;
+  const p = (req.url || '').split('?')[0];
+  return req.method === 'GET'
+    && String(req.headers['accept'] || '').includes('text/html')
+    && !p.startsWith('/api') && !p.startsWith('/app/api');
+}
+
+// Substitute a branded response. Navigations get the HTML page; everything else (XHR, sub-resource,
+// module script, WS-failover fetch) gets a small JSON 503 so callers fail cleanly instead of
+// choking on '<'. Status is 503 by default (temporarily unavailable; keeps the page's poll going).
+function brandedFor(req, res, status = 503) {
+  const ctx = reqContext.get(req) || {};
+  if (ctx.onCfError) { try { ctx.onCfError(); } catch {} }
+  const state = ctx.page === 'offline' ? 'offline' : 'restarting';
+  if (res.headersSent || res.writableEnded) { try { res.end(); } catch {} return; }
+
+  if (req.method === 'HEAD') {
+    res.writeHead(status, { 'X-Bloby-State': state, ...NO_CACHE });
+    res.end();
+    return;
+  }
+  if (isNavigation(req)) {
+    const html = state === 'offline' ? offlinePage(ctx.username) : restartingPage(ctx.username);
+    res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'X-Bloby-State': state, ...NO_CACHE });
+    res.end(html);
+  } else {
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'X-Bloby-State': state, ...NO_CACHE });
+    res.end(brandedJson(state));
+  }
+}
+
+// Faithful replication of http-proxy's web-outgoing pass (skipped under selfHandleResponse): copy
+// status + every non-hop-by-hop header (preserving case via rawHeaders and multi-value Set-Cookie),
+// fix HTTP/1.0 framing, and force NO_CACHE on any pass-through 5xx.
+function forwardHead(req, res, proxyRes) {
+  const ctx = reqContext.get(req);
+  if (ctx && ctx.onLive) { try { ctx.onLive(); } catch {} } // a real agent response came back
+
+  const raw = proxyRes.rawHeaders || [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const key = raw[i];
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.includes(lower)) continue;
+    if (lower === 'set-cookie') continue; // set as an array below to preserve multiple cookies
+    if (proxyRes.headers[lower] === undefined) continue;
+    try { res.setHeader(key, proxyRes.headers[lower]); } catch {}
+  }
+  const sc = proxyRes.headers['set-cookie'];
+  if (sc) { try { res.setHeader('Set-Cookie', sc); } catch {} }
+
+  // HTTP/1.0 framing parity (mirrors http-proxy's setConnection / removeChunked passes).
+  if (req.httpVersion === '1.0') {
+    res.removeHeader('transfer-encoding');
+    res.setHeader('Connection', req.headers.connection || 'close');
+  } else if (req.httpVersion !== '2.0' && !proxyRes.headers.connection) {
+    res.setHeader('Connection', req.headers.connection || 'keep-alive');
+  }
+
+  // A pass-through 5xx must never be cacheable downstream, even if the origin said otherwise.
+  if (proxyRes.statusCode >= 500) {
+    for (const [k, v] of Object.entries(NO_CACHE)) res.setHeader(k, v);
+  }
+
+  res.statusCode = proxyRes.statusCode;
+  if (proxyRes.statusMessage) res.statusMessage = proxyRes.statusMessage;
+  res.writeHead(res.statusCode); // headers already staged via setHeader
+
+  if (String(res.getHeader('content-type') || '').includes('text/event-stream')) {
+    try { res.flushHeaders(); res.socket?.setNoDelay(true); } catch {}
+  }
+}
+
+// ─── Upstream HTTP response interceptor ──────────────────────────────────────
+proxy.on('proxyRes', (proxyRes, req, res) => {
+  try {
+    if (res.headersSent || res.writableEnded) { proxyRes.resume(); return; }
+
+    const verdict = classifyByHeaders(req, proxyRes);
+    if (verdict === 'cf-error') { proxyRes.resume(); return brandedFor(req, res, 503); }
+    if (verdict === 'pass') { forwardHead(req, res, proxyRes); proxyRes.pipe(res); return; }
+
+    // 'maybe' / 'maybe-compressed': buffer a bounded prefix, then decide.
+    const enc = String(proxyRes.headers['content-encoding'] || '').toLowerCase();
+    const chunks = [];
+    let len = 0;
+    let decided = false;
+    proxyRes.pause();
+    const timer = setTimeout(finish, SNIFF_MS);
+
+    function finish() {
+      if (decided) return;
+      decided = true;
+      clearTimeout(timer);
+      const buf = Buffer.concat(chunks);
+      const text = (verdict === 'maybe-compressed') ? decodePrefix(buf, enc) : buf.toString('utf8');
+      // decode failure ⇒ treat as CF error (fail safe, never leak).
+      const looksCf = (text === null) ? true : bodyLooksLikeCf(text);
+      if (looksCf) { try { proxyRes.destroy(); } catch {} return brandedFor(req, res, 503); }
+      // Real agent response: forward the buffered prefix, then stream the rest.
+      forwardHead(req, res, proxyRes);
+      for (const c of chunks) res.write(c);
+      proxyRes.pipe(res);
+      proxyRes.resume();
+    }
+
+    proxyRes.on('readable', () => {
+      let c;
+      while (!decided && (c = proxyRes.read()) !== null) {
+        chunks.push(c);
+        len += c.length;
+        if (len >= SNIFF_LIMIT) { finish(); break; }
+      }
+    });
+    proxyRes.on('end', finish);
+    proxyRes.on('error', () => {
+      if (decided) return;
+      decided = true;
+      clearTimeout(timer);
+      brandedFor(req, res, 503);
+    });
+  } catch (e) {
+    console.error('[proxyRes] handler error:', e.message);
+    try { if (!res.headersSent) brandedFor(req, res, 502); else res.destroy(); } catch {}
+  }
+});
+
+// ─── WebSocket: don't leak a raw Cloudflare error during the upgrade ─────────
+// If the tunnel is dead, the upgrade gets an ordinary HTTP response (e.g. 530) instead of a 101.
+// http-proxy would write that onto the client socket. We register first, so we destroy the upstream
+// response and the client socket before any CF bytes are written. The socket 'error' guard keeps a
+// write-after-destroy from crashing the process.
+proxy.on('proxyReqWs', (proxyReq, _req, socket) => {
+  socket.on('error', () => {});
+  proxyReq.on('response', (proxyRes) => {
+    try {
+      if (!proxyRes.upgrade) {
+        try { proxyRes.destroy(); } catch {}
+        if (!socket.destroyed) {
+          try { socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n'); } catch {}
+          socket.destroy();
+        }
+      }
+    } catch {
+      try { socket.destroy(); } catch {}
+    }
+  });
+});
+
+// ─── Transport-level failures (ECONNREFUSED/RESET/ENOTFOUND/abort/TLS) ───────
+// These mean the origin couldn't even be reached — treat as a transient restart.
 proxy.on('error', (err, req, res) => {
   console.error('[proxy] error:', err.message);
-  if (res.writeHead) {
-    // HTTP request — send 502 page with no-cache + fast auto-retry
-    res.writeHead(502, {
-      'Content-Type': 'text/html',
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Pragma': 'no-cache',
-    });
-    res.end(errorPage());
-  } else {
-    // WebSocket upgrade — res is a Socket, clean it up
-    res.destroy();
+  if (res && res.writeHead && !res.writableEnded) {
+    brandedFor(req, res, 502);
+  } else if (res && res.destroy) {
+    try { res.destroy(); } catch {} // res is a WS socket
   }
 });
-
-function errorPage() {
-  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
-  const videoBase = `https://www.${domain}/assets/videos/what-happened`;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Restarting | Bloby</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',system-ui,-apple-system,sans-serif;
-      background:#0a0a0b;color:#e4e4e7;display:flex;align-items:center;
-      justify-content:center;min-height:100dvh;padding:1.5rem;overflow:hidden}
-    .c{text-align:center;max-width:420px;width:100%;animation:fade-up .6s ease-out both}
-    .video-wrap{position:relative;width:220px;height:220px;margin:0 auto 1.4rem;
-      display:flex;align-items:center;justify-content:center}
-    .video-wrap::before{content:'';position:absolute;inset:-20px;
-      background:radial-gradient(circle,rgba(0, 105, 254,0.18) 0%,transparent 60%);
-      filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
-    .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;
-      pointer-events:none;border-radius:50%}
-    h1{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;
-      margin-bottom:.6rem;background:linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    p{color:#a1a1aa;line-height:1.6;margin-bottom:.6rem;font-size:.95rem}
-    .lead{color:#e4e4e7;font-size:1rem}
-    .sub{font-size:.85rem;color:#71717a;display:inline-flex;align-items:center;gap:.5rem;
-      background:#18181b;border:1px solid #27272a;border-radius:9999px;
-      padding:.35rem .9rem;margin-top:.4rem}
-    .sub .dot{width:8px;height:8px;border-radius:50%;
-      background:linear-gradient(135deg, #0166FF, #009AFE);
-      box-shadow:0 0 8px rgba(0, 105, 254,0.6);animation:pulse 1.6s ease-in-out infinite}
-    .badge{display:inline-block;background:#18181b;border:1px solid #27272a;
-      border-radius:999px;padding:.2rem .7rem;font-size:.7rem;color:#52525b;
-      margin-top:1.2rem;font-family:'Space Grotesk',sans-serif}
-    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.85)}}
-    @keyframes pulse-glow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
-    @keyframes fade-up{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
-  </style>
-</head>
-<body><div class="c">
-  <div class="video-wrap">
-    <video autoplay loop muted playsinline>
-      <!-- webm first: keeps the transparent alpha channel (incl. iPhone Safari). mp4 is a no-alpha fallback. -->
-      <source src="${videoBase}.webm" type="video/webm">
-      <source src="${videoBase}.mp4" type="video/mp4">
-    </video>
-  </div>
-  <h1>Agent is restarting</h1>
-  <p class="lead">Hang tight — your bot is coming back online.</p>
-  <p>This can happen after an update, a restart, or a brief network hiccup. No action needed; the page will refresh automatically once the agent is back.</p>
-  <div class="sub" id="status"><span class="dot"></span><span id="statusText">Reconnecting…</span></div>
-  <div><span class="badge">Powered by Bloby</span></div>
-</div>
-<script>
-(function(){
-  var attempt = 0;
-  var statusEl = document.getElementById('statusText');
-
-  function check() {
-    attempt++;
-    statusEl.textContent = 'Reconnecting…';
-    fetch(location.href, { cache: 'no-store', redirect: 'follow' })
-      .then(function(r) {
-        if (r.ok || (r.status !== 502 && r.status !== 503)) {
-          location.reload();
-        } else {
-          schedule();
-        }
-      })
-      .catch(schedule);
-  }
-
-  // Live countdown so the timer actually ticks down instead of freezing on a fixed number.
-  function schedule() {
-    var secs = Math.min(3, 1 + Math.floor(attempt / 2)); // ramp 1s -> 3s, then hold
-    tick(secs);
-  }
-
-  function tick(secs) {
-    if (secs <= 0) { check(); return; }
-    statusEl.textContent = 'Retrying in ' + secs + 's… (attempt ' + attempt + ')';
-    setTimeout(function(){ tick(secs - 1); }, 1000);
-  }
-
-  setTimeout(check, 1800);
-})();
-</script>
-</body>
-</html>`;
-}
 
 export default proxy;

@@ -92,15 +92,21 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
       updatedAt: new Date(),
     };
 
+    let rotatedTunnel = null;
     if (req.body.tunnelUrl) {
       const validation = validateTunnelUrl(req.body.tunnelUrl);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
       update.tunnelUrl = validation.url;
+      rotatedTunnel = validation.url;
     }
 
     await getUsers().updateOne({ _id: req.user._id }, { $set: update });
+
+    // If the heartbeat carried a rotated tunnel URL, warm Railway's DNS in the background so the
+    // next proxy hit doesn't ENOTFOUND. Fire-and-forget — never delay the heartbeat cadence.
+    if (rotatedTunnel) warmDns(rotatedTunnel).catch(() => {});
 
     res.json({ success: true, username: req.user.username });
   } catch (error) {

@@ -25,6 +25,7 @@ import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
+import { NO_CACHE, notFoundPage, errorPage } from './lib/pages.js';
 
 dotenv.config();
 
@@ -123,14 +124,29 @@ app.get('/', (req, res, next) => {
   next();
 });
 
-// ─── Path-based fallback (must be last) ──────────────────────────────────────
+// ─── Path-based fallback (must be last route) ────────────────────────────────
 // Handles  relay.bloby.bot/username  →  reverse-proxies to tunnel
 app.use('/', resolveRoutes);
 
+// ─── Branded catch-all 404 ───────────────────────────────────────────────────
+// Anything that fell through (an unmatched non-/api path) gets the branded page, never a bare
+// "Cannot GET /…". API paths still get JSON so programmatic callers aren't handed HTML.
+app.use((req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).set(NO_CACHE).json({ error: 'Not found' });
+  }
+  res.status(404).set(NO_CACHE).type('html').send(notFoundPage());
+});
+
 // ─── Global error handler ────────────────────────────────────────────────────
-app.use((err, _req, res, _next) => {
+// Content-negotiated: API / XHR callers get JSON; browser navigations get the branded page.
+app.use((err, req, res, _next) => {
   console.error('[server] Unhandled error:', err.message);
-  res.status(500).json({ error: 'Internal server error' });
+  if (res.headersSent) return;
+  if (req.path.startsWith('/api') || req.xhr || !String(req.headers.accept || '').includes('text/html')) {
+    return res.status(500).set(NO_CACHE).json({ error: 'Internal server error' });
+  }
+  res.status(500).set(NO_CACHE).type('html').send(errorPage());
 });
 
 // ─── Start ───────────────────────────────────────────────────────────────────
@@ -140,6 +156,9 @@ const server = http.createServer(app);
 const relayDomainForWs = process.env.RELAY_DOMAIN;
 
 server.on('upgrade', async (req, socket, head) => {
+  // Guard the raw socket so a write-after-destroy (e.g. the client hung up) can't crash the relay.
+  socket.on('error', () => {});
+
   const host = req.headers.host?.split(':')[0];
   const url = req.url;
   console.log(`[ws-upgrade] host=${host} url=${url} relayDomain=${relayDomainForWs}`);
@@ -149,29 +168,44 @@ server.on('upgrade', async (req, socket, head) => {
     return socket.destroy();
   }
 
-  // Skip relay's own subdomains
-  if (host === `api.${relayDomainForWs}` || host === `www.${relayDomainForWs}`) {
+  // Skip relay's own subdomains (open.<domain> is the free-tier landing host, not a bot)
+  if (host === `api.${relayDomainForWs}` || host === `www.${relayDomainForWs}` || host === `open.${relayDomainForWs}`) {
     console.log('[ws-upgrade] rejected: relay subdomain');
     return socket.destroy();
   }
 
+  // Same parser as the HTTP path, so the free tier (bruno.open.<domain>) resolves identically.
   const subdomain = host.slice(0, -(relayDomainForWs.length + 1));
   const parsed = parseTierFromSubdomain(subdomain);
   console.log(`[ws-upgrade] subdomain=${subdomain} parsed=${JSON.stringify(parsed)}`);
   if (!parsed) return socket.destroy();
+
+  function closeSocket(statusLine) {
+    if (socket.destroyed) return;
+    try { socket.write(`HTTP/1.1 ${statusLine}\r\nConnection: close\r\n\r\n`); } catch {}
+    socket.destroy();
+  }
 
   try {
     const bot = await lookupBot(parsed.username, parsed.tier);
     console.log(`[ws-upgrade] lookupBot result=${JSON.stringify(bot)}`);
     if (bot) {
       console.log(`[ws-upgrade] proxying WS to ${bot.tunnelUrl}`);
-      proxy.ws(req, socket, head, { target: bot.tunnelUrl });
+      // Per-call error callback: a dead tunnel during the WS handshake closes cleanly instead of
+      // surfacing a raw Cloudflare upgrade failure. (proxy.js also intercepts the upstream response
+      // so a 530 is never written to the socket.)
+      proxy.ws(req, socket, head, { target: bot.tunnelUrl }, (err) => {
+        if (err) {
+          console.error('[ws-upgrade] proxy.ws error:', err.message);
+          closeSocket('502 Bad Gateway');
+        }
+      });
     } else {
       console.log('[ws-upgrade] bot not found or offline');
-      socket.destroy();
+      closeSocket('503 Service Unavailable');
     }
   } catch (err) {
-    console.error('[ws-upgrade] error:', err);
+    console.error('[ws-upgrade] error:', err.message);
     socket.destroy();
   }
 });
