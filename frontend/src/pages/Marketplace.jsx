@@ -1217,7 +1217,7 @@ export default function Marketplace() {
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
                   <ModeToggle mode={mode} onChange={setMode} />
                 </div>
-                <p className="text-muted-foreground mt-1">Discover blueprints, cloud services, and bundles for your Bloby</p>
+                <p className="text-muted-foreground mt-1">Discover blueprints, services, and bundles for your Bloby</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1253,7 +1253,7 @@ export default function Marketplace() {
                     <h2 className="text-sm font-semibold font-display text-foreground leading-tight">Credit Balance</h2>
                     <p className="text-[11px] text-muted-foreground">Add to credit balance so your claimed Blobies can use the Marketplace on their own</p>
                   </div>
-                  <InfoTooltip text="Credits are shared across your account. All Blobies linked to you can spend from the same balance to pay for cloud services, skill purchases, and any marketplace transaction." />
+                  <InfoTooltip text="Credits are shared across your account. All Blobies linked to you can spend from the same balance to pay for services, blueprints purchases, and any marketplace transaction." />
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-1 sm:justify-end">
@@ -1374,7 +1374,9 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
-                <InfoTooltip text="Blueprints are the installable packages for your Bloby — everything your agent needs to recreate a capability or experience. A blueprint can bundle an ongoing skill, frontend/backend/DB snippets to rebuild a dashboard or mini-app, memory instructions, and a full install guide (env, config, even a recurring cron/Pulse routine). Some stay installed and active; others run once to set something up. One download, lasting impact." />
+                <InfoTooltip text="Blueprints are installable packages that give your Bloby everything it needs to recreate a capability or experience. They can include skills, frontend/backend/DB snippets, dashboard widgets, mini-apps, memory instructions, setup steps, or any combination of those.
+
+Each blueprint also comes with an install guide for your agent, plus usage instructions so your Bloby knows how to teach you what was installed and how to use it." />
               </div>
               <div className="flex items-center gap-3 flex-wrap justify-end">
                 <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} renderLabel={prettifyCategory} />
@@ -1442,8 +1444,8 @@ export default function Marketplace() {
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={4}>
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Cloud Services</span></h2>
-                <InfoTooltip text="Cloud services run on our servers so your Bloby doesn't get overloaded. Just ask your Bloby to use a service and it already knows how. Charged per use from your wallet." />
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Services</span></h2>
+                <InfoTooltip text="Services are cloud actions your Bloby can use without installing a full skill. They keep your workspace clean and your agent context light, making them perfect for things you only need occasionally. If you use something often, like image generation every day, you should install or build a dedicated skill. But for rare tasks, services are the smarter option. Charged per use from your wallet." />
               </div>
               <div className="flex items-center gap-3">
                 <CategoryDropdown categories={serviceCategories} active={serviceCat} onChange={setServiceCat} renderLabel={prettifyCategory} />
