@@ -14,8 +14,9 @@ import {
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Latest']
-// Blueprints get an extra "Official" tab (Bloby-team-published), shown by default.
-const blueprintFilterOptions = ['Official', 'Featured', 'Popular', 'Latest']
+// Blueprints get an extra "Official" tab (Bloby-team-published, shown by default)
+// and an "All" tab that drops the official-only restriction.
+const blueprintFilterOptions = ['Official', 'Featured', 'Popular', 'Latest', 'All']
 
 // Blueprint content taxonomy — what a blueprint can bundle. Keep the keys in
 // sync with the backend (routes/marketplace.js CONTENT_TYPES) and the docs.
