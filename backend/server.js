@@ -24,7 +24,6 @@ import resolveRoutes from './routes/resolve.js';
 import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
-import telegramRoutes, { handleTelegramManagerWebhook, ensureManagerWebhook } from './routes/telegram.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 import { NO_CACHE, notFoundPage, errorPage } from './lib/pages.js';
 
@@ -66,9 +65,6 @@ app.use(
 // ─── Connect to MongoDB ─────────────────────────────────────────────────────
 await connect();
 
-// ─── Register the Telegram manager-bot webhook (idempotent; no manual setWebhook needed) ─────
-ensureManagerWebhook();
-
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
 // Intercepts  username.bloby.bot  →  reverse-proxies to tunnel
 // MUST run before body parsing — express.json() consumes the request stream,
@@ -81,11 +77,6 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), strip
 // ─── Alexa skill webhook (raw body — must be BEFORE express.json()) ─────────
 // Signature verification needs the exact bytes Amazon signed.
 app.post('/api/alexa/handle', express.raw({ type: 'application/json', limit: '64kb' }), handleAlexaRequest);
-
-// ─── Telegram manager-bot webhook (managed_bot updates) ─────────────────────
-// Telegram sends JSON; authenticity is the secret-token header (no body signature),
-// so plain express.json() is fine. Mounted before the global parser for symmetry.
-app.post('/api/telegram/manager-webhook', express.json({ limit: '256kb' }), handleTelegramManagerWebhook);
 
 // ─── Body parsing (relay API only — after subdomain proxy) ───────────────────
 app.use('/api', express.json({ limit: '16kb' }));
@@ -107,7 +98,6 @@ app.use('/api', extensionRoutes);
 app.use('/api', worldRoutes);
 app.use('/api', messengerRoutes);
 app.use('/api', alexaRoutes);
-app.use('/api', telegramRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
