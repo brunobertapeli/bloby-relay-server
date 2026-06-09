@@ -106,6 +106,19 @@ async function createIndexes() {
     alexaLinks.createIndex({ alexaUserId: 1 }, { unique: true }),
     alexaLinks.createIndex({ username: 1 }),
   ]);
+
+  // ─── Telegram channel ─────────────────────────────────────────────────────
+  // Provisioning sessions for the "Managed Bots" pairing handshake. The relay only
+  // holds these transiently — once the Bloby fetches its child token (single-use), the
+  // row is deleted. TTL auto-deletes abandoned/expired sessions. No persistent token store
+  // and no chat→bloby link table: each Bloby long-polls its own bot directly after pairing.
+  const telegramProvisions = db.collection('telegram_provisions');
+  await Promise.all([
+    telegramProvisions.createIndex({ sessionId: 1 }, { unique: true }),
+    telegramProvisions.createIndex({ suggestedBotUsername: 1 }),
+    telegramProvisions.createIndex({ username: 1 }),
+    telegramProvisions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+  ]);
 }
 
 export function getDb() {

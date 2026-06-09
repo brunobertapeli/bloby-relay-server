@@ -24,6 +24,7 @@ import resolveRoutes from './routes/resolve.js';
 import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
+import telegramRoutes, { handleTelegramManagerWebhook } from './routes/telegram.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 import { NO_CACHE, notFoundPage, errorPage } from './lib/pages.js';
 
@@ -78,6 +79,11 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), strip
 // Signature verification needs the exact bytes Amazon signed.
 app.post('/api/alexa/handle', express.raw({ type: 'application/json', limit: '64kb' }), handleAlexaRequest);
 
+// ─── Telegram manager-bot webhook (managed_bot updates) ─────────────────────
+// Telegram sends JSON; authenticity is the secret-token header (no body signature),
+// so plain express.json() is fine. Mounted before the global parser for symmetry.
+app.post('/api/telegram/manager-webhook', express.json({ limit: '256kb' }), handleTelegramManagerWebhook);
+
 // ─── Body parsing (relay API only — after subdomain proxy) ───────────────────
 app.use('/api', express.json({ limit: '16kb' }));
 
@@ -98,6 +104,7 @@ app.use('/api', extensionRoutes);
 app.use('/api', worldRoutes);
 app.use('/api', messengerRoutes);
 app.use('/api', alexaRoutes);
+app.use('/api', telegramRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
