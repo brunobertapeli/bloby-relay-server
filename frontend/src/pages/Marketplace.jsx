@@ -1367,8 +1367,7 @@ export default function Marketplace() {
               </div>
             </div>
             {filteredBlueprints.length > 0 ? (
-            <Carousel snap={false}>
-              <div className="grid grid-rows-3 grid-flow-col auto-cols-[260px] sm:auto-cols-[280px] gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredBlueprints.map((bp, i) => {
                   const grayed = isGrayed(bp)
                   return (
@@ -1413,7 +1412,6 @@ export default function Marketplace() {
                   )
                 })}
               </div>
-            </Carousel>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border/40 rounded-2xl">
                 <p className="text-sm font-medium text-foreground mb-1">No blueprints match these filters</p>
