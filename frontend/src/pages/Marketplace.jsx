@@ -36,6 +36,14 @@ const contentLabel = (key) => CONTENT_LABELS[key] || key
 const prettifyCategory = (c) =>
   c === 'All' ? c : c.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
+// "Latest" tab = New Arrivals: only blueprints added within this window.
+const LATEST_WINDOW_DAYS = 30
+const isRecentBlueprint = (b) => {
+  if (!b || !b.createdAt) return false
+  const t = new Date(b.createdAt).getTime()
+  return !Number.isNaN(t) && (Date.now() - t) <= LATEST_WINDOW_DAYS * 24 * 60 * 60 * 1000
+}
+
 // Official blueprints hide their publisher and show a blue "Official Blueprint" mark.
 function PublisherLine({ item, className = 'text-[11px]' }) {
   if (item.official) {
@@ -1157,13 +1165,15 @@ export default function Marketplace() {
   const filteredBundles = sortItems(filterByCat(bundles.filter(searchFilter), bundleCat), bundleFilter)
   const filteredServices = sortItems(filterByCat(services.filter(searchFilter), serviceCat), serviceFilter)
   // The blueprint tab acts as a FILTER (not just a sort): Official/Featured/Popular
-  // restrict to that boolean flag on the product; Latest and All show the whole
-  // catalog. (Tags/Content/Category dropdowns then narrow further.)
+  // restrict to that boolean flag; Latest = "New Arrivals" (added within the last
+  // LATEST_WINDOW_DAYS); All shows the whole catalog. (Tags/Content/Category
+  // dropdowns narrow further; sortItems still orders Latest newest-first.)
   const blueprintTabFilter = (b) =>
     blueprintFilter === 'Official' ? b.official
       : blueprintFilter === 'Featured' ? b.featured
         : blueprintFilter === 'Popular' ? b.popular
-          : true
+          : blueprintFilter === 'Latest' ? isRecentBlueprint(b)
+            : true
   const blueprintBase = blueprints.filter(blueprintTabFilter)
   const filteredBlueprints = sortItems(
     filterByContent(
