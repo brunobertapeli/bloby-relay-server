@@ -38,9 +38,31 @@ const PROVISION_TTL_SECONDS = 10 * 60; // 10 minutes
 const MANAGER_BOT = process.env.TELEGRAM_MANAGER_BOT_USERNAME;
 const MANAGER_TOKEN = process.env.TELEGRAM_MANAGER_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_MANAGER_WEBHOOK_SECRET;
+const RELAY_DOMAIN = process.env.RELAY_DOMAIN || 'bloby.bot';
+const MANAGER_WEBHOOK_URL = `https://api.${RELAY_DOMAIN}/api/telegram/manager-webhook`;
 
 function getProvisions() {
   return getDb().collection('telegram_provisions');
+}
+
+/** Register the manager-bot webhook with Telegram on startup — idempotent, so there's no manual
+ *  setWebhook step. No-op (with a clear log) unless the manager bot is fully configured. */
+export async function ensureManagerWebhook() {
+  if (!MANAGER_TOKEN || !WEBHOOK_SECRET) {
+    console.warn('[telegram] manager bot not configured (TELEGRAM_MANAGER_BOT_TOKEN / TELEGRAM_MANAGER_WEBHOOK_SECRET) — Telegram channel disabled, skipping webhook setup');
+    return;
+  }
+  try {
+    const { ok, data } = await managerCall('setWebhook', {
+      url: MANAGER_WEBHOOK_URL,
+      secret_token: WEBHOOK_SECRET,
+      allowed_updates: ['managed_bot'],
+    });
+    if (ok) console.log(`[telegram] manager webhook registered → ${MANAGER_WEBHOOK_URL}`);
+    else console.error('[telegram] setWebhook failed:', JSON.stringify(data).slice(0, 300));
+  } catch (err) {
+    console.error('[telegram] setWebhook error:', err.message);
+  }
 }
 
 /** A unique, valid Telegram bot username: 5–32 chars, latin+digits+underscore, must end in 'bot'.

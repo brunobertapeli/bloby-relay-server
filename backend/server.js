@@ -24,7 +24,7 @@ import resolveRoutes from './routes/resolve.js';
 import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
-import telegramRoutes, { handleTelegramManagerWebhook } from './routes/telegram.js';
+import telegramRoutes, { handleTelegramManagerWebhook, ensureManagerWebhook } from './routes/telegram.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 import { NO_CACHE, notFoundPage, errorPage } from './lib/pages.js';
 
@@ -65,6 +65,9 @@ app.use(
 
 // ─── Connect to MongoDB ─────────────────────────────────────────────────────
 await connect();
+
+// ─── Register the Telegram manager-bot webhook (idempotent; no manual setWebhook needed) ─────
+ensureManagerWebhook();
 
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
 // Intercepts  username.bloby.bot  →  reverse-proxies to tunnel
