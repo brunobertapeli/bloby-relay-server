@@ -1156,9 +1156,15 @@ export default function Marketplace() {
 
   const filteredBundles = sortItems(filterByCat(bundles.filter(searchFilter), bundleCat), bundleFilter)
   const filteredServices = sortItems(filterByCat(services.filter(searchFilter), serviceCat), serviceFilter)
-  // Blueprints support extra filtering: the "Official" tab restricts to Bloby-team
-  // blueprints, plus Tags and Content dropdowns alongside Category.
-  const blueprintBase = blueprintFilter === 'Official' ? blueprints.filter(b => b.official) : blueprints
+  // The blueprint tab acts as a FILTER (not just a sort): Official/Featured/Popular
+  // restrict to that boolean flag on the product; Latest and All show the whole
+  // catalog. (Tags/Content/Category dropdowns then narrow further.)
+  const blueprintTabFilter = (b) =>
+    blueprintFilter === 'Official' ? b.official
+      : blueprintFilter === 'Featured' ? b.featured
+        : blueprintFilter === 'Popular' ? b.popular
+          : true
+  const blueprintBase = blueprints.filter(blueprintTabFilter)
   const filteredBlueprints = sortItems(
     filterByContent(
       filterByTag(
