@@ -186,6 +186,132 @@ export function tooManyRequestsPage() {
   );
 }
 
+// ─── OAuth code-paste landing page ───────────────────────────────────────────
+// Shared, permanent redirect target for ALL Bloby OAuth code-paste flows
+// (Fitbit / Google Health today, more later). Self-hosted blobies can't expose a
+// public callback, so Google redirects the browser here; this dumb static page
+// surfaces everything after the path (location.search + location.hash) in a copy
+// box so the user can paste it back into their agent. It is GENERIC and never
+// changes — it doesn't know or care which skill triggered the flow; the bloby's
+// backend parses whatever param it needs out of the pasted tail.
+//
+// SECURITY: the tail holds a single-use OAuth `code`. The route serving this MUST
+// NOT log req.url/req.query, and this page deliberately contains NO <img>/fetch/
+// beacon or third-party script that could leak the value off-page. The mascot
+// video + webfonts are static first-party/CDN assets that never carry the tail.
+//
+// Pure client-side: it reads the tail in the browser; the server only emits HTML.
+// Design mirrors the relay's branded pages — dark theme, Inter/Space Grotesk, the
+// brand gradient, the bloby mascot, and the spinning conic-gradient border from
+// the website's focused "Reserve your handle" input field.
+export function oauthConnectPage() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Connect | Bloby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{color-scheme:dark}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0b;color:#e4e4e7;
+      display:flex;align-items:center;justify-content:center;min-height:100dvh;padding:1.5rem;overflow-x:hidden}
+    .c{text-align:center;max-width:480px;width:100%;animation:fade-up .6s ease-out both}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;margin-bottom:.6rem;line-height:1.2}
+    p{color:#a1a1aa;line-height:1.6;margin-bottom:.6rem;font-size:.95rem}
+    .lead{color:#e4e4e7;font-size:1rem;margin-bottom:1.4rem}
+    strong{color:#e4e4e7}
+    .gradient{background:linear-gradient(135deg,#0166FF,#009AFE,#4AEEFF);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    video{pointer-events:none}
+    .video-wrap{position:relative;width:150px;height:150px;margin:0 auto 1.2rem;
+      display:flex;align-items:center;justify-content:center}
+    .video-wrap::before{content:'';position:absolute;inset:-20px;
+      background:radial-gradient(circle,rgba(0,105,254,0.18) 0%,transparent 60%);
+      filter:blur(20px);animation:pulse-glow 3s ease-in-out infinite}
+    .video-wrap video{position:relative;width:100%;height:100%;object-fit:contain;border-radius:50%}
+    /* Spinning conic-gradient border — same effect as the focused "Reserve your handle" input. */
+    .box{position:relative;border-radius:18px;padding:1px;overflow:hidden;margin:0 0 1rem;
+      box-shadow:0 0 24px -6px rgba(0,105,254,0.3)}
+    .box::before{content:'';position:absolute;inset:-150%;z-index:0;
+      background:conic-gradient(from 0deg,#0166FF,#009AFE,#4AEEFF,#0166FF);
+      animation:border-spin 3s linear infinite}
+    .box.static::before{animation:none;background:#27272a}
+    .box-inner{position:relative;z-index:1;background:#18181b;border-radius:calc(18px - 1px);
+      padding:1rem 1.1rem;text-align:left}
+    code#payload{display:block;word-break:break-all;white-space:pre-wrap;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;line-height:1.6;
+      color:#d7e3f0;max-height:180px;overflow:auto}
+    .empty-msg{color:#a1a1aa;font-size:.9rem;line-height:1.6}
+    button{width:100%;cursor:pointer;border:none;border-radius:9999px;padding:.8rem 1.4rem;
+      font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;color:#fff;
+      background:linear-gradient(135deg,#0166FF,#009AFE,#4AEEFF);transition:opacity .15s ease}
+    button:hover{opacity:.9}
+    button.ok{background:#18181b;border:1px solid #27272a;color:#34d399}
+    .hint{margin-top:.9rem;font-size:.8rem;color:#71717a}
+    .badge{display:inline-block;background:#18181b;border:1px solid #27272a;border-radius:999px;
+      padding:.2rem .7rem;font-size:.7rem;color:#52525b;margin-top:1.4rem;font-family:'Space Grotesk',sans-serif}
+    @keyframes border-spin{to{transform:rotate(360deg)}}
+    @keyframes pulse-glow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+    @keyframes fade-up{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+  <div class="c">
+    <div class="video-wrap">
+      <video autoplay loop muted playsinline onerror="var w=this.closest('.video-wrap'); if(w) w.style.display='none'">
+        <source src="${videoBase.replace('what-happened', 'bloby_happy')}.webm" type="video/webm">
+        <source src="https://www.${RELAY_DOMAIN}/assets/videos/happy.mp4" type="video/mp4">
+      </video>
+    </div>
+    <h1 id="title" class="gradient">You're authorized</h1>
+    <p class="lead" id="sub">Copy the value below, go back to your Bloby, and paste it to finish connecting.</p>
+    <div class="box" id="box"><div class="box-inner"><code id="payload"></code></div></div>
+    <button id="copyBtn">Copy</button>
+    <div class="hint" id="hint">Tip: it was auto-copied to your clipboard.</div>
+    <div><span class="badge">Powered by Bloby</span></div>
+  </div>
+<script>
+  // Everything after the path: query string + hash. Future-proof — the agent decides
+  // which param(s) it needs (code / scope / state / PKCE / implicit-flow tokens).
+  var tail = (location.search || '') + (location.hash || '');
+  var payloadEl = document.getElementById('payload');
+  var btn = document.getElementById('copyBtn');
+  var box = document.getElementById('box');
+
+  if (!tail || tail === '?' || tail === '#') {
+    document.getElementById('title').textContent = 'Nothing to copy yet';
+    document.getElementById('sub').style.display = 'none';
+    box.classList.add('static');
+    payloadEl.parentNode.innerHTML = '<div class="empty-msg">Finish the Google consent screen first — then you\\u2019ll land back here with something to copy.</div>';
+    btn.style.display = 'none';
+    document.getElementById('hint').style.display = 'none';
+  } else {
+    payloadEl.textContent = tail;
+    var copy = function () {
+      navigator.clipboard.writeText(tail).then(function () {
+        btn.textContent = 'Copied \\u2713';
+        btn.classList.add('ok');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 1800);
+      }).catch(function () {
+        // Clipboard API can be blocked (insecure context / permission); selection fallback.
+        var r = document.createRange(); r.selectNodeContents(payloadEl);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        document.getElementById('hint').textContent = 'Press \\u2318/Ctrl+C to copy the highlighted text.';
+      });
+    };
+    btn.addEventListener('click', copy);
+    copy(); // auto-copy on load (best-effort)
+  }
+</script>
+</body>
+</html>`;
+}
+
 // Tiny machine-readable body for NON-navigation substitutions (XHR / sub-resource / WS-failover).
 // The agent SPA does response.json() on /app/api failovers, so a substituted HTML body would throw
 // "Unexpected token <". This keeps those callers failing cleanly.

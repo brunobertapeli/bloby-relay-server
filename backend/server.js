@@ -25,7 +25,7 @@ import worldRoutes from './routes/world.js';
 import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
-import { NO_CACHE, notFoundPage, errorPage } from './lib/pages.js';
+import { NO_CACHE, notFoundPage, errorPage, oauthConnectPage } from './lib/pages.js';
 
 dotenv.config();
 
@@ -112,6 +112,22 @@ app.get('/install', (_req, res) => {
 });
 app.get('/install.ps1', (_req, res) => {
   res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.ps1'));
+});
+
+// ─── OAuth code-paste redirect landing page ──────────────────────────────────
+// Shared, permanent redirect target for all Bloby OAuth code-paste flows (Fitbit /
+// Google Health, etc). Google redirects the browser to https://bloby.bot/oauth/connect
+// after consent; this dumb static page shows the auth tail (search + hash) in a copy
+// box so the user can paste it back into their self-hosted agent. Generic & never
+// changes — each blueprint just registers this URI on its own Google OAuth client.
+//
+// Public + unauthenticated (Google's redirect carries no Bloby session). Both the
+// bare and trailing-slash forms are served (Google sends exactly what's registered).
+//
+// SECURITY: the query string holds a single-use OAuth `code` — do NOT log _req.url /
+// _req.query here, and never add analytics/beacons to this route.
+app.get(['/oauth/connect', '/oauth/connect/'], (_req, res) => {
+  res.set(NO_CACHE).type('html').send(oauthConnectPage());
 });
 
 // ─── Bare domain → www redirect ──────────────────────────────────────────────
