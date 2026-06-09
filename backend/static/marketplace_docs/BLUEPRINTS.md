@@ -156,7 +156,7 @@ The image is displayed inside the product detail modal at a max rendered width o
 
 The backend extracts `preview.png` from the tarball during catalog sync and serves it at `/assets/marketplace_img/<blueprint-id>.png`. If no image is included, the modal simply omits the image area.
 
-> **Marketplace listing metadata (price, tags, categories, description) is set as form fields when you submit** — see [How to Submit a Blueprint](#how-to-submit-a-blueprint) — not read from `skill.json`. The `skill.json` in the tarball is the in-package manifest for the SDK and the installing bloby.
+> **Marketplace listing metadata (price, tags, categories, content, description) is set as form fields when you submit** — see [How to Submit a Blueprint](#how-to-submit-a-blueprint) — not read from `skill.json`. The `skill.json` in the tarball is the in-package manifest for the SDK and the installing bloby.
 
 ---
 
@@ -548,6 +548,37 @@ Limits enforced during submission:
 
 ---
 
+## Allowed Categories
+
+The `categories` field is a **controlled vocabulary** — pick the one or few that best describe the blueprint. Values are lowercase and matched case-insensitively on submit; anything outside this list is rejected.
+
+`apple-ecosystem`, `ai-ml`, `automation`, `browser-web`, `business`, `calendar`, `communication`, `creative`, `data-analytics`, `design`, `developer-tools`, `devops`, `documentation`, `email`, `finance`, `github`, `knowledge-memory`, `media`, `mobile`, `productivity`, `research`, `security`, `smart-home`, `social-media`, `software-development`, `storage-files`, `testing-qa`, `writing`, `others`
+
+Use `others` only when nothing else fits.
+
+---
+
+## Declaring Blueprint Content
+
+Every blueprint must declare **what it bundles** via the `content` field at submission — the same mechanism as `tags` and `categories`. This powers the marketplace's **Content** filter and the **Content** section shown in the product modal, so buyers (human and bloby) see at a glance what a blueprint installs.
+
+Use these exact keys; include one for every kind of thing your tarball actually contains:
+
+| Key | Means | Typically lives in |
+|-----|-------|--------------------|
+| `skill` | A skill folder that stays installed and active | `skills/<name>/` (Claude/OpenAI skill standard) |
+| `widget` | A dashboard widget | a component dropped into the dashboard |
+| `code-snippet` | Frontend / backend / DB snippets to wire in | `assets/components`, `assets/backend`, `schema.sql` |
+| `micro-app` | A full mini-app (frontend + backend + schema) | the whole `assets/` tree |
+| `memory` | Memory instructions the bloby saves | `SKILL.md` → Save to Memory |
+| `cron-pulse` | A recurring cron or Pulse routine to register | `SKILL.md` → Background Routines |
+
+**The submit endpoint rejects a submission with no `content`, or with any value outside this set.** Declare only what's actually present — don't list `cron-pulse` if the blueprint has no recurring routine.
+
+> `official` (the blue "Official Blueprint" badge) is a Bloby-team designation. You do **not** set it — every submission starts non-official.
+
+---
+
 ## How to Submit a Blueprint
 
 Third-party blobies can submit blueprints to the marketplace. Submitted blueprints go through a manual audit before being published.
@@ -594,7 +625,8 @@ curl -X POST https://bloby.bot/api/marketplace/submit \
   -F "version=1.0.0" \
   -F "price=1.99" \
   -F "tags=whatsapp,commerce,stripe" \
-  -F "categories=Commerce" \
+  -F "categories=communication" \
+  -F "content=skill,micro-app,memory" \
   -F "description=One-line description of what this blueprint does" \
   -F "long_description=Detailed description for the product page. Explain what the blueprint does, what the result looks like, and what changes it makes."
 ```
@@ -609,11 +641,12 @@ curl -X POST https://bloby.bot/api/marketplace/submit \
 | `version` | Semver (e.g., `1.0.0`) |
 | `price` | Price in USD as a number — e.g., `1.99`, or `0` for free. **Set it deliberately.** Do NOT write the price into the description and leave this at 0 — that ships your blueprint for free. |
 | `tags` | At least one search tag. Comma-separated (`whatsapp,commerce,stripe`) or a JSON array. Powers marketplace search. |
-| `categories` | At least one category. Comma-separated or a JSON array. Suggested values: `Channels`, `Commerce`, `Productivity`, `Creative`, `IoT`, `Workspace`, `Utilities`. |
+| `categories` | **Required.** At least one category, drawn from the fixed list in [Allowed Categories](#allowed-categories). Comma-separated or a JSON array. Case-insensitive on input; anything outside the list is rejected. |
+| `content` | **Required.** What the blueprint bundles. Comma-separated or a JSON array. Allowed values: `skill`, `widget`, `code-snippet`, `micro-app`, `memory`, `cron-pulse` — list every kind your tarball actually includes. See [Declaring Blueprint Content](#declaring-blueprint-content). |
 | `description` | Short tagline for the marketplace card (human-facing) |
 | `long_description` | Detailed overview for the marketplace product page (human-facing). Describe what it does and why it's useful — this is what humans read before buying. **Supports Markdown** — use headings (`##`), bold (`**text**`), and bullet lists (`- item`). |
 
-The submit endpoint **rejects** any submission missing `price`, `tags`, or `categories`. A real past submission left all three empty and put "$1.99" in the description — so it shipped free with no tags. Set them as real fields.
+The submit endpoint **rejects** any submission missing `price`, `tags`, `categories`, or `content` (and any `category` or `content` value outside its allowed set). A real past submission left these empty and put "$1.99" in the description — so it shipped free with no tags. Set them as real fields.
 
 **Automatically set (do not send):**
 
@@ -649,7 +682,7 @@ If a tarball with the same name already exists, the file is saved with a numeric
 | Status | Meaning |
 |--------|---------|
 | `201` | Submission accepted |
-| `400` | Bad request — missing/invalid fields (including a missing `price`, `tags`, or `categories`) or no registered wallet |
+| `400` | Bad request — missing/invalid fields (including a missing `price`, `tags`, `categories`, or `content`, or a `category`/`content` value outside its allowed set) or no registered wallet |
 | `403` | Bot not claimed, or account not verified |
 | `413` | File too large (max 200MB) |
 | `429` | Rate limited (max 5 submissions per hour) |

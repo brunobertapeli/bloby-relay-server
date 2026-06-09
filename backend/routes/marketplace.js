@@ -32,6 +32,32 @@ const router = Router();
 
 const approved = { $or: [{ status: 'approved' }, { status: { $exists: false } }] };
 
+// Blueprint content taxonomy — what a blueprint bundles. Keep in sync with the
+// frontend (Marketplace.jsx CONTENT_LABELS/CONTENT_ORDER) and the docs
+// (static/marketplace.md, static/marketplace_docs/BLUEPRINTS.md). Submissions
+// must declare at least one; values outside this set are rejected.
+const CONTENT_TYPES = ['skill', 'widget', 'code-snippet', 'micro-app', 'memory', 'cron-pulse'];
+
+// Controlled category vocabulary. Submissions must pick at least one of these
+// (case-insensitive on input, stored canonical lowercase). Keep in sync with
+// the docs (static/marketplace.md, static/marketplace_docs/BLUEPRINTS.md).
+const CATEGORY_TYPES = [
+  'apple-ecosystem', 'ai-ml', 'automation', 'browser-web', 'business', 'calendar',
+  'communication', 'creative', 'data-analytics', 'design', 'developer-tools', 'devops',
+  'documentation', 'email', 'finance', 'github', 'knowledge-memory', 'media', 'mobile',
+  'productivity', 'research', 'security', 'smart-home', 'social-media',
+  'software-development', 'storage-files', 'testing-qa', 'writing', 'others',
+];
+const CONTENT_LABELS = {
+  skill: 'Skill',
+  widget: 'Dashboard Widget',
+  'code-snippet': 'Code Snippets',
+  'micro-app': 'Micro App',
+  memory: 'Memory Instructions',
+  'cron-pulse': 'Cron/Pulse Instructions',
+};
+const contentLabel = (k) => CONTENT_LABELS[k] || k;
+
 async function getLiveCatalog() {
   const col = getDb().collection('products');
   const all = await col.find(approved).toArray();
@@ -67,6 +93,12 @@ function generateBlueprintSection(bp) {
     lines.push('- Dependencies: none');
   }
   if (bp.size) lines.push(`- Size: ${bp.size}`);
+  if (Array.isArray(bp.content) && bp.content.length > 0) {
+    // Render in canonical taxonomy order so the agent-facing list matches the UI.
+    const ordered = CONTENT_TYPES.filter((c) => bp.content.includes(c));
+    const extras = bp.content.filter((c) => !CONTENT_TYPES.includes(c));
+    lines.push(`- **Contains:** ${[...ordered, ...extras].map(contentLabel).join(', ')}`);
+  }
 
   if (bp.price === 0) {
     lines.push('', '**Download (free — no purchase required):**', '',
@@ -1273,10 +1305,32 @@ router.post(
           error: 'Field "tags" is required — provide at least one search tag (comma-separated or JSON array), e.g., "whatsapp,commerce".',
         });
       }
-      const categories = parseListField(req.body.categories);
+      // Categories are a controlled vocabulary — normalize to lowercase and
+      // reject anything outside CATEGORY_TYPES.
+      const categories = [...new Set(parseListField(req.body.categories).map((c) => c.toLowerCase()))];
       if (categories.length === 0) {
         return res.status(400).json({
-          error: 'Field "categories" is required — provide at least one category (comma-separated or JSON array), e.g., "Productivity".',
+          error: `Field "categories" is required — pick at least one of: ${CATEGORY_TYPES.join(', ')}.`,
+        });
+      }
+      const invalidCategories = categories.filter((c) => !CATEGORY_TYPES.includes(c));
+      if (invalidCategories.length > 0) {
+        return res.status(400).json({
+          error: `Invalid category value(s): ${invalidCategories.join(', ')}. Allowed categories: ${CATEGORY_TYPES.join(', ')}.`,
+        });
+      }
+
+      // ── Content (required — what the blueprint actually bundles) ───────
+      const content = parseListField(req.body.content);
+      if (content.length === 0) {
+        return res.status(400).json({
+          error: `Field "content" is required — declare what this blueprint bundles. Provide at least one of: ${CONTENT_TYPES.join(', ')} (comma-separated or JSON array).`,
+        });
+      }
+      const invalidContent = content.filter((c) => !CONTENT_TYPES.includes(c));
+      if (invalidContent.length > 0) {
+        return res.status(400).json({
+          error: `Invalid content value(s): ${invalidContent.join(', ')}. Allowed values: ${CONTENT_TYPES.join(', ')}.`,
         });
       }
 
@@ -1319,6 +1373,10 @@ router.post(
         sha256,
         tags,
         categories,
+        content,
+        // `official` is a Bloby-team designation, never self-declared by a
+        // submitting agent. New submissions are always non-official.
+        official: false,
         featured: false,
         popular: false,
         status: 'pending',

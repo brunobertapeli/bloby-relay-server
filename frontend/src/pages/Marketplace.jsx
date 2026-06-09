@@ -10,10 +10,42 @@ import {
   HiMagnifyingGlass, HiInformationCircle,
   HiShoppingCart, HiXMark, HiTrash, HiPlus,
   HiChevronLeft, HiChevronRight, HiCheckCircle, HiClipboardDocument,
-  HiLink
+  HiLink, HiCheckBadge
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Latest']
+// Blueprints get an extra "Official" tab (Bloby-team-published), shown by default.
+const blueprintFilterOptions = ['Official', 'Featured', 'Popular', 'Latest']
+
+// Blueprint content taxonomy — what a blueprint can bundle. Keep the keys in
+// sync with the backend (routes/marketplace.js CONTENT_TYPES) and the docs.
+const CONTENT_ORDER = ['skill', 'widget', 'code-snippet', 'micro-app', 'memory', 'cron-pulse']
+const CONTENT_LABELS = {
+  skill: 'Skill',
+  widget: 'Dashboard Widget',
+  'code-snippet': 'Code Snippets',
+  'micro-app': 'Micro App',
+  memory: 'Memory Instructions',
+  'cron-pulse': 'Cron/Pulse Instructions',
+}
+const contentLabel = (key) => CONTENT_LABELS[key] || key
+
+// Categories are a controlled, lowercase-hyphenated vocabulary — render them
+// title-cased for display ("developer-tools" → "Developer Tools").
+const prettifyCategory = (c) =>
+  c === 'All' ? c : c.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+
+// Official blueprints hide their publisher and show a blue "Official Blueprint" mark.
+function PublisherLine({ item, className = 'text-[11px]' }) {
+  if (item.official) {
+    return (
+      <p className={`${className} text-sky-400 font-medium flex items-center gap-1`}>
+        <HiCheckBadge className="w-3.5 h-3.5 shrink-0" /> Official Blueprint
+      </p>
+    )
+  }
+  return <p className={`${className} text-muted-foreground`}>{authorLabel(item)}</p>
+}
 
 // Normalize products.json items for the UI
 function authorLabel(item) {
@@ -25,12 +57,14 @@ function authorLabel(item) {
 function normalizeBundle(b, allProducts) {
   const resolvedSkills = (b.skills || b.items || []).map(id => {
     const product = allProducts.find(s => s.id === id)
-    return product ? { name: product.name, bloby: product.bloby, bloby_human: product.bloby_human } : { name: id }
+    return product ? { name: product.name, bloby: product.bloby, bloby_human: product.bloby_human, official: product.official } : { name: id }
   })
   return { ...b, type: 'bundle', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true, skills: resolvedSkills }
 }
 function normalizeBlueprint(b) {
-  return { ...b, type: 'blueprint', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true }
+  // Categories are a controlled lowercase vocabulary; lowercase on read so the
+  // filter is case-insensitive even against legacy capitalized values in the DB.
+  return { ...b, categories: (b.categories || []).map(c => c.toLowerCase()), type: 'blueprint', title: b.name, price: b.price === 0 ? 'Free' : `$${b.price.toFixed(2)}`, priceNum: b.price, forHumans: true, forAgents: true }
 }
 function normalizeService(s) {
   return { ...s, type: 'service', title: s.name, price: s.price === 0 ? 'Free' : `$${s.price}`, priceNum: s.price, forHumans: false, forAgents: true }
@@ -41,6 +75,20 @@ function collectCategories(items) {
   const cats = new Set()
   items.forEach(item => (item.categories || []).forEach(c => cats.add(c)))
   return ['All', ...Array.from(cats).sort()]
+}
+
+// Collect all unique tags across a product array
+function collectTags(items) {
+  const tags = new Set()
+  items.forEach(item => (item.tags || []).forEach(t => tags.add(t)))
+  return ['All', ...Array.from(tags).sort()]
+}
+
+// Collect the content types actually present, in canonical order
+function collectContent(items) {
+  const present = new Set()
+  items.forEach(item => (item.content || []).forEach(c => present.add(c)))
+  return ['All', ...CONTENT_ORDER.filter(c => present.has(c))]
 }
 
 
@@ -136,7 +184,7 @@ function InfoTooltip({ text }) {
   )
 }
 
-function CategoryDropdown({ categories, active, onChange }) {
+function CategoryDropdown({ categories, active, onChange, label = 'Category', renderLabel = (x) => x }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -154,7 +202,7 @@ function CategoryDropdown({ categories, active, onChange }) {
           active !== 'All' ? 'text-primary' : 'text-muted-foreground/60 hover:text-muted-foreground'
         }`}
       >
-        {active === 'All' ? 'Category' : active}
+        {active === 'All' ? label : renderLabel(active)}
         <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
       </button>
       {open && (
@@ -167,7 +215,7 @@ function CategoryDropdown({ categories, active, onChange }) {
                 active === cat ? 'text-primary bg-primary/5 font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-card/80'
               }`}
             >
-              {cat}
+              {renderLabel(cat)}
             </button>
           ))}
         </div>
@@ -176,10 +224,10 @@ function CategoryDropdown({ categories, active, onChange }) {
   )
 }
 
-function FilterTabs({ active, onChange }) {
+function FilterTabs({ active, onChange, options = filterOptions }) {
   return (
     <div className="flex items-center gap-1 text-xs">
-      {filterOptions.map((opt, i) => (
+      {options.map((opt, i) => (
         <span key={opt} className="flex items-center gap-1">
           {i > 0 && <span className="text-border mx-1 select-none">|</span>}
           <button
@@ -299,7 +347,7 @@ function AgentBanner() {
   )
 }
 
-function Carousel({ children, className = '' }) {
+function Carousel({ children, className = '', snap = true }) {
   const scrollRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -323,7 +371,7 @@ function Carousel({ children, className = '' }) {
         ref={scrollRef}
         onScroll={checkScroll}
         onLoad={checkScroll}
-        className={`overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x snap-mandatory ${className}`}
+        className={`overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 ${snap ? 'snap-x snap-mandatory' : ''} ${className}`}
       >
         {children}
       </div>
@@ -655,7 +703,7 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
               <ItemIcon name={item.name || item.title} />
               <div>
                 <h3 className="text-base font-bold font-display text-foreground">{item.name || item.title}</h3>
-                <p className="text-xs text-muted-foreground">{authorLabel(item)}</p>
+                <PublisherLine item={item} className="text-xs" />
               </div>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
@@ -705,8 +753,22 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
                       <ItemIcon name={s.name} />
                       <div>
                         <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{authorLabel(s)}</div>
+                        <PublisherLine item={s} />
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {item.content && item.content.length > 0 && (
+              <div className="mb-5">
+                <h4 className="text-xs font-semibold font-display text-foreground uppercase tracking-wider mb-3">Content</h4>
+                <div className="flex flex-col gap-2">
+                  {CONTENT_ORDER.filter((c) => item.content.includes(c)).map((c) => (
+                    <div key={c} className="flex items-center gap-2">
+                      <HiCheckCircle className="w-4 h-4 text-sky-400 shrink-0" />
+                      <span className="text-sm text-foreground">{contentLabel(c)}</span>
                     </div>
                   ))}
                 </div>
@@ -724,6 +786,16 @@ function DetailModal({ item, onClose, onAddToCart, isInCart, mode, allSkills }) 
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-5">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
                 <span>{item.calls} calls</span>
+              </div>
+            )}
+
+            {item.tags && item.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-5">
+                {item.tags.map((tag) => (
+                  <span key={tag} className="inline-flex items-center h-6 px-2.5 rounded-full bg-muted/60 text-[11px] font-medium text-muted-foreground">
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
 
@@ -774,10 +846,12 @@ export default function Marketplace() {
   const [detailItem, setDetailItem] = useState(null)
   const [bundleFilter, setBundleFilter] = useState('Featured')
   const [serviceFilter, setServiceFilter] = useState('Featured')
-  const [blueprintFilter, setBlueprintFilter] = useState('Featured')
+  const [blueprintFilter, setBlueprintFilter] = useState('Official')
   const [bundleCat, setBundleCat] = useState('All')
   const [serviceCat, setServiceCat] = useState('All')
   const [blueprintCat, setBlueprintCat] = useState('All')
+  const [blueprintTag, setBlueprintTag] = useState('All')
+  const [blueprintContent, setBlueprintContent] = useState('All')
   const [bundles, setBundles] = useState([])
   const [blueprints, setBlueprints] = useState([])
   const [services, setServices] = useState([])
@@ -1063,6 +1137,7 @@ export default function Marketplace() {
 
   const sortItems = (items, filter) => {
     const sorted = [...items]
+    if (filter === 'Official') return sorted.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
     if (filter === 'Featured') return sorted.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
     if (filter === 'Popular') return sorted.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0))
     if (filter === 'Latest') return sorted.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
@@ -1070,6 +1145,8 @@ export default function Marketplace() {
   }
 
   const filterByCat = (items, cat) => cat === 'All' ? items : items.filter(i => (i.categories || []).includes(cat))
+  const filterByTag = (items, tag) => tag === 'All' ? items : items.filter(i => (i.tags || []).includes(tag))
+  const filterByContent = (items, c) => c === 'All' ? items : items.filter(i => (i.content || []).includes(c))
   const searchFilter = (item) => {
     if (!q) return true
     const fields = [item.title, item.name, item.description, item.bloby, item.bloby_human].filter(Boolean).map(s => s.toLowerCase())
@@ -1078,11 +1155,27 @@ export default function Marketplace() {
 
   const filteredBundles = sortItems(filterByCat(bundles.filter(searchFilter), bundleCat), bundleFilter)
   const filteredServices = sortItems(filterByCat(services.filter(searchFilter), serviceCat), serviceFilter)
-  const filteredBlueprints = sortItems(filterByCat(blueprints.filter(searchFilter), blueprintCat), blueprintFilter)
+  // Blueprints support extra filtering: the "Official" tab restricts to Bloby-team
+  // blueprints, plus Tags and Content dropdowns alongside Category.
+  const blueprintBase = blueprintFilter === 'Official' ? blueprints.filter(b => b.official) : blueprints
+  const filteredBlueprints = sortItems(
+    filterByContent(
+      filterByTag(
+        filterByCat(blueprintBase.filter(searchFilter), blueprintCat),
+        blueprintTag,
+      ),
+      blueprintContent,
+    ),
+    blueprintFilter,
+  )
 
   const bundleCategories = collectCategories(bundles)
   const serviceCategories = collectCategories(services)
-  const blueprintCategories = collectCategories(blueprints)
+  // Option lists are drawn from the SAME base the filters apply to (the active
+  // tab's population) so a dropdown never offers a value that yields zero rows.
+  const blueprintCategories = collectCategories(blueprintBase)
+  const blueprintTags = collectTags(blueprintBase)
+  const blueprintContentTypes = collectContent(blueprintBase)
 
   const isHumans = mode === 'humans'
   const isGrayed = (item) => isHumans ? !item.forHumans : true
@@ -1192,7 +1285,7 @@ export default function Marketplace() {
                 <InfoTooltip text="Bundles are curated packages of blueprints designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one purchase, at a discount over buying each blueprint separately." />
               </div>
               <div className="flex items-center gap-3">
-                <CategoryDropdown categories={bundleCategories} active={bundleCat} onChange={setBundleCat} />
+                <CategoryDropdown categories={bundleCategories} active={bundleCat} onChange={setBundleCat} renderLabel={prettifyCategory} />
                 <FilterTabs active={bundleFilter} onChange={setBundleFilter} />
               </div>
             </div>
@@ -1220,7 +1313,7 @@ export default function Marketplace() {
                           <ItemIcon name={s.name} />
                           <div>
                             <div className="text-sm font-medium text-foreground leading-tight">{s.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{authorLabel(s)}</div>
+                            <PublisherLine item={s} />
                           </div>
                         </div>
                       ))}
@@ -1259,20 +1352,23 @@ export default function Marketplace() {
           </motion.section>
           )}
 
-          {filteredBlueprints.length > 0 && (
+          {blueprints.length > 0 && (filteredBlueprints.length > 0 || !q) && (
           <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={3} className="mb-12">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
                 <InfoTooltip text="Blueprints are the installable packages for your Bloby — everything your agent needs to recreate a capability or experience. A blueprint can bundle an ongoing skill, frontend/backend/DB snippets to rebuild a dashboard or mini-app, memory instructions, and a full install guide (env, config, even a recurring cron/Pulse routine). Some stay installed and active; others run once to set something up. One download, lasting impact." />
               </div>
-              <div className="flex items-center gap-3">
-                <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} />
-                <FilterTabs active={blueprintFilter} onChange={setBlueprintFilter} />
+              <div className="flex items-center gap-3 flex-wrap justify-end">
+                <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} renderLabel={prettifyCategory} />
+                <CategoryDropdown label="Tags" categories={blueprintTags} active={blueprintTag} onChange={setBlueprintTag} />
+                <CategoryDropdown label="Content" categories={blueprintContentTypes} active={blueprintContent} onChange={setBlueprintContent} renderLabel={contentLabel} />
+                <FilterTabs active={blueprintFilter} onChange={setBlueprintFilter} options={blueprintFilterOptions} />
               </div>
             </div>
-            <Carousel>
-              <div className="flex gap-4">
+            {filteredBlueprints.length > 0 ? (
+            <Carousel snap={false}>
+              <div className="grid grid-rows-3 grid-flow-col auto-cols-[260px] sm:auto-cols-[280px] gap-4">
                 {filteredBlueprints.map((bp, i) => {
                   const grayed = isGrayed(bp)
                   return (
@@ -1281,7 +1377,7 @@ export default function Marketplace() {
                     variants={fadeUp}
                     custom={i * 0.5}
                     onClick={() => setDetailItem(bp)}
-                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col min-w-[260px] w-[260px] sm:min-w-[280px] sm:w-[280px] shrink-0 snap-start ${
+                    className={`group rounded-2xl border bg-card p-5 transition-all duration-300 flex flex-col h-full ${
                       grayed
                         ? 'border-border/30 opacity-50 grayscale cursor-pointer'
                         : 'border-border/50 hover:border-primary/30 cursor-pointer'
@@ -1291,7 +1387,7 @@ export default function Marketplace() {
                       <ItemIcon name={bp.title} />
                       <div>
                         <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{bp.title}</h3>
-                        <p className="text-[11px] text-muted-foreground">{authorLabel(bp)}</p>
+                        <PublisherLine item={bp} />
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">{bp.description}</p>
@@ -1318,6 +1414,12 @@ export default function Marketplace() {
                 })}
               </div>
             </Carousel>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border/40 rounded-2xl">
+                <p className="text-sm font-medium text-foreground mb-1">No blueprints match these filters</p>
+                <p className="text-xs text-muted-foreground">Try a different tab, category, tag, or content type</p>
+              </div>
+            )}
           </motion.section>
           )}
 
@@ -1329,7 +1431,7 @@ export default function Marketplace() {
                 <InfoTooltip text="Cloud services run on our servers so your Bloby doesn't get overloaded. Just ask your Bloby to use a service and it already knows how. Charged per use from your wallet." />
               </div>
               <div className="flex items-center gap-3">
-                <CategoryDropdown categories={serviceCategories} active={serviceCat} onChange={setServiceCat} />
+                <CategoryDropdown categories={serviceCategories} active={serviceCat} onChange={setServiceCat} renderLabel={prettifyCategory} />
                 <FilterTabs active={serviceFilter} onChange={setServiceFilter} />
               </div>
             </div>
