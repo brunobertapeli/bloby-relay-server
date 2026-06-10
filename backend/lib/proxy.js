@@ -75,11 +75,23 @@ const CF_MARKERS = [
   'cf-error-details', 'cf-wrapper', '| Cloudflare</title>',
   'data-translate="error"', 'data-translate="what_happened"', 'window._cf_',
 ];
+// cloudflared's OWN origin-unreachable errors (plain text, none of the edge-template markers
+// above): the connector is up but the local origin is down — exactly what the agent's
+// self-update restart produces ("502 Bad Gateway — An error occurred while opening a stream
+// to the origin"). Phrasing is unmistakable, so a single hit suffices. Without these, the
+// raw 502 was classified as a real agent response and piped through verbatim — and since it
+// carries no self-recovery script, a browser (or the dashboard's workspace iframe) sat on it
+// forever.
+const CLOUDFLARED_MARKERS = [
+  'opening a stream to the origin',
+  'Unable to reach the origin service',
+];
 // Positive AGENT proof inside the first prefix (early <title>s; badge if it lands in-window).
 const AGENT_MARKERS = ['Powered by Bloby', 'Reconnecting · Bloby', 'Backend down · Bloby', 'x-bloby'];
 
 function bodyLooksLikeCf(prefix) {
   for (const a of AGENT_MARKERS) if (prefix.includes(a)) return false; // agent bytes → pass
+  for (const m of CLOUDFLARED_MARKERS) if (prefix.includes(m)) return true; // connector-level origin error
   let hits = 0;
   for (const m of CF_MARKERS) if (prefix.includes(m)) hits++;
   return hits >= 2; // two independent CF structural markers ⇒ genuine CF template
