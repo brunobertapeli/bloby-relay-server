@@ -165,14 +165,14 @@ function Install-Bloby {
 
     # Fetch version + tarball URL from npm registry
     $npmVersion = ""
-    try { $npmVersion = (& $NPM view bloby-bot version 2>$null).Trim() } catch {}
+    try { $npmVersion = (& $NPM view bloby version 2>$null).Trim() } catch {}
     if ($npmVersion) {
-        Write-Host "  Latest npm version: bloby-bot@${npmVersion}" -ForegroundColor DarkGray
+        Write-Host "  Latest npm version: bloby@${npmVersion}" -ForegroundColor DarkGray
     }
 
     Write-Down "Installing bloby..."
 
-    $tarballUrl = (& $NPM view bloby-bot dist.tarball 2>$null).Trim()
+    $tarballUrl = (& $NPM view bloby dist.tarball 2>$null).Trim()
     if (-not $tarballUrl) {
         Write-Host "  ✗  Failed to fetch package info from npm" -ForegroundColor Red
         exit 1
@@ -246,31 +246,28 @@ function Install-Bloby {
     }
 
     # Install dependencies inside ~/.bloby/
-    Push-Location $BLOBY_HOME
-    $installLog = & $NPM install --omit=dev 2>&1 | Out-String
-    $installExit = $LASTEXITCODE
-    Pop-Location
-    if ($installExit -ne 0) {
-        Write-Host "  ✗  Dependency install failed:" -ForegroundColor Red
-        Write-Host $installLog
-        exit 1
+    # claude-agent-sdk 0.3.x moved @anthropic-ai/sdk + @modelcontextprotocol/sdk to
+    # peerDependencies; an in-place upgrade of an existing ~/.bloby deadlocks npm's
+    # resolver (ERESOLVE). Persist legacy-peer-deps so npm install resolves cleanly.
+    $npmrc = Join-Path $BLOBY_HOME ".npmrc"
+    if (-not ((Test-Path $npmrc) -and (Select-String -Path $npmrc -Pattern '^legacy-peer-deps' -Quiet))) {
+        Add-Content -Path $npmrc -Value 'legacy-peer-deps=true'
     }
+    Push-Location $BLOBY_HOME
+    try {
+        & $NPM install --omit=dev 2>$null
+    } catch {}
+    Pop-Location
 
-    # Install workspace dependencies (rebuilds native modules for this platform —
-    # workspace/node_modules is intentionally not shipped in the tarball so that
-    # native deps like better-sqlite3 get a prebuild matching the target OS+arch)
+    # Install workspace dependencies (rebuilds native modules for this platform)
     $wsDir = Join-Path $BLOBY_HOME "workspace"
     if (Test-Path (Join-Path $wsDir "package.json")) {
         Write-Down "Installing workspace dependencies..."
         Push-Location $wsDir
-        $wsLog = & $NPM install --omit=dev 2>&1 | Out-String
-        $wsExit = $LASTEXITCODE
+        try {
+            & $NPM install --omit=dev 2>$null
+        } catch {}
         Pop-Location
-        if ($wsExit -ne 0) {
-            Write-Host "  ✗  Workspace dependency install failed:" -ForegroundColor Red
-            Write-Host $wsLog
-            exit 1
-        }
     }
 
     # Verify

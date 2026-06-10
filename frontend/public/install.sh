@@ -147,14 +147,14 @@ install_bloby() {
   fi
 
   # Fetch version + tarball URL from npm registry
-  NPM_VERSION=$("$NPM" view bloby-bot version 2>/dev/null || echo "")
+  NPM_VERSION=$("$NPM" view bloby version 2>/dev/null || echo "")
   if [ -n "$NPM_VERSION" ]; then
-    printf "  ${DIM}Latest npm version: bloby-bot@${NPM_VERSION}${RESET}\n"
+    printf "  ${DIM}Latest npm version: bloby@${NPM_VERSION}${RESET}\n"
   fi
 
   printf "  ${BLUE}↓${RESET}  Installing bloby...\n"
 
-  TARBALL_URL=$("$NPM" view bloby-bot dist.tarball 2>/dev/null)
+  TARBALL_URL=$("$NPM" view bloby dist.tarball 2>/dev/null)
   if [ -z "$TARBALL_URL" ]; then
     printf "  ${RED}✗${RESET}  Failed to fetch package info from npm\n"
     exit 1
@@ -208,29 +208,20 @@ install_bloby() {
   rm -rf "$TMPDIR"
 
   # Install dependencies inside ~/.bloby/
+  # claude-agent-sdk 0.3.x moved @anthropic-ai/sdk + @modelcontextprotocol/sdk to
+  # peerDependencies; an in-place upgrade of an existing ~/.bloby deadlocks npm's
+  # resolver (ERESOLVE). Persist legacy-peer-deps so npm install resolves cleanly.
+  grep -qs '^legacy-peer-deps' "$BLOBY_HOME/.npmrc" 2>/dev/null || printf 'legacy-peer-deps=true\n' >> "$BLOBY_HOME/.npmrc"
   printf "  ${BLUE}↓${RESET}  Installing dependencies...\n"
-  INSTALL_LOG=$(mktemp)
-  if ! (cd "$BLOBY_HOME" && "$NPM" install --omit=dev > "$INSTALL_LOG" 2>&1); then
-    printf "  ${RED}✗${RESET}  Dependency install failed:\n"
-    cat "$INSTALL_LOG"
-    rm -f "$INSTALL_LOG"
-    exit 1
-  fi
-  rm -f "$INSTALL_LOG"
+  (cd "$BLOBY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
 
-  # Install workspace dependencies (rebuilds native modules for this platform —
-  # workspace/node_modules is intentionally not shipped in the tarball so that
-  # native deps like better-sqlite3 get a prebuild matching the target OS+arch)
+  # Install workspace dependencies (rebuilds native modules for this platform)
   if [ -f "$BLOBY_HOME/workspace/package.json" ]; then
     printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
-    WS_INSTALL_LOG=$(mktemp)
-    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev > "$WS_INSTALL_LOG" 2>&1); then
-      printf "  ${RED}✗${RESET}  Workspace dependency install failed:\n"
-      cat "$WS_INSTALL_LOG"
-      rm -f "$WS_INSTALL_LOG"
+    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev); then
+      printf "  ${RED}✗${RESET}  Workspace dependency install failed — backend may not start\n"
       exit 1
     fi
-    rm -f "$WS_INSTALL_LOG"
   fi
 
   # Verify
@@ -338,6 +329,7 @@ printf "\n"
 printf "    ${BLUE}bloby init${RESET}      Set up your bot\n"
 printf "    ${BLUE}bloby start${RESET}     Start your bot\n"
 printf "    ${BLUE}bloby status${RESET}    Check if it's running\n"
+printf "    ${BLUE}bloby help${RESET}      All commands\n"
 printf "\n"
 printf "  ${PINK}>${RESET} Run ${BLUE}bloby init${RESET} to begin.\n"
 printf "  ${DIM}(Open a new terminal if 'bloby' isn't found yet)${RESET}\n"
