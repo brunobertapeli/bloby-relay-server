@@ -15,9 +15,17 @@ NODE_DIR="$TOOLS_DIR/node"
 BIN_DIR="$BLOBY_HOME/bin"
 USE_SYSTEM_NODE=false
 
-# Brand colors: #32A5F7 (blue) and #DB36A3 (pink) via 256-color approximation
-BLUE='\033[38;2;50;165;247m'
-PINK='\033[38;2;219;54;163m'
+# Brand colors: #00ADFE (light) and #0158FB (deep) -- Morphy palette, 24-bit truecolor
+BLUE='\033[38;2;0;173;254m'
+PINK='\033[38;2;1;88;251m'
+# Logo gradient: #00ADFE (top) -> #0158FB (bottom)
+G1='\033[38;2;0;173;254m'
+G2='\033[38;2;0;159;254m'
+G3='\033[38;2;0;145;253m'
+G4='\033[38;2;1;131;253m'
+G5='\033[38;2;1;116;252m'
+G6='\033[38;2;1;102;251m'
+G7='\033[38;2;1;88;251m'
 YELLOW='\033[33m'
 RED='\033[31m'
 DIM='\033[2m'
@@ -25,13 +33,13 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 printf "\n"
-printf "${BLUE}${BOLD}      _______ _                    ${RESET}\n"
-printf "${BLUE}${BOLD}     (_______) |                   ${RESET}\n"
-printf "${BLUE}${BOLD}      _____  | |_   _ _   _ _   _  ${RESET}\n"
-printf "${BLUE}${BOLD}     |  ___) | | | | ( \\ / ) | | | ${RESET}\n"
-printf "${PINK}${BOLD}     | |     | | |_| |) X (| |_| | ${RESET}\n"
-printf "${PINK}${BOLD}     |_|     |_|\\____(_/ \\_)\\__  | ${RESET}\n"
-printf "${PINK}${BOLD}                           (____/   ${RESET}\n"
+printf "${G1}${BOLD}                                █▄         ${RESET}\n"
+printf "${G2}${BOLD}      ▄              ▄          ██         ${RESET}\n"
+printf "${G3}${BOLD}      ███▄███▄ ▄███▄ ████▄████▄ ████▄ ██ ██${RESET}\n"
+printf "${G4}${BOLD}      ██ ██ ██ ██ ██ ██   ██ ██ ██ ██ ██▄██${RESET}\n"
+printf "${G5}${BOLD}     ▄██ ██ ▀█▄▀███▀▄█▀  ▄████▀▄██ ██▄▄▀██▀${RESET}\n"
+printf "${G6}${BOLD}                          ██            ██ ${RESET}\n"
+printf "${G7}${BOLD}                          ▀           ▀▀▀  ${RESET}\n"
 printf "\n"
 printf "${DIM}     Self-hosted, self-evolving AI agent with its own dashboard.${RESET}\n"
 printf "${DIM}     ─────────────────────────────${RESET}\n\n"

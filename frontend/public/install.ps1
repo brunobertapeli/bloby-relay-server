@@ -17,9 +17,17 @@ $USE_SYSTEM_NODE = $false
 # Ensure UTF-8 output for proper rendering
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Brand colors via ANSI escape sequences: #32A5F7 (blue) and #DB36A3 (pink)
-$BLUE = "`e[38;2;50;165;247m"
-$PINK = "`e[38;2;219;54;163m"
+# Brand colors: #00ADFE (light) and #0158FB (deep) -- Morphy palette
+$BLUE = "`e[38;2;0;173;254m"
+$PINK = "`e[38;2;1;88;251m"
+# Logo gradient: #00ADFE (top) -> #0158FB (bottom)
+$G1 = "`e[38;2;0;173;254m"
+$G2 = "`e[38;2;0;159;254m"
+$G3 = "`e[38;2;0;145;253m"
+$G4 = "`e[38;2;1;131;253m"
+$G5 = "`e[38;2;1;116;252m"
+$G6 = "`e[38;2;1;102;251m"
+$G7 = "`e[38;2;1;88;251m"
 $BOLD = "`e[1m"
 $RSET = "`e[0m"
 
@@ -38,21 +46,21 @@ function Write-Down($text) {
 
 Write-Host ""
 if ($vtSupported) {
-    Write-Host "${BLUE}${BOLD}      _______ _                    ${RSET}"
-    Write-Host "${BLUE}${BOLD}     (_______) |                   ${RSET}"
-    Write-Host "${BLUE}${BOLD}      _____  | |_   _ _   _ _   _  ${RSET}"
-    Write-Host "${BLUE}${BOLD}     |  ___) | | | | ( \ / ) | | | ${RSET}"
-    Write-Host "${PINK}${BOLD}     | |     | | |_| |) X (| |_| | ${RSET}"
-    Write-Host "${PINK}${BOLD}     |_|     |_|\____(_/ \_)\__  | ${RSET}"
-    Write-Host "${PINK}${BOLD}                           (____/   ${RSET}"
+    Write-Host "${G1}${BOLD}                                █▄         ${RSET}"
+    Write-Host "${G2}${BOLD}      ▄              ▄          ██         ${RSET}"
+    Write-Host "${G3}${BOLD}      ███▄███▄ ▄███▄ ████▄████▄ ████▄ ██ ██${RSET}"
+    Write-Host "${G4}${BOLD}      ██ ██ ██ ██ ██ ██   ██ ██ ██ ██ ██▄██${RSET}"
+    Write-Host "${G5}${BOLD}     ▄██ ██ ▀█▄▀███▀▄█▀  ▄████▀▄██ ██▄▄▀██▀${RSET}"
+    Write-Host "${G6}${BOLD}                          ██            ██ ${RSET}"
+    Write-Host "${G7}${BOLD}                          ▀           ▀▀▀  ${RSET}"
 } else {
-    Write-Host "      _______ _                    " -ForegroundColor Cyan
-    Write-Host "     (_______) |                   " -ForegroundColor Cyan
-    Write-Host "      _____  | |_   _ _   _ _   _  " -ForegroundColor Cyan
-    Write-Host "     |  ___) | | | | ( \ / ) | | | " -ForegroundColor Cyan
-    Write-Host "     | |     | | |_| |) X (| |_| | " -ForegroundColor Magenta
-    Write-Host "     |_|     |_|\____(_/ \_)\__  | " -ForegroundColor Magenta
-    Write-Host "                           (____/   " -ForegroundColor Magenta
+    Write-Host "                                █▄         " -ForegroundColor Cyan
+    Write-Host "      ▄              ▄          ██         " -ForegroundColor Cyan
+    Write-Host "      ███▄███▄ ▄███▄ ████▄████▄ ████▄ ██ ██" -ForegroundColor Cyan
+    Write-Host "      ██ ██ ██ ██ ██ ██   ██ ██ ██ ██ ██▄██" -ForegroundColor Blue
+    Write-Host "     ▄██ ██ ▀█▄▀███▀▄█▀  ▄████▀▄██ ██▄▄▀██▀" -ForegroundColor Blue
+    Write-Host "                          ██            ██ " -ForegroundColor Blue
+    Write-Host "                          ▀           ▀▀▀  " -ForegroundColor Blue
 }
 Write-Host ""
 Write-Host "     Self-hosted, self-evolving AI agent with its own dashboard." -ForegroundColor DarkGray
