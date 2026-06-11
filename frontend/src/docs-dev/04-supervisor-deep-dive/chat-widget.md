@@ -23,7 +23,7 @@ The widget creates four DOM elements:
    cubic-bezier easing curve.
 
 4. **Bubble** (lines 39-69): The floating action button. On non-Safari browsers, it
-   displays a looping muted WebM video (`/bloby_tilts.webm`). On Safari/iOS (which
+   displays a looping muted WebM video (`/morphy_bounce.webm`). On Safari/iOS (which
    lack WebM alpha channel support), it falls back to a static PNG image
    (`/bloby_frame1.png`). Safari detection uses user-agent sniffing (line 45).
 

@@ -147,8 +147,8 @@ function Hero({ user, onLogin, onLogout }) {
             playsInline
             className="h-[180px] mx-auto"
           >
-            <source src="/assets/videos/bloby_say_hi.mov" type='video/mp4; codecs="hvc1"' />
-            <source src="/assets/videos/bloby_say_hi.webm" type="video/webm" />
+            <source src="/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"' />
+            <source src="/assets/videos/morphy_hi.webm" type="video/webm" />
           </video>
         </motion.div>
 
@@ -1234,8 +1234,8 @@ function OpenSource() {
               playsInline
               className="h-28 sm:h-36 mx-auto"
             >
-              <source src="/assets/videos/bloby_happy.mov" type='video/mp4; codecs="hvc1"' />
-              <source src="/assets/videos/bloby_happy.webm" type="video/webm" />
+              <source src="/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"' />
+              <source src="/assets/videos/morphy_hi.webm" type="video/webm" />
             </video>
           </div>
 

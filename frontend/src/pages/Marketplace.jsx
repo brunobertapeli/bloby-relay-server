@@ -511,8 +511,8 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
                 playsInline
                 className="w-[200px] object-contain"
               >
-                <source src="/assets/videos/happy.mov" type='video/mp4; codecs="hvc1"' />
-                <source src="/assets/videos/happy.mp4" type="video/mp4" />
+                <source src="/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"' />
+                <source src="/assets/videos/morphy_hi.webm" type="video/webm" />
               </video>
             </motion.div>
 

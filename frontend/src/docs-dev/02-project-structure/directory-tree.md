@@ -187,8 +187,10 @@ workspace/client/
     sw.js                   Service worker -- PWA installability, push notification handling
     bloby.png               Bloby logo (PNG, 44 KB)
     bloby_frame1.png        Bloby avatar static frame (PNG, 390 KB, used as fallback)
-    bloby_say_hi.webm       Bloby avatar wave animation (WebM, 787 KB)
-    bloby_tilts.webm        Bloby avatar tilt animation (WebM, 880 KB)
+    morphy_hi.webm          Morphy avatar wave animation (WebM/VP9 alpha, ~282 KB)
+    morphy_hi.mov           Morphy avatar wave animation (HEVC alpha, Safari fallback, ~855 KB)
+    morphy_bounce.webm      Morphy avatar bounce/reappear animation (WebM/VP9 alpha, ~270 KB)
+    morphy_bounce.mov       Morphy avatar bounce/reappear animation (HEVC alpha, Safari fallback, ~875 KB)
     bloby-badge.png         Notification badge icon (PNG, 3 KB)
     bloby-icon-192.png      PWA icon 192x192 (PNG, 27 KB)
     bloby-icon-512.png      PWA icon 512x512 (PNG, 115 KB)
