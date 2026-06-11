@@ -138,33 +138,24 @@ function Hero({ user, onLogin, onLogout }) {
       <AnimatedGridBg />
       <FloatingOrbs />
 
-      {/* Full-bleed stage band anchored to the top of the viewport. The video's
-          backdrop is extended to any width by stretching 1px strips sampled from
-          its outermost columns, so the video edges are invisible. */}
+      {/* Transparent (luma-keyed) drop-in video anchored to the top of the
+          viewport, so Morphy falls in from the browser edge. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
         className="relative flex justify-center overflow-hidden h-[230px] sm:h-[300px]"
       >
-        <div
-          className="flex-1 -mr-px"
-          style={{ backgroundImage: "url('/assets/images/morphy-stage-left.webp')", backgroundSize: '100% 100%' }}
-        />
         <video
           autoPlay
           muted
           playsInline
           preload="auto"
-          poster="/assets/images/morphy-stage-poster.webp"
           className="h-full w-auto shrink-0"
         >
-          <source src="/assets/videos/morphy-dropping.mp4" type="video/mp4" />
+          <source src="/assets/videos/morphy-dropping.mov" type='video/mp4; codecs="hvc1"' />
+          <source src="/assets/videos/morphy-dropping.webm" type="video/webm" />
         </video>
-        <div
-          className="flex-1 -ml-px"
-          style={{ backgroundImage: "url('/assets/images/morphy-stage-right.webp')", backgroundSize: '100% 100%' }}
-        />
       </motion.div>
 
       <div className="max-w-4xl mx-auto text-center relative px-4 sm:px-6 pt-8 sm:pt-12">
