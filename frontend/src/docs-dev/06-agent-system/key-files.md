@@ -25,4 +25,4 @@ title: "Key Files"
 | `workspace/MCP.json` | MCP server configuration |
 | `workspace/memory/YYYY-MM-DD.md` | Daily note files |
 | `workspace/tasks/{id}.md` | Detailed cron task instructions |
-| `workspace/skills/` | Auto-discovered skill plugins |
+| `workspace/skills/` | Skill folders (`SKILL.md` with name+description frontmatter) |

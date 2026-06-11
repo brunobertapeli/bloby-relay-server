@@ -34,23 +34,24 @@ title: "Common Tasks"
 
 ```
 workspace/skills/my-skill/
-  .claude-plugin/
-    plugin.json
-  skills/
-    my-tool.ts   # or whatever the skill implementation requires
+  SKILL.md       # the skill definition
+  references/    # optional supporting files
 ```
 
-1. Write the plugin manifest (`plugin.json`):
+1. Write `SKILL.md` with YAML frontmatter -- `name` must match the folder name, `description` tells the agent when to use the skill:
 
-```json
-{
-  "name": "my-skill",
-  "version": "1.0.0",
-  "description": "What this skill does."
-}
+```markdown
+---
+name: my-skill
+description: What this skill does and when to use it.
+---
+
+# My Skill
+
+Instructions for the agent...
 ```
 
-1. Skills are auto-discovered. Restart the agent (send a new chat message) and the skill will be loaded.
+1. No plugin manifest is needed. All three harnesses (Claude, Codex, Pi) pick the skill up automatically on the next session.
 
 ### Modifying the System Prompt
 

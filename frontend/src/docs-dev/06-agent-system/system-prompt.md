@@ -104,7 +104,7 @@ Messages are fetched from the database via the worker API at `/api/conversations
 
 ### 2.5 Context Enrichment
 
-Unlike some agent frameworks, Bloby does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and skill plugins.
+Unlike some agent frameworks, Bloby does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and installed skills.
 
 The working directory context is provided implicitly via the `cwd` option in the SDK query (line 196):
 

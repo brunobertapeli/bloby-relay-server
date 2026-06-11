@@ -71,7 +71,7 @@ Claude Agent SDK query():
   cwd:              workspace/
   permissionMode:   bypassPermissions
   maxTurns:         50
-  plugins:          auto-discovered from workspace/skills/
+  skills:           workspace/skills/ mirrored into workspace/.claude/skills/
   mcpServers:       loaded from workspace/MCP.json
   env:              CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CODE_BUBBLEWRAP=1
 ```

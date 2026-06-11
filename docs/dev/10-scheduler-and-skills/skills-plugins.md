@@ -6,73 +6,45 @@ title: "Skills & Plugins"
 
 ### 2.1 Skills Architecture
 
-Bloby uses a directory-based plugin system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill (plugin) that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are prompt-injection plugins that provide the Claude Agent SDK with additional instructions, context, and behavior patterns.
+Bloby uses a directory-based skill system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are Markdown instructions that give the agent additional context and behavior patterns.
 
-Skills are auto-discovered at query time. In `supervisor/bloby-agent.ts`, every directory under `workspace/skills/` that contains a `.claude-plugin/plugin.json` file is registered as a local plugin:
+A skill is defined by a single required file: `workspace/skills/{skill-name}/SKILL.md`, whose YAML front matter carries two mandatory keys -- `name` (must equal the folder name) and `description` (the routing/trigger text that tells the agent when the skill applies).
 
-```typescript
-const skillsDir = path.join(PKG_DIR, 'workspace', 'skills');
-const plugins: { type: 'local'; path: string }[] = [];
-try {
-    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-        if (
-            entry.isDirectory() &&
-            fs.existsSync(
-                path.join(
-                    skillsDir,
-                    entry.name,
-                    '.claude-plugin',
-                    'plugin.json',
-                ),
-            )
-        ) {
-            plugins.push({
-                type: 'local' as const,
-                path: path.join(skillsDir, entry.name),
-            });
-        }
-    }
-} catch {}
-```
+The shared plumbing lives in `supervisor/harnesses/skills.ts`:
 
-These plugins are then passed to the Claude Agent SDK `query()` call:
+- `mirrorSkillsInto()` -- mirrors `workspace/skills/{name}` into a harness-specific root as symlinks (idempotent) and prunes stale links for uninstalled skills.
+- `parseSkillFrontmatter()` -- extracts `name` and `description` from a SKILL.md front matter block.
+- `buildSkillsIndex()` -- builds a compact name+description index for system-prompt injection.
 
-```typescript
-const claudeQuery = query({
-    prompt: sdkPrompt,
-    options: {
-        // ...
-        plugins: plugins.length ? plugins : undefined,
-    },
-});
-```
+Each harness consumes the same on-disk layout its own way:
 
-This means skills are loaded fresh on every agent query. Adding or removing a skill directory takes effect on the next message or scheduled trigger -- no restart required.
+| Harness    | File                              | Mechanism                                                                                                                                                                                                                                                                                                                       |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude** | `supervisor/harnesses/claude.ts`  | Mirrors skills into `workspace/.claude/skills/` (the Agent SDK's project-skill discovery root) and passes the explicit skill-name list via the SDK's `skills` option. The SDK lists each skill's name+description in context and lazy-loads the SKILL.md body through its native Skill tool. Customer-facing one-shot runs (`supportPrompt`) pass `skills: []` so customers never see skills. |
+| **Codex**  | `supervisor/harnesses/codex.ts`   | Mirrors skills into `workspace/.codex/skills/` (codex's repo-scope root) and primes each thread via the `skills/list` JSON-RPC call; codex's native router handles routing.                                                                                                                                                      |
+| **Pi**     | `supervisor/harnesses/pi/index.ts` | No native skill machinery -- `buildSkillsIndex()` appends a compact name+description index block (`# Installed Skills`) to the system prompt, and the agent reads `skills/{name}/SKILL.md` on demand.                                                                                                                            |
+
+The design principle in all three is **progressive disclosure**: each skill's name and description are always in context, but the full SKILL.md body is loaded only when the skill is actually used.
+
+Adding or removing a skill directory takes effect on the next session -- no restart required.
 
 ### 2.2 Skill Directory Structure
 
-Each skill follows a fixed directory layout:
+Each skill is a flat folder named after the skill:
 
 ```plain
 workspace/skills/{skill-name}/
-  .claude-plugin/
-    plugin.json          Plugin manifest (name, version, description)
-  skills/
-    {skill-name}/
-      SKILL.md           Skill instructions in Markdown with YAML front matter
+  SKILL.md             Skill definition -- YAML front matter + Markdown instructions (required)
+  skill.json           Bloby marketplace metadata (optional)
+  SCRIPT.md            Customer-facing persona for channel business/assistant modes (optional)
+  references/          Supporting documents (optional)
+  scripts/             Helper scripts (optional)
+  assets/              Static assets (optional)
 ```
 
-#### plugin.json
+#### skill.json
 
-The plugin manifest. Minimal required fields:
-
-```json
-{
-    "name": "skill-name",
-    "version": "1.0.0",
-    "description": "One-line description of what this skill does."
-}
-```
+Optional Bloby marketplace metadata. When present, its `description` must stay in sync with the SKILL.md front matter.
 
 #### SKILL.md
 
@@ -100,7 +72,7 @@ Trigger conditions -- what user messages should invoke this skill.
 Detailed behavior, checklists, output formats, rules.
 ```
 
-The `description` in the YAML front matter is critical -- it tells the Claude Agent SDK when this skill is relevant to the current conversation. The agent uses it for skill selection.
+Both front matter keys are mandatory: `name` must equal the skill's folder name, and `description` is critical -- it is the routing text that tells the agent when this skill is relevant to the current conversation. All three harnesses keep it in context for skill selection.
 
 ### 2.3 Built-in Skills
 
@@ -112,14 +84,11 @@ Bloby ships with three built-in skills.
 
 **Purpose**: Reviews code changes and provides improvement suggestions across the Bloby full-stack (React + Tailwind frontend, Express + SQLite backend).
 
-**Plugin manifest** (`plugin.json`):
+**Front matter** (`SKILL.md`):
 
-```json
-{
-    "name": "code-reviewer",
-    "version": "1.0.0",
-    "description": "Reviews code changes and provides improvement suggestions."
-}
+```yaml
+name: code-reviewer
+description: Reviews code changes and provides improvement suggestions.
 ```
 
 **Activation triggers**: User asks to "review", "check", or "audit" code; requests feedback on changes; asks about code quality or best practices.
@@ -143,14 +112,11 @@ The skill provides the agent with a structured review checklist covering:
 
 **Purpose**: Generates daily standup summaries by analyzing recent file changes, git history, and workspace activity.
 
-**Plugin manifest** (`plugin.json`):
+**Front matter** (`SKILL.md`):
 
-```json
-{
-    "name": "daily-standup",
-    "version": "1.0.0",
-    "description": "Generates daily standup summaries from recent workspace activity."
-}
+```yaml
+name: daily-standup
+description: Generates daily standup summaries from recent workspace activity.
 ```
 
 **Activation triggers**: User asks for a "standup", "daily update", or "progress report"; asks "what changed recently?" or "what did I work on?"; wants a summary of recent activity.
@@ -191,14 +157,11 @@ This skill pairs naturally with the cron system. A cron like `{ "id": "morning-s
 
 **Purpose**: Helps manage and understand the Bloby workspace structure -- project layout, file organization, code navigation, and scaffolding.
 
-**Plugin manifest** (`plugin.json`):
+**Front matter** (`SKILL.md`):
 
-```json
-{
-    "name": "workspace-helper",
-    "version": "1.0.0",
-    "description": "Helps manage and understand the Bloby workspace structure."
-}
+```yaml
+name: workspace-helper
+description: Helps manage and understand the Bloby workspace structure.
 ```
 
 **Activation triggers**: User asks about the project layout, file organization, where things are, how the workspace is structured; needs help navigating the codebase; asks to scaffold new components, pages, or API routes.
@@ -239,30 +202,14 @@ Follow these steps to add a custom skill to Bloby:
 
 ```plain
 workspace/skills/{your-skill-name}/
-  .claude-plugin/
-    plugin.json
-  skills/
-    {your-skill-name}/
-      SKILL.md
+  SKILL.md
 ```
 
-The outer directory name and the inner `skills/{name}/` directory name should match.
+That single file is all a skill needs. Optional extras (`skill.json`, `SCRIPT.md`, `references/`, `scripts/`, `assets/`) can be added later.
 
-#### Step 2: Write `plugin.json`
+#### Step 2: Write `SKILL.md`
 
-Create `.claude-plugin/plugin.json`:
-
-```json
-{
-    "name": "your-skill-name",
-    "version": "1.0.0",
-    "description": "One-line description of what this skill does."
-}
-```
-
-#### Step 3: Write `SKILL.md`
-
-Create `skills/{your-skill-name}/SKILL.md` with YAML front matter and Markdown body:
+Create `workspace/skills/{your-skill-name}/SKILL.md` with YAML front matter and Markdown body. The `name` must equal the folder name:
 
 ```markdown
 ---
@@ -297,15 +244,9 @@ Detailed instructions for the agent. Include:
 Show the agent what good output looks like.
 ```
 
-#### Step 4: Verify
+#### Step 3: Verify
 
-Send a message to Bloby that matches your skill's activation criteria. The skill is auto-discovered on each query -- no restart needed. Check the supervisor logs for plugin loading:
-
-```plain
-Loaded MCP server(s): [...]  // if MCP is configured
-```
-
-The Claude Agent SDK log output will show the plugins being loaded.
+Send a message to Bloby that matches your skill's activation criteria. Skills are picked up automatically on the next session -- no restart needed. All three harnesses see the same folder: Claude and Codex via their `workspace/.claude/skills` / `workspace/.codex/skills` symlink mirrors, Pi via the `# Installed Skills` index in its system prompt.
 
 #### Tips for Effective Skills
 

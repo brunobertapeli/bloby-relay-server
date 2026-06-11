@@ -43,23 +43,13 @@ onMessage('bot:done', { conversationId, usedFileTools });
 
 This flag drives the auto-restart behavior: if the agent wrote or edited files, the supervisor restarts the backend after the turn ends (line 544-549 of `supervisor/index.ts`).
 
-### 4.3 Skill Plugins
+### 4.3 Skills
 
-The agent auto-discovers local skill plugins in `workspace/skills/` (lines 162-171 of `supervisor/bloby-agent.ts`):
+Skills live in `workspace/skills/<name>/`, each defined by a `SKILL.md` whose YAML frontmatter carries two mandatory keys: `name` (must equal the folder name) and `description` (the routing/trigger text).
 
-```ts
-const skillsDir = path.join(PKG_DIR, 'workspace', 'skills');
-const plugins: { type: 'local'; path: string }[] = [];
-for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-  if (entry.isDirectory() && fs.existsSync(
-    path.join(skillsDir, entry.name, '.claude-plugin', 'plugin.json')
-  )) {
-    plugins.push({ type: 'local' as const, path: path.join(skillsDir, entry.name) });
-  }
-}
-```
+In the Claude harness (`supervisor/harnesses/claude.ts`), the shared helper `mirrorSkillsInto()` from `supervisor/harnesses/skills.ts` mirrors each `workspace/skills/<name>` folder into `workspace/.claude/skills/<name>` as a symlink -- the Agent SDK's project-skill discovery root -- and prunes stale links for uninstalled skills. The resulting skill names are passed to the SDK via the `skills` option as an explicit allowlist.
 
-Any directory under `workspace/skills/` that contains a `.claude-plugin/plugin.json` file is loaded as a local plugin and passed to the SDK.
+The SDK lists each skill's name and description in the agent's context and lazy-loads the full `SKILL.md` body through its native Skill tool only when the skill is actually used (progressive disclosure). Customer-facing one-shot runs (`supportPrompt`) pass `skills: []` so customers never see skills.
 
 ### 4.4 MCP Servers (External Tools)
 

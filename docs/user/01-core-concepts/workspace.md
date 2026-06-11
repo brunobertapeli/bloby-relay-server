@@ -22,7 +22,7 @@ workspace/
 ├── PULSE.json           # Periodic wake-up config
 ├── CRONS.json           # Scheduled tasks
 ├── memory/              # Daily note files
-├── skills/              # Plugins & extensions
+├── skills/              # Agent skills (SKILL.md folders)
 ├── MCP.json             # MCP server config (optional)
 └── files/               # Uploaded attachments
 ```

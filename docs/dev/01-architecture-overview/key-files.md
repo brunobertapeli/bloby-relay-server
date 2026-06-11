@@ -39,7 +39,7 @@ All paths are relative to the repository root.
 | `workspace/memory/`          | Daily notes (`YYYY-MM-DD.md`, append-only)          |
 | `workspace/PULSE.json`       | Periodic wake-up configuration                      |
 | `workspace/CRONS.json`       | Scheduled task definitions                          |
-| `workspace/skills/`          | Plugin directories (`.claude-plugin/plugin.json`)   |
+| `workspace/skills/`          | Skill folders (`SKILL.md` with name+description frontmatter) |
 | `workspace/MCP.json`         | MCP server configuration                            |
 | `workspace/files/`           | Uploaded file storage (audio/, images/, documents/) |
 

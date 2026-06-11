@@ -74,7 +74,7 @@ This is the "playground" that the AI agent modifies at runtime. It contains the 
 | `workspace/MEMORY.md` | Long-term memory (agent-editable) |
 | `workspace/PULSE.json` | Periodic task configuration |
 | `workspace/CRONS.json` | Cron schedule configuration |
-| `workspace/skills/` | Skill plugins (Claude Agent SDK plugin format) |
+| `workspace/skills/` | Skill folders (`SKILL.md` with name+description frontmatter) |
 
 **Rule: The workspace is the agent's domain.** Platform code should not depend on workspace internals. The workspace depends on the platform API (`/api/*`), not the other way around.
 

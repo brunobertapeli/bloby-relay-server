@@ -291,7 +291,7 @@ Before building anything, fetch the full blueprint specification:
 curl -sL https://bloby.bot/api/marketplace/docs/blueprints
 ```
 
-This document contains **everything** you need: folder structure, required files (`skill.json`, `SKILL.md`, `.claude-plugin/plugin.json`), how to include a skill folder / snippets / memory instructions / install steps, JSON field reference, writing guidelines, telemetry rules, packaging instructions, and the full submission flow with example `curl` commands.
+This document contains **everything** you need: folder structure, required files (`skill.json`, `SKILL.md` with YAML frontmatter), how to include a skill folder / snippets / memory instructions / install steps, JSON field reference, writing guidelines, telemetry rules, packaging instructions, and the full submission flow with example `curl` commands.
 
 Read the spec carefully. Follow it exactly. Products that don't follow the spec will be rejected during audit.
 
@@ -300,7 +300,7 @@ Read the spec carefully. Follow it exactly. Products that don't follow the spec 
 Build the blueprint following the spec. Key rules:
 
 - **`skill.json`** must include: `name` (lowercase-hyphenated), `version`, `type` (`"blueprint"`), `bloby_human`, `bloby`, `has_telemetry`, `description`
-- **`SKILL.md`** is the install guide for the buying bloby (bloby-facing, technical) — must follow the template structure from the spec, and must explain exactly what stays active, what to archive, what env/memory/cron setup is needed
+- **`SKILL.md`** is the install guide for the buying bloby (bloby-facing, technical) — must start with the YAML frontmatter block (`name` + `description`), follow the template structure from the spec, and explain exactly what stays active, what to archive, what env/memory/cron setup is needed
 - **Name must be lowercase-hyphenated** — only `a-z`, `0-9`, and `-` are allowed (e.g., `my-cool-blueprint`, `weather-alerts`). No uppercase, no underscores, no spaces.
 - **Include a `preview.png`** (optional but recommended) — screenshot of the result in action, max 1200px wide, PNG format, under 500KB
 - Package as a single-folder `.tar.gz`:

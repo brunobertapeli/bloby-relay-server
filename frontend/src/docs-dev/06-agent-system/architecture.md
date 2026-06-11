@@ -44,7 +44,7 @@ The lifecycle of a single agent query in `startBlobyAgentQuery()` (lines 116-277
 
 1. **OAuth token retrieval** -- `getClaudeAccessToken()` from `worker/claude-auth.ts` (line 126). If the token is expired, it attempts a refresh using the stored refresh token.
 2. **System prompt construction** -- `readSystemPrompt()` + memory file injection (lines 133-143).
-3. **Plugin discovery** -- scans `workspace/skills/` for directories containing `.claude-plugin/plugin.json` (lines 163-171).
+3. **Skill discovery** -- `mirrorSkillsInto()` from `supervisor/harnesses/skills.ts` mirrors each `workspace/skills/<name>` folder (defined by a `SKILL.md` with `name` + `description` frontmatter) into `workspace/.claude/skills/<name>` as a symlink -- the Agent SDK's project-skill discovery root -- and the skill names are passed via the SDK's `skills` option (`supervisor/harnesses/claude.ts`). The SDK lists each skill's name+description in context and lazy-loads the SKILL.md body through its native Skill tool.
 4. **MCP server loading** -- reads `workspace/MCP.json` for external tool servers (lines 175-190).
 5. **SDK invocation** -- `query()` with assembled options (lines 192-211).
 6. **Streaming loop** -- `for await (const msg of claudeQuery)` (line 215), dispatching events via the `onMessage` callback.
@@ -63,7 +63,7 @@ The options passed to `query()` (lines 192-211):
 | `maxTurns` | `50` | Maximum agentic turns per query |
 | `abortController` | Per-query AbortController | Allows cancellation |
 | `systemPrompt` | Enriched prompt string | Full system prompt with memory |
-| `plugins` | Auto-discovered skill plugins | Local plugins from `workspace/skills/` |
+| `skills` | Mirrored workspace skill names | Skills from `workspace/skills/` (via the `workspace/.claude/skills` symlink mirror) |
 | `mcpServers` | From `MCP.json` | External tool servers |
 
 The environment is augmented with `CLAUDE_CODE_OAUTH_TOKEN` (the Claude OAuth token) and `CLAUDE_CODE_BUBBLEWRAP` set to `'1'` (line 206-209).

@@ -258,33 +258,22 @@ workspace/backend/
 
 ---
 
-#### 2.6.3 `/workspace/skills/` -- Plugin Directories
+#### 2.6.3 `/workspace/skills/` -- Skill Folders
 
-Skills are modular agent capabilities structured as Claude plugin directories. Each skill follows a `{skill-name}/.claude-plugin/plugin.json` + `{skill-name}/skills/{skill-name}/SKILL.md` convention.
+Skills are modular agent capabilities. Each skill is a flat folder under `workspace/skills/` named after the skill, with a `SKILL.md` at its core.
 
 ```
 workspace/skills/
-  code-reviewer/
-    .claude-plugin/
-      plugin.json         Plugin manifest (name, version, description)
-    skills/
-      code-reviewer/
-        SKILL.md          Skill instructions for code review behavior
-  daily-standup/
-    .claude-plugin/
-      plugin.json         Plugin manifest
-    skills/
-      daily-standup/
-        SKILL.md          Skill instructions for daily standup summaries
-  workspace-helper/
-    .claude-plugin/
-      plugin.json         Plugin manifest
-    skills/
-      workspace-helper/
-        SKILL.md          Skill instructions for workspace management
+  {skill-name}/
+    SKILL.md              Skill definition -- YAML frontmatter (name, description) + Markdown instructions
+    skill.json            Bloby marketplace metadata (optional)
+    SCRIPT.md             Customer-facing persona for channel business/assistant modes (optional)
+    references/           Supporting documents (optional)
+    scripts/              Helper scripts (optional)
+    assets/               Static assets (optional)
 ```
 
-Each skill's `plugin.json` defines metadata (name, version, description). The `SKILL.md` file contains natural language instructions that are injected into the agent's context when the skill is activated.
+The `SKILL.md` frontmatter holds two mandatory keys: `name` (must equal the folder name) and `description` (the routing/trigger text). When a `skill.json` is present, its `description` must stay in sync with the frontmatter. Each skill's name and description are always in the agent's context; the full `SKILL.md` body is loaded only when the skill is actually used (progressive disclosure). Shared loading plumbing lives in `supervisor/harnesses/skills.ts`.
 
 ---
 

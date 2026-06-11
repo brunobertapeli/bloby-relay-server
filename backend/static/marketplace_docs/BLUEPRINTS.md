@@ -70,8 +70,6 @@ Once the user confirms it works, extract the code into the blueprint folder stru
 
 ```
 blueprint-name/
-  .claude-plugin/
-    plugin.json           # SDK manifest (required)
   skill.json              # Marketplace metadata (required)
   SKILL.md                # Agent instructions (required, with YAML frontmatter)
   SKILL.json              # Codex display metadata (optional, capital S)
@@ -82,22 +80,11 @@ blueprint-name/
     css/                  # CSS/animations to append
 ```
 
-Blueprints are **cross-compatible** with both the Claude harness and the OpenAI/Codex harness. The two providers share the same on-disk layout. Codex's router only reads YAML frontmatter at the top of `SKILL.md` — Claude ignores the frontmatter as plain markdown. See [Writing the SKILL.md](#writing-the-skillmd) for the required format.
+Blueprints are **cross-compatible** with every Bloby harness (Claude, OpenAI/Codex, and Pi). All of them share the same on-disk layout and discover skills through the YAML frontmatter at the top of `SKILL.md` — the frontmatter's `name` + `description` are what surface the skill in the agent's context. See [Writing the SKILL.md](#writing-the-skillmd) for the required format. Do **not** include a `.claude-plugin/` folder — it's a legacy artifact that nothing reads.
 
 ---
 
 ## Required Files
-
-### `.claude-plugin/plugin.json`
-
-```json
-{
-  "name": "blueprint-name",
-  "version": "1.0.0",
-  "description": "One-line description for SDK discovery",
-  "skills": "./"
-}
-```
 
 ### `skill.json`
 
@@ -168,8 +155,6 @@ When your blueprint ships an **ongoing capability** — something the bloby keep
 
 ```
 skill-name/
-  .claude-plugin/
-    plugin.json       # Claude SDK plugin manifest (required)
   skill.json          # Marketplace + package manifest (required)
   SKILL.md            # Main instructions (required, with YAML frontmatter)
   SKILL.json          # Codex display metadata (optional, capital S)
@@ -177,18 +162,7 @@ skill-name/
   assets/             # Binaries, scripts, components, templates (optional)
 ```
 
-`.claude-plugin/plugin.json` is how the SDK discovers the skill. `"skills": "./"` tells the SDK that `SKILL.md` lives at the plugin root, so the bloby loads it on-demand rather than injecting it into the system prompt:
-
-```json
-{
-  "name": "skill-name",
-  "version": "1.0.0",
-  "description": "One-line description for SDK discovery index",
-  "skills": "./"
-}
-```
-
-The `SKILL.md` YAML frontmatter rules (the `name`/`description` keys, the exact-three-dashes delimiters, the first-line requirement) apply exactly as described in [Writing the SKILL.md](#writing-the-skillmd) — Codex's router reads them; Claude treats them as plain markdown.
+The `SKILL.md` YAML frontmatter is how every harness discovers the skill: after install, the supervisor surfaces the frontmatter's `name` + `description` in the agent's context (Claude and Codex through their native skill machinery, Pi through a system-prompt index) and the full `SKILL.md` body is loaded on-demand — not injected into the system prompt. The frontmatter rules (the `name`/`description` keys, the exact-three-dashes delimiters, the first-line requirement) apply exactly as described in [Writing the SKILL.md](#writing-the-skillmd).
 
 ### Data separation — skills are disposable, user data is not
 
@@ -219,7 +193,7 @@ The SKILL.md is the installation instructions for the buying bloby (bloby-facing
 
 ### 0. YAML frontmatter (required)
 
-The very first lines of `SKILL.md` must be a YAML frontmatter block. Codex's router uses these two keys to decide when the blueprint applies and how to invoke it. Claude ignores the block as plain markdown. Without it, Codex rejects the blueprint with `missing YAML frontmatter delimited by ---`.
+The very first lines of `SKILL.md` must be a YAML frontmatter block. Every harness uses these two keys to decide when the blueprint applies and how to invoke it — they are the only thing that puts your skill in the buying bloby's context. Without it, Codex rejects the blueprint with `missing YAML frontmatter delimited by ---` and Claude won't list it.
 
 ```markdown
 ---
@@ -233,8 +207,8 @@ description: One-paragraph description used for routing decisions.
 
 | Key | Rule |
 |---|---|
-| `name` | Must equal the **folder name** of the blueprint. Lowercase, hyphenated, no spaces. Same value as `name` in `.claude-plugin/plugin.json` and `skill.json`. |
-| `description` | Required. Must match the `description` field in `.claude-plugin/plugin.json` and `skill.json` exactly so the three never drift. Codex uses this for routing decisions, so be specific. |
+| `name` | Must equal the **folder name** of the blueprint. Lowercase, hyphenated, no spaces. Same value as `name` in `skill.json`. |
+| `description` | Required. Must match the `description` field in `skill.json` exactly so the two never drift. Every harness uses this for routing decisions, so be specific. |
 | `---` delimiters | Exactly three dashes on their own lines. The opening `---` MUST be the very first line of the file (no blank line, no BOM, no comment before it). |
 
 If `description` contains YAML-special characters (`:`, `#`, `[`, `]`, `{`, `}`, `&`, `*`, `!`, `|`, `>`, single/double quotes, `%`, `@`, backtick, leading whitespace, leading `-`/`?`), wrap it in double quotes. For multiline descriptions use the folded form (`description: >`). Do NOT add fields beyond `name` and `description`.
@@ -478,9 +452,9 @@ tar tzf blueprint-name.tar.gz
 
 Check that:
 - Root is a single folder (not loose files)
-- `.claude-plugin/plugin.json` is present
 - `skill.json` is present
-- `SKILL.md` is present
+- `SKILL.md` is present (and starts with the YAML frontmatter block)
+- No `.claude-plugin/` folder (legacy — nothing reads it)
 - `preview.png` is present (optional but recommended)
 - All asset files are included
 

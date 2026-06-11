@@ -94,7 +94,7 @@ query({
         maxTurns: 50, // Safety limit per query
         abortController, // User can send user:stop
         systemPrompt: enrichedPrompt, // Base + memory files + history
-        plugins, // Auto-discovered skills
+        skills, // Workspace skill names (mirrored into workspace/.claude/skills)
         mcpServers, // From workspace/MCP.json
     },
 });

@@ -61,7 +61,7 @@ The function:
 
 1. Obtains a valid Claude OAuth token (with automatic refresh if expired).
 2. Constructs the enriched system prompt.
-3. Auto-discovers skill plugins and MCP servers.
+3. Mirrors workspace skills into the SDK's project-skill root and loads MCP servers.
 4. Calls the Claude Agent SDK `query()` function.
 5. Enters the streaming loop.
 

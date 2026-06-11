@@ -16,7 +16,7 @@ The primary AI integration. Used when `config.ai.provider === 'anthropic'`. The 
 - **System prompt** -- loaded from `worker/prompts/bloby-system-prompt.txt` with `$BOT` and `$HUMAN` placeholder substitution.
 - **Memory injection** -- `MYSELF.md`, `MYHUMAN.md`, `MEMORY.md`, `PULSE.json`, and `CRONS.json` are appended to the system prompt on every turn.
 - **Conversation history** -- the last 20 messages are injected into the system prompt for context continuity.
-- **Plugin support** -- auto-discovers skill plugins in `workspace/skills/` (folders containing `.claude-plugin/plugin.json`).
+- **Skill support** -- `workspace/skills/` is mirrored into the SDK's project-skill root (`workspace/.claude/skills`) and enabled via the `skills` option.
 - **MCP servers** -- loaded from `workspace/MCP.json` if present.
 - **OAuth authentication** -- uses `CLAUDE_CODE_OAUTH_TOKEN` environment variable (not an API key).
 

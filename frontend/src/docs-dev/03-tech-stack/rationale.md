@@ -68,7 +68,7 @@ The raw Anthropic API (also in `shared/ai.ts`) supports streaming text, but not 
 
 - Full tool execution loop with automatic multi-turn orchestration.
 - File system tools (Read, Write, Edit, Glob, Grep) that the agent uses to modify workspace files.
-- Plugin and MCP server support for extensibility.
+- Skill and MCP server support for extensibility.
 - Session resumption via `session_id` for conversation continuity across process restarts.
 - Abort controller support for user-initiated stop.
 

@@ -108,17 +108,16 @@ The agent's capabilities come from three sources:
 
 2. **Agent SDK tools**: The agent uses the Claude Agent SDK with `permissionMode: 'bypassPermissions'` and a `cwd` of `workspace/`. It gets standard tools (Read, Write, Edit, Bash, etc.) by default.
 
-3. **Skills** (`workspace/skills/`): Plugin-style extensions. Each skill is a directory with a `.claude-plugin/plugin.json` file:
+3. **Skills** (`workspace/skills/`): Each skill is a directory with a `SKILL.md` file whose YAML frontmatter holds two mandatory keys -- `name` (must match the folder name) and `description` (tells the agent when to use the skill):
 
 ```
 workspace/skills/my-skill/
-  .claude-plugin/
-    plugin.json      # { "name": "my-skill", "version": "1.0.0", "description": "..." }
-  skills/
-    # skill implementation files
+  SKILL.md           # frontmatter (name + description) followed by Markdown instructions
+  skill.json         # optional Bloby marketplace metadata
+  references/        # optional supporting files
 ```
 
-Skills are auto-discovered at agent query time -- any folder in `workspace/skills/` with a valid plugin.json is loaded.
+No plugin manifest is needed -- all three harnesses (Claude, Codex, Pi) pick the skill up automatically on the next session.
 
 1. **MCP servers** (`workspace/MCP.json`): External tool servers in the Model Context Protocol format:
 
