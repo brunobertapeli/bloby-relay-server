@@ -4,6 +4,7 @@ import { getUsers } from '../db.js';
 import { validateTunnelUrl } from '../lib/validate.js';
 import { authenticate } from '../middleware/auth.js';
 import { tunnelLimiter, heartbeatLimiter } from '../middleware/rateLimiter.js';
+import { invalidateUserCache } from './resolve.js';
 
 const router = Router();
 
@@ -57,6 +58,7 @@ router.put('/tunnel', authenticate, tunnelLimiter, async (req, res) => {
         },
       },
     );
+    invalidateUserCache(req.user.username); // resolve.js micro-cache must see the new URL now
 
     // Warm Railway's DNS cache before responding — prevents ENOTFOUND 502s
     // The supervisor awaits this response, so the URL won't be shown until
@@ -103,6 +105,7 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
     }
 
     await getUsers().updateOne({ _id: req.user._id }, { $set: update });
+    if (rotatedTunnel) invalidateUserCache(req.user.username); // routing changed mid-TTL
 
     // If the heartbeat carried a rotated tunnel URL, warm Railway's DNS in the background so the
     // next proxy hit doesn't ENOTFOUND. Fire-and-forget — never delay the heartbeat cadence.
@@ -135,6 +138,7 @@ router.post('/disconnect', authenticate, async (req, res) => {
         },
       },
     );
+    invalidateUserCache(req.user.username); // go offline immediately, not after the TTL
 
     res.json({ success: true });
   } catch (error) {
@@ -154,6 +158,7 @@ router.post('/disconnect', authenticate, async (req, res) => {
 router.delete('/handle', authenticate, async (req, res) => {
   try {
     await getUsers().deleteOne({ _id: req.user._id });
+    invalidateUserCache(req.user.username);
     res.json({ success: true, username: req.user.username });
   } catch (error) {
     console.error('[handle:delete]', error.message);

@@ -1,4 +1,5 @@
 import httpProxy from 'http-proxy';
+import https from 'node:https';
 import zlib from 'node:zlib';
 import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 
@@ -42,6 +43,13 @@ const proxy = httpProxy.createProxyServer({
   ws: true,
   secure: false,
   preserveHeaderKeyCase: true,
+  // Without an explicit agent, http-proxy sets agent=false → a brand-new TCP+TLS handshake to
+  // the *.trycloudflare.com edge for EVERY proxied request (~2 RTT + CPU each), multiplied by
+  // every subresource of every page load. Keep-alive pooling reuses warm TLS connections.
+  // Safe with the rest of this file: upgraded WS sockets never return to the pool, quick-tunnel
+  // hostname rotation just idles old pools out, and `timeout` here only reaps FREE sockets —
+  // it is not proxyTimeout, so long-lived SSE responses are unaffected (see comment above).
+  agent: new https.Agent({ keepAlive: true, maxSockets: 128, maxFreeSockets: 16, timeout: 60_000 }),
 });
 
 // ─── Classification ──────────────────────────────────────────────────────────

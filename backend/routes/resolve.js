@@ -22,6 +22,37 @@ const router = Router();
 // Error/status pages must never be cached — a stale 502/503 page causes a "Host Error" on restart.
 const NO_CACHE_HEADERS = NO_CACHE;
 
+// ─── User-lookup micro-cache ─────────────────────────────────────────────────
+// resolveBot ran a Mongo findOne for EVERY proxied subresource — 20-40 lookups per page
+// refresh, each adding DB latency to that request's TTFB. Resolutions are cached for a few
+// seconds: long enough to absorb a page-load burst, short enough that routing changes
+// propagate at human timescales even without the explicit invalidation the tunnel routes do
+// (register / heartbeat-rotation / disconnect / handle-delete call invalidateUserCache).
+// Negative results (unknown user) cache too — they're the cheapest to spam.
+const USER_CACHE_TTL_MS = 4000;
+const userCache = new Map(); // 'username|tier' → { user, at }
+
+function cachedFindUser(username, tier) {
+  const key = username + '|' + (tier || '');
+  const hit = userCache.get(key);
+  if (hit && Date.now() - hit.at < USER_CACHE_TTL_MS) return Promise.resolve(hit.user);
+  const query = { username };
+  if (tier) query.tier = tier;
+  return getUsers()
+    .findOne(query, { projection: { username: 1, tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } })
+    .then((user) => {
+      if (userCache.size > 5000) userCache.clear(); // bound memory under a scan
+      userCache.set(key, { user, at: Date.now() });
+      return user;
+    });
+}
+
+export function invalidateUserCache(username) {
+  userCache.delete(username + '|');
+  userCache.delete(username + '|at');
+  userCache.delete(username + '|premium');
+}
+
 // ─── Core resolve logic (shared by subdomain + path handlers) ───────────────
 
 async function resolveBot(username, tier, req, res) {
@@ -31,12 +62,7 @@ async function resolveBot(username, tier, req, res) {
 
   let user;
   try {
-    const query = { username };
-    if (tier) query.tier = tier;
-    user = await getUsers().findOne(
-      query,
-      { projection: { username: 1, tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
-    );
+    user = await cachedFindUser(username, tier);
   } catch (err) {
     // A transient DB blip must not surface as a raw 500 — treat it as a transient restart.
     console.error('[resolve] db lookup failed:', err.message);
@@ -85,13 +111,7 @@ async function resolveBot(username, tier, req, res) {
 // ─── Lookup-only helper (for WS upgrade in server.js) ───────────────────────
 
 export async function lookupBot(username, tier) {
-  const query = { username };
-  if (tier) query.tier = tier;
-
-  const user = await getUsers().findOne(
-    query,
-    { projection: { tier: 1, tunnelUrl: 1, isOnline: 1, lastHeartbeat: 1 } },
-  );
+  const user = await cachedFindUser(username, tier);
 
   if (!user) return null;
   if (tier && user.tier !== tier) return null;
