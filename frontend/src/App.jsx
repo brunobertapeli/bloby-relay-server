@@ -1250,8 +1250,8 @@ function OpenSource() {
               playsInline
               className="h-28 sm:h-36 mx-auto"
             >
-              <source src="/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"' />
-              <source src="/assets/videos/morphy_hi.webm" type="video/webm" />
+              <source src="/assets/videos/morphy-idle.mov" type='video/mp4; codecs="hvc1"' />
+              <source src="/assets/videos/morphy-idle.webm" type="video/webm" />
             </video>
           </div>
 
@@ -1345,9 +1345,6 @@ function BlobyWorldSection() {
 function Footer() {
   return (
     <footer className="relative border-t border-border/30 overflow-hidden">
-      {/* Subtle gradient glow */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-gradient-to-t from-primary/5 via-transparent to-transparent pointer-events-none" />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-12 mb-12">
           {/* Brand column */}
