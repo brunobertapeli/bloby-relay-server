@@ -133,29 +133,38 @@ function AnimatedCounter({ target, duration = 2 }) {
 }
 
 function Hero({ user, onLogin, onLogout }) {
+  const [dropped, setDropped] = useState(false)
+
   return (
     <section className="relative pb-8 sm:pb-14 overflow-hidden">
       <AnimatedGridBg />
       <FloatingOrbs />
 
       {/* Transparent (luma-keyed) drop-in video anchored to the top of the
-          viewport, so Morphy falls in from the browser edge. */}
+          viewport, so Morphy falls in from the browser edge. The element
+          starts shifted up (video top = viewport top) and slides down as the
+          impact lands (t=1.125s into the video), so the squash carries the
+          whole scene to its lower resting spot, clear of the navbar. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="relative flex justify-center overflow-hidden h-[230px] sm:h-[300px]"
+        className="relative flex justify-center overflow-hidden h-[306px] sm:h-[400px]"
       >
-        <video
+        <motion.video
           autoPlay
           muted
           playsInline
           preload="auto"
-          className="h-full w-auto shrink-0"
+          onPlay={() => setDropped(true)}
+          initial={{ y: '-33%' }}
+          animate={dropped ? { y: '0%' } : { y: '-33%' }}
+          transition={{ delay: 1.125, duration: 0.5, ease: 'easeOut' }}
+          className="h-[230px] sm:h-[300px] w-auto shrink-0 mt-[76px] sm:mt-[100px]"
         >
           <source src="/assets/videos/morphy-dropping.mov" type='video/mp4; codecs="hvc1"' />
           <source src="/assets/videos/morphy-dropping.webm" type="video/webm" />
-        </video>
+        </motion.video>
       </motion.div>
 
       <div className="max-w-4xl mx-auto text-center relative px-4 sm:px-6 pt-8 sm:pt-12">
