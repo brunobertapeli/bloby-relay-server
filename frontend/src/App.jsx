@@ -134,24 +134,40 @@ function AnimatedCounter({ target, duration = 2 }) {
 
 function Hero({ user, onLogin, onLogout }) {
   return (
-    <section className="relative pt-28 pb-8 sm:pt-36 sm:pb-14 px-4 sm:px-6 overflow-hidden">
+    <section className="relative pb-8 sm:pb-14 overflow-hidden">
       <AnimatedGridBg />
       <FloatingOrbs />
 
-      <div className="max-w-4xl mx-auto text-center relative">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="h-[180px] mx-auto"
-          >
-            <source src="/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"' />
-            <source src="/assets/videos/morphy_hi.webm" type="video/webm" />
-          </video>
-        </motion.div>
+      {/* Full-bleed stage band anchored to the top of the viewport. The video's
+          backdrop is extended to any width by stretching 1px strips sampled from
+          its outermost columns, so the video edges are invisible. */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="relative flex justify-center overflow-hidden h-[230px] sm:h-[300px]"
+      >
+        <div
+          className="flex-1 -mr-px"
+          style={{ backgroundImage: "url('/assets/images/morphy-stage-left.webp')", backgroundSize: '100% 100%' }}
+        />
+        <video
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          poster="/assets/images/morphy-stage-poster.webp"
+          className="h-full w-auto shrink-0"
+        >
+          <source src="/assets/videos/morphy-dropping.mp4" type="video/mp4" />
+        </video>
+        <div
+          className="flex-1 -ml-px"
+          style={{ backgroundImage: "url('/assets/images/morphy-stage-right.webp')", backgroundSize: '100% 100%' }}
+        />
+      </motion.div>
 
+      <div className="max-w-4xl mx-auto text-center relative px-4 sm:px-6 pt-8 sm:pt-12">
         <motion.h1
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
