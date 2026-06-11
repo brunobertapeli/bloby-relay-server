@@ -1,6 +1,7 @@
 import httpProxy from 'http-proxy';
 import https from 'node:https';
 import zlib from 'node:zlib';
+import { Readable } from 'node:stream';
 import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,7 +269,25 @@ proxy.on('proxyReqWs', (proxyReq, _req, socket) => {
 
 // ─── Transport-level failures (ECONNREFUSED/RESET/ENOTFOUND/abort/TLS) ───────
 // These mean the origin couldn't even be reached — treat as a transient restart.
+// With the keep-alive pool, a request can also land on a socket the far end closed a moment
+// earlier (ECONNRESET / 'socket hang up'). For idempotent requests that haven't sent headers
+// yet, retry ONCE on a fresh connection before surfacing anything — without this, the stale-
+// socket race showed users a spurious "restarting" page whose self-recovery reload read as a
+// page crash. The retry passes an empty buffer stream: a GET's request stream has already
+// ended and re-piping it would hang the replacement request.
+const RETRYABLE_CODES = new Set(['ECONNRESET', 'EPIPE', 'ECONNREFUSED']);
 proxy.on('error', (err, req, res) => {
+  const ctx = reqContext.get(req) || {};
+  const retryable =
+    req && (req.method === 'GET' || req.method === 'HEAD') &&
+    (RETRYABLE_CODES.has(err.code) || /socket hang up/i.test(err.message || '')) &&
+    !ctx.retried && ctx.target &&
+    res && res.writeHead && !res.headersSent && !res.writableEnded;
+  if (retryable) {
+    ctx.retried = true;
+    console.warn('[proxy] retrying on fresh socket after', err.code || err.message, req.method, req.url);
+    return proxy.web(req, res, { target: ctx.target, selfHandleResponse: true, buffer: Readable.from([]) });
+  }
   console.error('[proxy] error:', err.message);
   if (res && res.writeHead && !res.writableEnded) {
     brandedFor(req, res, 502);

@@ -101,6 +101,7 @@ async function resolveBot(username, tier, req, res) {
   reqContext.set(req, {
     username,
     page,
+    target: user.tunnelUrl, // lets the proxy's error handler retry once on a fresh socket
     onCfError: () => { if (!cfErrorSince.has(username)) cfErrorSince.set(username, Date.now()); },
     onLive: () => { cfErrorSince.delete(username); },
   });
