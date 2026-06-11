@@ -32,6 +32,20 @@ DIM='\033[2m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
+# Disable colors if not a terminal
+if [ ! -t 1 ]; then
+  BLUE='' PINK='' YELLOW='' RED='' DIM='' BOLD='' RESET='' G1='' G2='' G3='' G4='' G5='' G6='' G7=''
+fi
+
+# Cleanup on exit (restore cursor, reset colors, remove temp files)
+cleanup() {
+  printf '\033[?25h'  # show cursor
+  printf "${RESET}"
+  rm -f "$TMPFILE" 2>/dev/null
+  rm -rf "$TMPDIR" 2>/dev/null
+}
+trap cleanup EXIT INT TERM
+
 printf "\n"
 printf "${G1}${BOLD}                                █▄         ${RESET}\n"
 printf "${G2}${BOLD}      ▄              ▄          ██         ${RESET}\n"
@@ -147,14 +161,14 @@ install_bloby() {
   fi
 
   # Fetch version + tarball URL from npm registry
-  NPM_VERSION=$("$NPM" view bloby version 2>/dev/null || echo "")
+  NPM_VERSION=$("$NPM" view bloby-bot version 2>/dev/null || echo "")
   if [ -n "$NPM_VERSION" ]; then
-    printf "  ${DIM}Latest npm version: bloby@${NPM_VERSION}${RESET}\n"
+    printf "  ${DIM}Latest npm version: bloby-bot@${NPM_VERSION}${RESET}\n"
   fi
 
   printf "  ${BLUE}↓${RESET}  Installing bloby...\n"
 
-  TARBALL_URL=$("$NPM" view bloby dist.tarball 2>/dev/null)
+  TARBALL_URL=$("$NPM" view bloby-bot dist.tarball 2>/dev/null || echo "")
   if [ -z "$TARBALL_URL" ]; then
     printf "  ${RED}✗${RESET}  Failed to fetch package info from npm\n"
     exit 1
@@ -213,15 +227,29 @@ install_bloby() {
   # resolver (ERESOLVE). Persist legacy-peer-deps so npm install resolves cleanly.
   grep -qs '^legacy-peer-deps' "$BLOBY_HOME/.npmrc" 2>/dev/null || printf 'legacy-peer-deps=true\n' >> "$BLOBY_HOME/.npmrc"
   printf "  ${BLUE}↓${RESET}  Installing dependencies...\n"
-  (cd "$BLOBY_HOME" && "$NPM" install --omit=dev 2>/dev/null)
+  INSTALL_LOG=$(mktemp)
+  if ! (cd "$BLOBY_HOME" && "$NPM" install --omit=dev > "$INSTALL_LOG" 2>&1); then
+    printf "  ${RED}✗${RESET}  Dependency install failed:\n"
+    cat "$INSTALL_LOG"
+    rm -f "$INSTALL_LOG"
+    exit 1
+  fi
+  rm -f "$INSTALL_LOG"
 
-  # Install workspace dependencies (rebuilds native modules for this platform)
+  # Install workspace dependencies (rebuilds native modules for this platform —
+  # workspace/node_modules is intentionally not shipped in the tarball so that
+  # better-sqlite3 etc. get a prebuild matching the target OS+arch, not the
+  # publisher's machine)
   if [ -f "$BLOBY_HOME/workspace/package.json" ]; then
     printf "  ${BLUE}↓${RESET}  Installing workspace dependencies...\n"
-    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev); then
-      printf "  ${RED}✗${RESET}  Workspace dependency install failed — backend may not start\n"
+    WS_INSTALL_LOG=$(mktemp)
+    if ! (cd "$BLOBY_HOME/workspace" && "$NPM" install --omit=dev > "$WS_INSTALL_LOG" 2>&1); then
+      printf "  ${RED}✗${RESET}  Workspace dependency install failed:\n"
+      cat "$WS_INSTALL_LOG"
+      rm -f "$WS_INSTALL_LOG"
       exit 1
     fi
+    rm -f "$WS_INSTALL_LOG"
   fi
 
   # Verify

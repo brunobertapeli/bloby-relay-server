@@ -14,8 +14,12 @@ const PKG_ROOT = path.resolve(__dirname, '..');
 const BLOBY_HOME = path.join(os.homedir(), '.bloby');
 
 // Loop guard: if we're already running inside ~/.bloby/, exit
-// (prevents infinite loop when npm install triggers postinstall again)
-if (path.resolve(PKG_ROOT) === path.resolve(BLOBY_HOME)) {
+// (prevents infinite loop when npm install triggers postinstall again).
+// Compare realpaths — npm may run us from a symlinked cwd (e.g. /tmp vs
+// /private/tmp on macOS), and a missed match makes cpSync copy a dir onto
+// itself, which is a hard error on Node 22+.
+const realOrSelf = (p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+if (realOrSelf(PKG_ROOT) === realOrSelf(BLOBY_HOME)) {
   process.exit(0);
 }
 
@@ -68,6 +72,14 @@ for (const file of CODE_FILES) {
 
 // ── Install dependencies in ~/.bloby/ ──
 
+// This script runs as an npm lifecycle hook, so the environment carries the
+// parent install's npm_config_* vars (global=true, prefix, etc.). A nested
+// `npm install` inherits them and silently runs in global mode — wiping
+// node_modules instead of installing deps. Strip them.
+const NPM_ENV = Object.fromEntries(
+  Object.entries(process.env).filter(([k]) => !/^npm_config_/i.test(k))
+);
+
 // claude-agent-sdk 0.3.x moved @anthropic-ai/sdk + @modelcontextprotocol/sdk to
 // peerDependencies; upgrading the existing ~/.bloby tree in place deadlocks npm's
 // resolver (ERESOLVE). Persist legacy-peer-deps so this install — and the manual
@@ -84,6 +96,7 @@ try {
   execSync('npm install --omit=dev', {
     cwd: BLOBY_HOME,
     stdio: 'inherit',
+    env: NPM_ENV,
   });
 } catch (e) {
   // Don't swallow this — partial deps leave bloby in a crash loop on first
@@ -130,6 +143,7 @@ try {
   execSync('npm install --omit=dev', {
     cwd: path.join(BLOBY_HOME, 'workspace'),
     stdio: 'inherit',
+    env: NPM_ENV,
   });
 } catch {
   console.error('Error: workspace dependency install failed — backend will not start until fixed.');
@@ -150,6 +164,7 @@ if (fs.existsSync(distSrc)) {
     execSync('npm run build:bloby', {
       cwd: BLOBY_HOME,
       stdio: 'ignore',
+      env: NPM_ENV,
     });
   } catch {
     // Non-fatal: supervisor will build on first start

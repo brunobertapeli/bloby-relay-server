@@ -165,14 +165,14 @@ function Install-Bloby {
 
     # Fetch version + tarball URL from npm registry
     $npmVersion = ""
-    try { $npmVersion = (& $NPM view bloby version 2>$null).Trim() } catch {}
+    try { $npmVersion = (& $NPM view bloby-bot version 2>$null).Trim() } catch {}
     if ($npmVersion) {
-        Write-Host "  Latest npm version: bloby@${npmVersion}" -ForegroundColor DarkGray
+        Write-Host "  Latest npm version: bloby-bot@${npmVersion}" -ForegroundColor DarkGray
     }
 
     Write-Down "Installing bloby..."
 
-    $tarballUrl = (& $NPM view bloby dist.tarball 2>$null).Trim()
+    $tarballUrl = (& $NPM view bloby-bot dist.tarball 2>$null).Trim()
     if (-not $tarballUrl) {
         Write-Host "  ✗  Failed to fetch package info from npm" -ForegroundColor Red
         exit 1
