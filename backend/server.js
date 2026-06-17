@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { connect, close } from './db.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
-import { subdomainResolver, lookupBot } from './routes/resolve.js';
+import { subdomainResolver, lookupBotForWs } from './routes/resolve.js';
 import { parseTierFromSubdomain } from './lib/validate.js';
 import proxy from './lib/proxy.js';
 import registerRoutes from './routes/register.js';
@@ -203,8 +203,12 @@ server.on('upgrade', async (req, socket, head) => {
   }
 
   try {
-    const bot = await lookupBot(parsed.username, parsed.tier);
-    console.log(`[ws-upgrade] lookupBot result=${JSON.stringify(bot)}`);
+    // Optimistic lookup: proxy the upgrade whenever a tunnelUrl exists, even if the DB
+    // flag is stale/offline. A dead tunnel is closed cleanly by the proxy.ws error
+    // callback below; a healthy-but-stale bot keeps its realtime channel instead of being
+    // hard-503'd. (The HTTP path — resolveBot — keeps its strict offline check + branded page.)
+    const bot = await lookupBotForWs(parsed.username, parsed.tier);
+    console.log(`[ws-upgrade] lookupBotForWs result=${JSON.stringify(bot)}`);
     if (bot) {
       console.log(`[ws-upgrade] proxying WS to ${bot.tunnelUrl}`);
       // Per-call error callback: a dead tunnel during the WS handshake closes cleanly instead of

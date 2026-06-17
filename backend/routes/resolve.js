@@ -5,7 +5,10 @@ import { parseTierFromSubdomain, buildSubdomainUrl, RESERVED } from '../lib/vali
 import proxy, { reqContext } from '../lib/proxy.js';
 import { NO_CACHE, notFoundPage, errorPage, offlinePage, restartingPage } from '../lib/pages.js';
 
-const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '90000', 10);
+// Must stay well above the agent's heartbeat interval (currently 120s, shared/relay.ts)
+// so a single missed beat never flaps a healthy bot offline. 360s = 3 beats of grace.
+// Keep in sync with routes/status.js, which reads the same env var.
+const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '360000', 10);
 // How long a Cloudflare error may persist (while the DB still thinks the bot is live) before the
 // substituted page flips from the optimistic "restarting" to the calm "offline" variant. Covers an
 // ungraceful hard kill / power-off, where the heartbeat hasn't gone stale yet.
@@ -129,6 +132,24 @@ export async function lookupBot(username, tier) {
     }
     return null;
   }
+
+  return { tunnelUrl: user.tunnelUrl };
+}
+
+// ─── WS-upgrade lookup (optimistic / lazy) ──────────────────────────────────
+// Unlike lookupBot, this does NOT hard-fail on a stale heartbeat or isOnline:false.
+// As long as the bot has a tunnelUrl, return it and let the WS proxy attempt the
+// connection: a genuinely dead tunnel is closed cleanly by proxy.ws's error callback
+// (server.js), while a healthy bot whose DB flag merely went stale between heartbeats is
+// no longer hard-503'd off the realtime channel. The agent's next heartbeat re-asserts
+// online. Returns null only when the bot is unknown, the tier mismatches, or it has no
+// tunnelUrl at all (e.g. after a graceful /disconnect, which nulls tunnelUrl).
+export async function lookupBotForWs(username, tier) {
+  const user = await cachedFindUser(username, tier);
+
+  if (!user) return null;
+  if (tier && user.tier !== tier) return null;
+  if (!user.tunnelUrl) return null;
 
   return { tunnelUrl: user.tunnelUrl };
 }

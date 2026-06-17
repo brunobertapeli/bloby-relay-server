@@ -3,12 +3,15 @@ import { getUsers } from '../db.js';
 
 const router = Router();
 
-const PRESENCE_WINDOW_MS = 30 * 1000; // 30 seconds
+// Must exceed the agent's heartbeat interval (120s, shared/relay.ts): an idle bot only
+// refreshes its lastZoneAt via heartbeats, so a window <= the interval would make dots
+// flicker on/off the map between beats. 3 minutes leaves one missed beat of slack.
+const PRESENCE_WINDOW_MS = 3 * 60 * 1000; // 3 minutes
 
 /**
  * GET /api/world/presence
  *
- * Returns all blobies that have been active in a zone within the last 5 minutes.
+ * Returns all blobies that have been active in a zone within PRESENCE_WINDOW_MS (3 min).
  * Used by the world map frontend to place dots on the map.
  *
  * Response: { blobies: [{ username, zone, lastZoneAt, isOnline }] }

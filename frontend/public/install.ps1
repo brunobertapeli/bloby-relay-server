@@ -29,6 +29,8 @@ $G5 = "`e[38;2;1;116;252m"
 $G6 = "`e[38;2;1;102;251m"
 $G7 = "`e[38;2;1;88;251m"
 $BOLD = "`e[1m"
+$DIM = "`e[2m"
+$YELLOW = "`e[33m"
 $RSET = "`e[0m"
 
 # Use ANSI sequences for consistent rendering; fallback to plain if no VT support
@@ -336,31 +338,50 @@ Setup-Path
 
 Write-Host ""
 if ($vtSupported) {
-    Write-Host "  ${PINK}${BOLD}✔  Bloby is ready!${RSET}"
+    Write-Host "  ${PINK}${BOLD}✔  Bloby is installed!${RSET}"
 } else {
-    Write-Host "  ✔  Bloby is ready!" -ForegroundColor Magenta
+    Write-Host "  ✔  Bloby is installed!" -ForegroundColor Magenta
 }
-Write-Host ""
-Write-Host "  -----------------------------" -ForegroundColor DarkGray
-Write-Host "  Get started:"
 Write-Host ""
 if ($vtSupported) {
-    Write-Host "    ${BLUE}bloby init${RSET}      Set up your bot"
+    Write-Host "  ${BLUE}${BOLD}╭───────────────────────────────────────────────────────╮${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}${BOLD}   NEXT STEP  -  type this, then press Enter:${RSET}          ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}${BLUE}${BOLD}       >  bloby init${RSET}                                   ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}${DIM}   ─────────────────────────────────────────────────${RSET}   ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}${YELLOW}${BOLD}   Not working?  (`"command not found`")${RSET}                 ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}   Just open a NEW terminal window and run${RSET}             ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}   bloby init  again.${RSET}                                  ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}╰───────────────────────────────────────────────────────╯${RSET}"
+} else {
+    Write-Host "  +-------------------------------------------------------+" -ForegroundColor Cyan
+    Write-Host "  |                                                       |" -ForegroundColor Cyan
+    Write-Host "  |   NEXT STEP  -  type this, then press Enter:          |" -ForegroundColor Cyan
+    Write-Host "  |                                                       |" -ForegroundColor Cyan
+    Write-Host "  |       >  bloby init                                   |" -ForegroundColor Cyan
+    Write-Host "  |                                                       |" -ForegroundColor Cyan
+    Write-Host "  |   Not working?  (`"command not found`")                 |" -ForegroundColor Cyan
+    Write-Host "  |   Just open a NEW terminal window and run             |" -ForegroundColor Cyan
+    Write-Host "  |   bloby init  again.                                  |" -ForegroundColor Cyan
+    Write-Host "  |                                                       |" -ForegroundColor Cyan
+    Write-Host "  +-------------------------------------------------------+" -ForegroundColor Cyan
+}
+Write-Host ""
+if ($vtSupported) {
+    Write-Host "  ${DIM}Other commands:${RSET}"
     Write-Host "    ${BLUE}bloby start${RSET}     Start your bot"
     Write-Host "    ${BLUE}bloby status${RSET}    Check if it's running"
-    Write-Host ""
-    Write-Host "  ${PINK}>${RSET} Run ${BLUE}bloby init${RSET} to begin."
+    Write-Host "    ${BLUE}bloby help${RSET}      All commands"
 } else {
-    Write-Host "    bloby init      " -ForegroundColor Cyan -NoNewline; Write-Host "Set up your bot"
+    Write-Host "  Other commands:" -ForegroundColor DarkGray
     Write-Host "    bloby start     " -ForegroundColor Cyan -NoNewline; Write-Host "Start your bot"
     Write-Host "    bloby status    " -ForegroundColor Cyan -NoNewline; Write-Host "Check if it's running"
-    Write-Host ""
-    Write-Host "  > " -ForegroundColor Magenta -NoNewline
-    Write-Host "Run " -NoNewline
-    Write-Host "bloby init" -ForegroundColor Cyan -NoNewline
-    Write-Host " to begin."
+    Write-Host "    bloby help      " -ForegroundColor Cyan -NoNewline; Write-Host "All commands"
 }
-Write-Host "  (Open a new terminal if 'bloby' isn't found yet)" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  https://bloby.bot" -ForegroundColor DarkGray
 Write-Host ""

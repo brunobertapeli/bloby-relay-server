@@ -9,8 +9,12 @@ import { hashToken } from '../lib/token.js';
 const ZONE_MAP = [
   { prefix: '/api/marketplace', zone: 'marketplace' },
   { prefix: '/api/services',    zone: 'marketplace' },
-  // General presence endpoints → town_square
-  { prefix: '/api/heartbeat',   zone: 'town_square' },
+  // General presence endpoints → town_square.
+  // NOTE: /api/heartbeat is intentionally NOT mapped here. Heartbeats fire on a fixed
+  // interval and mapping them would (a) double the per-beat DB writes and (b) drag an
+  // active bot back to town_square every beat. The heartbeat handler (routes/tunnel.js)
+  // refreshes lastZoneAt itself WITHOUT changing the zone, so idle bots stay on the world
+  // map in their actual last zone.
   { prefix: '/api/tunnel',      zone: 'town_square' },
   { prefix: '/api/status',      zone: 'town_square' },
   // Future zones:

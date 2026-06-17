@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { getUsers } from '../db.js';
 
-const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '120000', 10);
+// Keep in sync with routes/resolve.js — both read HEARTBEAT_TIMEOUT_MS, which must be
+// >3× the agent's 120s heartbeat interval (shared/relay.ts). Default 360s.
+const HEARTBEAT_TIMEOUT = parseInt(process.env.HEARTBEAT_TIMEOUT_MS || '360000', 10);
 
 const router = Router();
 

@@ -92,6 +92,11 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
       isOnline: true,
       lastHeartbeat: new Date(),
       updatedAt: new Date(),
+      // Refresh world-map presence in this SAME write. The zoneTracker middleware used to
+      // do a separate updateOne on every heartbeat (doubling the per-beat write load) AND
+      // dragged the bot back to town_square each beat. Folding only the timestamp here keeps
+      // the dot on the map in its actual last zone, at zero extra write cost.
+      lastZoneAt: new Date(),
     };
 
     let rotatedTunnel = null;
@@ -100,8 +105,14 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
-      update.tunnelUrl = validation.url;
-      rotatedTunnel = validation.url;
+      // Only treat this as a rotation when the URL actually CHANGED. The agent includes its
+      // tunnelUrl on every heartbeat, so comparing against the stored value avoids warming
+      // DNS + invalidating the resolve micro-cache on every single beat — the source of the
+      // "[dns] <host> resolved after N attempt(s)" log flood.
+      if (validation.url !== req.user.tunnelUrl) {
+        update.tunnelUrl = validation.url;
+        rotatedTunnel = validation.url;
+      }
     }
 
     await getUsers().updateOne({ _id: req.user._id }, { $set: update });
