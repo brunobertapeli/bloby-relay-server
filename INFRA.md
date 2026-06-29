@@ -2,6 +2,13 @@
 
 Auto-provisioning system that spins EC2 instances with Bloby pre-installed from a golden AMI.
 
+> **NEW (direct mode):** managed bots are now reached **directly** through Cloudflare
+> (`mybot.bloby.bot` A-record → EC2 public IP, orange-cloud → Caddy → bloby :7400),
+> dropping the cloudflared tunnel and the relay reverse-proxy hop. The flow below
+> still describes the legacy tunnel path; for the direct setup (CF token/cert, Caddy,
+> swap-on-install, AMI v5, the no-Stripe test loop) see **`infra/MANAGED-DIRECT-SETUP.md`**.
+> Self-hosted bots are unchanged (still cloudflared + relay).
+
 ---
 
 ## Architecture
@@ -129,7 +136,9 @@ NOT included (created at runtime by `bloby init`):
 
 ## Security Groups
 
-All named `bloby-instances-SG`. Rules: outbound all, inbound SSH (port 22) only.
+All named `bloby-instances-SG`. Rules: outbound all, inbound SSH (port 22).
+**Direct mode also requires inbound 443 from Cloudflare IP ranges** (see
+`infra/MANAGED-DIRECT-SETUP.md`). Legacy tunnel mode needed no inbound HTTP.
 
 | Region | Security Group ID | VPC |
 |--------|-------------------|-----|

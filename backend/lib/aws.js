@@ -46,7 +46,12 @@ function getClient(awsRegion) {
  * @param {string} callbackUrl - URL the instance will POST status to
  * @returns {{ ec2InstanceId: string }}
  */
-export async function launchInstance({ instanceId, plan, region, callbackUrl }) {
+export async function launchInstance({
+  instanceId, plan, region, callbackUrl,
+  // Managed-mode identity passed to the box via user-data (all optional → legacy
+  // tunnel AMIs that ignore them keep working unchanged):
+  username, tier, relayToken, relayUrl, provisionToken, ai,
+}) {
   const regionCfg = REGION_CONFIG[region];
   if (!regionCfg) throw new Error(`Unknown region: ${region}`);
   if (!regionCfg.amiId) throw new Error(`No AMI configured for region: ${region}`);
@@ -59,6 +64,13 @@ export async function launchInstance({ instanceId, plan, region, callbackUrl }) 
   const userData = Buffer.from(JSON.stringify({
     instanceId,
     callbackUrl,
+    // provision.sh seeds these into the bot's config (tunnel OFF, pre-registered):
+    ...(username ? { username } : {}),
+    ...(tier ? { tier } : {}),
+    ...(relayToken ? { relayToken } : {}),
+    ...(relayUrl ? { relayUrl } : {}),
+    ...(provisionToken ? { provisionToken } : {}),
+    ...(ai ? { aiProvider: ai.provider, aiModel: ai.model, aiApiKey: ai.apiKey } : {}),
   })).toString('base64');
 
   const cmd = new RunInstancesCommand({

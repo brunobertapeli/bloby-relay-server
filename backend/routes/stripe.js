@@ -5,6 +5,8 @@ import { ObjectId } from 'mongodb';
 import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { launchInstance, terminateInstance } from '../lib/aws.js';
+import { provisionManagedInstance } from '../lib/provision.js';
+import { deleteDnsRecord, cfConfigured } from '../lib/cloudflare.js';
 import { validateUsername } from '../lib/validate.js';
 
 // Lazy-init: env vars aren't available at import time (dotenv runs later in server.js)
@@ -178,7 +180,7 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
 // ─── Create Checkout Session ────────────────────────────────────────────────
 router.post('/stripe/checkout', jwtAuth, async (req, res) => {
   try {
-    const { plan, region } = req.body;
+    const { plan, region, username } = req.body;
     if (!plan || !region) {
       return res.status(400).json({ error: 'Missing plan or region' });
     }
@@ -187,6 +189,16 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
     }
     if (!['na', 'eu', 'br'].includes(region)) {
       return res.status(400).json({ error: 'Invalid region' });
+    }
+    // Managed mode assigns the bot's subdomain (mybot.bloby.bot) up front. Validate
+    // + ensure it's free now so the buyer doesn't pay for a taken name.
+    let chosenHandle = '';
+    if (username) {
+      const uv = validateUsername(username);
+      if (!uv.valid) return res.status(400).json({ error: uv.error });
+      const taken = await getUsers().findOne({ username: uv.username, tier: 'premium' });
+      if (taken) return res.status(409).json({ error: 'This handle is already taken' });
+      chosenHandle = uv.username;
     }
 
     const { PRICE_IDS, FRONTEND_URL } = getConfig();
@@ -225,7 +237,7 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        metadata: { plan, region, accountId: req.account.id },
+        metadata: { plan, region, accountId: req.account.id, ...(chosenHandle ? { username: chosenHandle } : {}) },
       },
       success_url: `${FRONTEND_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: FRONTEND_URL,
@@ -433,10 +445,26 @@ export async function stripeWebhookHandler(req, res) {
 
         const subscriptionId = session.subscription;
         const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
-        const { plan, region, accountId } = subscription.metadata;
+        const { plan, region, accountId, username } = subscription.metadata;
 
         if (!plan || !region || !accountId) {
           console.error('[stripe/webhook] missing metadata on subscription:', subscriptionId);
+          break;
+        }
+
+        // ── MANAGED (direct) mode ──
+        // When a handle was chosen at checkout, provision the box directly: it
+        // gets a public IP + a per-bot CF DNS record (no tunnel). Falls back to
+        // the legacy tunnel launch when no handle / CF isn't configured.
+        if (username && cfConfigured()) {
+          try {
+            const { instanceId } = await provisionManagedInstance({
+              accountId, username, plan, region, tier: 'premium', stripeSubscriptionId: subscriptionId,
+            });
+            console.log(`[stripe/webhook] managed instance ${instanceId} (${username}) for account ${accountId}`);
+          } catch (err) {
+            console.error(`[stripe/webhook] managed provision failed for ${username}:`, err.message);
+          }
           break;
         }
 
@@ -530,6 +558,13 @@ export async function stripeWebhookHandler(req, res) {
         if (instance?.ec2InstanceId) {
           terminateInstance(instance.ec2InstanceId, instance.region).catch(err => {
             console.error(`[stripe/webhook] terminate EC2 failed:`, err.message);
+          });
+        }
+
+        // Free the managed CF DNS record (best-effort).
+        if (instance?.dnsRecordId) {
+          deleteDnsRecord(instance.dnsRecordId).catch(err => {
+            console.error(`[stripe/webhook] delete DNS record failed:`, err.message);
           });
         }
 
