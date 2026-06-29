@@ -1,20 +1,20 @@
 #!/bin/bash
 #
-# Bloby managed-instance provisioning script (golden AMI).
+# Morphy managed-instance provisioning script (golden AMI).
 # Location on the AMI: /home/ec2-user/provision.sh
-# Triggered by cloud-init on first boot (see infra/cloud-init-99-bloby.cfg).
+# Triggered by cloud-init on first boot (see infra/cloud-init-99-morphy.cfg).
 #
 # What it does (managed / "direct" mode — NO cloudflared tunnel):
 #   1. Adds a swapfile BEFORE any npm install   ← fixes the t4g.small OOM
 #   2. Reads EC2 user-data (IMDSv2): identity + callback
 #   3. Callback {status:"initializing"}
-#   4. Updates bloby-bot to latest (npm pack + extract)  [swap-backed]
-#   5. Seeds BLOBY_* env so `bloby init --hosted` writes a pre-registered,
+#   4. Updates morphyagent to latest (npm pack + extract)  [swap-backed]
+#   5. Seeds MORPHY_* env so `morphy init --hosted` writes a pre-registered,
 #      tunnel-OFF config (the box is reached directly via Caddy + a per-bot CF
 #      DNS record — no tunnel, no relay data-plane hop)
-#   6. Runs `bloby init --hosted` (daemon path, systemd)
+#   6. Runs `morphy init --hosted` (daemon path, systemd)
 #   7. Callback {status:"ready"}  — the relay then reads the EC2 public IP itself
-#      (describeInstance) and creates the mybot.bloby.bot A-record.
+#      (describeInstance) and creates the mybot.morphyagent.com A-record.
 #
 # Caddy (TLS termination → 127.0.0.1:7400) is a separate systemd service baked
 # into the AMI; this script does not configure it, only ensures it is up.
@@ -27,10 +27,10 @@ echo "[provision] ===== $(date -u +%FT%TZ) starting ====="
 
 RUN_USER=ec2-user
 RUN_HOME=/home/$RUN_USER
-SWAP_SIZE="${BLOBY_SWAP_SIZE:-4G}"
+SWAP_SIZE="${MORPHY_SWAP_SIZE:-4G}"
 
 # ─── 1. Swap FIRST (the OOM fix) ─────────────────────────────────────────────
-# The bloby package + its dependency install peaks well above the 2 GB on a
+# The morphy package + its dependency install peaks well above the 2 GB on a
 # t4g.small (Starter). A swapfile gives the npm install enough headroom; it is
 # slow EBS-backed memory but this is a one-time install burst. Persisted to
 # /etc/fstab so it survives reboots (harmless on the larger Pro box too).
@@ -96,35 +96,35 @@ callback() {
 # ─── 3. initializing ─────────────────────────────────────────────────────────
 callback initializing
 
-# ─── 4. Update bloby-bot to latest (swap-backed) ─────────────────────────────
-# Pull the latest published tarball and extract over ~/.bloby, then install deps.
+# ─── 4. Update morphyagent to latest (swap-backed) ─────────────────────────────
+# Pull the latest published tarball and extract over ~/.morphy, then install deps.
 # Done as ec2-user so file ownership/HOME are correct.
-echo "[provision] updating bloby-bot..."
+echo "[provision] updating morphyagent..."
 sudo -u "$RUN_USER" -H bash -s <<'UPDATE'
 set -uo pipefail
 cd /home/ec2-user
-TARBALL=$(npm pack bloby-bot --silent 2>/dev/null | tail -1)
+TARBALL=$(npm pack morphyagent --silent 2>/dev/null | tail -1)
 if [ -z "$TARBALL" ] || [ ! -f "$TARBALL" ]; then
-  echo "[provision] npm pack failed; keeping pre-baked bloby"
+  echo "[provision] npm pack failed; keeping pre-baked morphy"
 else
-  mkdir -p /home/ec2-user/.bloby
-  tar -xzf "$TARBALL" -C /home/ec2-user/.bloby --strip-components=1
+  mkdir -p /home/ec2-user/.morphy
+  tar -xzf "$TARBALL" -C /home/ec2-user/.morphy --strip-components=1
   rm -f "$TARBALL"
-  cd /home/ec2-user/.bloby
+  cd /home/ec2-user/.morphy
   # --omit=dev with the env scrubbed (postinstall-global hazard, see cli.js)
   env -u npm_config_global -u npm_config_prefix npm install --omit=dev --no-audit --no-fund
 fi
 UPDATE
 
 # ─── 5 + 6. Seed identity + tunnel-OFF, then init (daemon path) ───────────────
-echo "[provision] running bloby init --hosted (tunnel off)..."
+echo "[provision] running morphy init --hosted (tunnel off)..."
 sudo -u "$RUN_USER" -H \
-  env BLOBY_USERNAME="$USERNAME" \
-      BLOBY_RELAY_TOKEN="$RELAY_TOKEN" \
-      BLOBY_RELAY_TIER="$RELAY_TIER" \
-      BLOBY_RELAY_URL="$RELAY_URL" \
-      BLOBY_TUNNEL_MODE=off \
-      bloby init --hosted | tee /tmp/bloby-init.out
+  env MORPHY_USERNAME="$USERNAME" \
+      MORPHY_RELAY_TOKEN="$RELAY_TOKEN" \
+      MORPHY_RELAY_TIER="$RELAY_TIER" \
+      MORPHY_RELAY_URL="$RELAY_URL" \
+      MORPHY_TUNNEL_MODE=off \
+      morphy init --hosted | tee /tmp/bloby-init.out
 
 # (Optional) sanity: pull the machine-readable readiness marker out of the log.
 READY=$(grep -o '__HOSTED_READY__=.*' /tmp/bloby-init.out | tail -1 | cut -d= -f2-)

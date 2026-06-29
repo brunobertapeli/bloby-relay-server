@@ -20,7 +20,7 @@ Express v5 is used in the **worker** process, not in the supervisor. Key v5 feat
 | ------------------ | --------- |
 | **better-sqlite3** | ^12.6.2   |
 
-Database file: `~/.bloby/memory.db`
+Database file: `~/.morphy/memory.db`
 
 **Pragmas set at initialization:**
 

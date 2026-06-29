@@ -1,17 +1,41 @@
-# ─── Bloby Installer ────────────────────────────────────────────────────────
-# irm https://bloby.bot/install.ps1 | iex
+# ─── Morphy Installer ────────────────────────────────────────────────────────
+# irm https://morphyagent.com/install.ps1 | iex
 #
-# Downloads Node.js + Bloby into ~/.bloby — no system dependencies needed.
+# Downloads Node.js + Morphy into ~/.morphy — no system dependencies needed.
 # ─────────────────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
 
+# TLS 1.2 floor for Windows PowerShell 5.1 (which can default to TLS 1.0/1.1 and
+# fail against nodejs.org/npm). OR-in so we never DROP TLS 1.3 on PowerShell 7+.
+try {
+    [Net.ServicePointManager]::SecurityProtocol = `
+        [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {}
+
+# Get-Url <url> <outFile> — download with a timeout and up to 3 attempts so a
+# single transient blip doesn't abort the whole install. PS 5.1-compatible
+# (no -MaximumRetryCount, which is PowerShell 6+ only).
+function Get-Url($url, $outFile) {
+    $attempt = 0
+    while ($true) {
+        $attempt++
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing -TimeoutSec 60
+            return
+        } catch {
+            if ($attempt -ge 3) { throw }
+            Start-Sleep -Seconds 2
+        }
+    }
+}
+
 $MIN_NODE_MAJOR = 18
 $NODE_VERSION = "22.14.0"
-$BLOBY_HOME = Join-Path $env:USERPROFILE ".bloby"
-$TOOLS_DIR = Join-Path $BLOBY_HOME "tools"
+$MORPHY_HOME = Join-Path $env:USERPROFILE ".morphy"
+$TOOLS_DIR = Join-Path $MORPHY_HOME "tools"
 $NODE_DIR = Join-Path $TOOLS_DIR "node"
-$BIN_DIR = Join-Path $BLOBY_HOME "bin"
+$BIN_DIR = Join-Path $MORPHY_HOME "bin"
 $USE_SYSTEM_NODE = $false
 
 # Ensure UTF-8 output for proper rendering
@@ -125,24 +149,63 @@ function Install-Node {
 
     Write-Down "Downloading Node.js v${NODE_VERSION}..."
 
-    $nodeUrl = "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-win-${NODEARCH}.zip"
-    $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "node-bloby.zip"
+    $nodeFile = "node-v${NODE_VERSION}-win-${NODEARCH}.zip"
+    $nodeUrl = "https://nodejs.org/dist/v${NODE_VERSION}/$nodeFile"
+    $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "node-morphy.zip"
 
-    Invoke-WebRequest -Uri $nodeUrl -OutFile $tmpFile -UseBasicParsing
+    Get-Url $nodeUrl $tmpFile
 
-    # Extract
+    # Integrity: verify against nodejs.org SHASUMS256.txt before extracting. A
+    # mismatch is fatal; an unreachable sums file degrades to a warning.
+    try {
+        $sums = (Invoke-WebRequest -Uri "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" -UseBasicParsing -TimeoutSec 30).Content
+        $line = $sums -split "`n" | Where-Object { $_ -match ([regex]::Escape($nodeFile) + '\s*$') } | Select-Object -First 1
+        if ($line) {
+            $expectedHash = ($line -split '\s+')[0]
+            $actualHash = (Get-FileHash -Path $tmpFile -Algorithm SHA256).Hash
+            if ($actualHash -ieq $expectedHash) {
+                Write-Check "Checksum verified"
+            } else {
+                Write-Host "  ✗  Node.js checksum mismatch — aborting (corrupt or tampered download)" -ForegroundColor Red
+                Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+                exit 1
+            }
+        } else {
+            Write-Host "  !  Could not find checksum entry — skipping verification" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  !  Could not fetch checksums — skipping verification" -ForegroundColor Yellow
+    }
+
+    # Extract into a staging dir, verify it runs, then swap. Move-Item cannot
+    # overwrite a populated directory, so the existing node is moved aside and
+    # removed only AFTER the new tree is verified — an interrupt never strands us.
     New-Item -ItemType Directory -Path $TOOLS_DIR -Force | Out-Null
-    if (Test-Path $NODE_DIR) { Remove-Item $NODE_DIR -Recurse -Force }
-
-    $tmpExtract = Join-Path ([System.IO.Path]::GetTempPath()) "node-bloby-extract"
+    $tmpExtract = Join-Path ([System.IO.Path]::GetTempPath()) "node-morphy-extract"
     if (Test-Path $tmpExtract) { Remove-Item $tmpExtract -Recurse -Force }
 
     Expand-Archive -Path $tmpFile -DestinationPath $tmpExtract -Force
     $extracted = Get-ChildItem $tmpExtract | Select-Object -First 1
-    Move-Item -Path $extracted.FullName -Destination $NODE_DIR -Force
+    $nodeNew = "$NODE_DIR.new"
+    if (Test-Path $nodeNew) { Remove-Item $nodeNew -Recurse -Force }
+    Move-Item -Path $extracted.FullName -Destination $nodeNew -Force
 
     Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
     Remove-Item $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue
+
+    $stagedNode = Join-Path $nodeNew "node.exe"
+    $stagedOk = $false
+    try { $stagedOk = [bool](& $stagedNode -v 2>$null) } catch {}
+    if (-not $stagedOk) {
+        Write-Host "  ✗  Node.js download failed (extracted binary does not run)" -ForegroundColor Red
+        Remove-Item $nodeNew -Recurse -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+
+    if (Test-Path "$NODE_DIR.old") { Remove-Item "$NODE_DIR.old" -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $NODE_DIR) { Move-Item $NODE_DIR "$NODE_DIR.old" -Force }
+    Move-Item $nodeNew $NODE_DIR -Force
+    if (Test-Path "$NODE_DIR.old") { Remove-Item "$NODE_DIR.old" -Recurse -Force -ErrorAction SilentlyContinue }
 
     # Verify
     $nodeBin = Join-Path $NODE_DIR "node.exe"
@@ -154,9 +217,9 @@ function Install-Node {
     Write-Check "Node.js v${NODE_VERSION} installed"
 }
 
-# ─── Install Bloby ────────────────────────────────────────────────────────
+# ─── Install Morphy ────────────────────────────────────────────────────────
 
-function Install-Bloby {
+function Install-Morphy {
     if ($USE_SYSTEM_NODE) {
         $NPM = "npm"
         $NODE_BIN = "node"
@@ -167,26 +230,30 @@ function Install-Bloby {
 
     # Fetch version + tarball URL from npm registry
     $npmVersion = ""
-    try { $npmVersion = (& $NPM view bloby-bot version 2>$null).Trim() } catch {}
+    try { $npmVersion = (& $NPM view morphyagent version 2>$null).Trim() } catch {}
     if ($npmVersion) {
-        Write-Host "  Latest npm version: bloby-bot@${npmVersion}" -ForegroundColor DarkGray
+        Write-Host "  Latest npm version: morphyagent@${npmVersion}" -ForegroundColor DarkGray
     }
 
-    Write-Down "Installing bloby..."
+    Write-Down "Installing morphy..."
 
-    $tarballUrl = (& $NPM view bloby-bot dist.tarball 2>$null).Trim()
+    # Capture first, THEN .Trim() — calling .Trim() on a null (offline npm) throws
+    # under $ErrorActionPreference='Stop' and skips the friendly message below.
+    $tarballUrl = ""
+    try { $tarballUrl = (& $NPM view morphyagent dist.tarball 2>$null) } catch {}
+    if ($tarballUrl) { $tarballUrl = $tarballUrl.Trim() }
     if (-not $tarballUrl) {
-        Write-Host "  ✗  Failed to fetch package info from npm" -ForegroundColor Red
+        Write-Host "  ✗  Failed to fetch package info from npm (are you online?)" -ForegroundColor Red
         exit 1
     }
 
     # Download and extract tarball
-    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("bloby-install-" + [guid]::NewGuid().ToString("N").Substring(0,8))
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("morphy-install-" + [guid]::NewGuid().ToString("N").Substring(0,8))
     New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 
     try {
-        $tarball = Join-Path $tmpDir "bloby.tgz"
-        Invoke-WebRequest -Uri $tarballUrl -OutFile $tarball -UseBasicParsing
+        $tarball = Join-Path $tmpDir "morphy.tgz"
+        Get-Url $tarballUrl $tarball
 
         tar xzf $tarball -C $tmpDir
 
@@ -196,45 +263,45 @@ function Install-Bloby {
             exit 1
         }
 
-        New-Item -ItemType Directory -Path $BLOBY_HOME -Force | Out-Null
+        New-Item -ItemType Directory -Path $MORPHY_HOME -Force | Out-Null
 
         # Copy code directories (always safe to overwrite)
         foreach ($dir in @("bin", "supervisor", "worker", "shared", "scripts")) {
             $src = Join-Path $extracted $dir
             if (Test-Path $src) {
-                Copy-Item -Path $src -Destination $BLOBY_HOME -Recurse -Force
+                Copy-Item -Path $src -Destination $MORPHY_HOME -Recurse -Force
             }
         }
 
         # Copy workspace template only on first install (preserves user files)
-        $wsDst = Join-Path $BLOBY_HOME "workspace"
+        $wsDst = Join-Path $MORPHY_HOME "workspace"
         if (-not (Test-Path $wsDst)) {
             $wsSrc = Join-Path $extracted "workspace"
             if (Test-Path $wsSrc) {
-                Copy-Item -Path $wsSrc -Destination $BLOBY_HOME -Recurse
+                Copy-Item -Path $wsSrc -Destination $MORPHY_HOME -Recurse
             }
         }
 
         # Copy code files (never touches config.json, memory.db, etc.)
-        foreach ($file in @("package.json", "vite.config.ts", "vite.bloby.config.ts", "tsconfig.json", "postcss.config.js", "components.json")) {
+        foreach ($file in @("package.json", "vite.config.ts", "vite.chat.config.ts", "tsconfig.json", "postcss.config.js", "components.json")) {
             $src = Join-Path $extracted $file
             if (Test-Path $src) {
-                Copy-Item -Path $src -Destination (Join-Path $BLOBY_HOME $file) -Force
+                Copy-Item -Path $src -Destination (Join-Path $MORPHY_HOME $file) -Force
             }
         }
 
         # Copy pre-built UI from tarball, or build from source
-        $distSrc = Join-Path $extracted "dist-bloby"
-        $distDst = Join-Path $BLOBY_HOME "dist-bloby"
+        $distSrc = Join-Path $extracted "dist-chat"
+        $distDst = Join-Path $MORPHY_HOME "dist-chat"
         if (Test-Path $distSrc) {
             if (Test-Path $distDst) { Remove-Item $distDst -Recurse -Force }
             Copy-Item -Path $distSrc -Destination $distDst -Recurse
             Write-Check "Chat interface ready"
         } elseif (-not (Test-Path (Join-Path $distDst "onboard.html"))) {
             Write-Down "Building chat interface..."
-            Push-Location $BLOBY_HOME
+            Push-Location $MORPHY_HOME
             try {
-                & $NPM run build:bloby 2>$null
+                & $NPM run build:chat 2>$null
                 Write-Check "Chat interface built"
             } catch {
                 Write-Host "  !  Chat build failed — will build on first start" -ForegroundColor Yellow
@@ -247,33 +314,51 @@ function Install-Bloby {
         Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    # Install dependencies inside ~/.bloby/
+    # Install dependencies inside ~/.morphy/
     # claude-agent-sdk 0.3.x moved @anthropic-ai/sdk + @modelcontextprotocol/sdk to
-    # peerDependencies; an in-place upgrade of an existing ~/.bloby deadlocks npm's
+    # peerDependencies; an in-place upgrade of an existing ~/.morphy deadlocks npm's
     # resolver (ERESOLVE). Persist legacy-peer-deps so npm install resolves cleanly.
-    $npmrc = Join-Path $BLOBY_HOME ".npmrc"
+    $npmrc = Join-Path $MORPHY_HOME ".npmrc"
     if (-not ((Test-Path $npmrc) -and (Select-String -Path $npmrc -Pattern '^legacy-peer-deps' -Quiet))) {
         Add-Content -Path $npmrc -Value 'legacy-peer-deps=true'
     }
-    Push-Location $BLOBY_HOME
-    try {
-        & $NPM install --omit=dev 2>$null
-    } catch {}
+    # Toggle EAP to Continue around the native npm call so a stderr line doesn't
+    # raise a NativeCommandError; then gate on the real exit code. A broken dep
+    # tree is fatal here (matching install.sh) instead of being silently ignored.
+    Push-Location $MORPHY_HOME
+    $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    $npmOut = & $NPM install --omit=dev 2>&1
+    $npmCode = $LASTEXITCODE
+    $ErrorActionPreference = $eap
     Pop-Location
+    if ($npmCode -ne 0) {
+        Write-Host "  ✗  Dependency install failed:" -ForegroundColor Red
+        $npmOut | ForEach-Object { Write-Host "     $_" }
+        exit 1
+    }
 
     # Install workspace dependencies (rebuilds native modules for this platform)
-    $wsDir = Join-Path $BLOBY_HOME "workspace"
+    $wsDir = Join-Path $MORPHY_HOME "workspace"
     if (Test-Path (Join-Path $wsDir "package.json")) {
         Write-Down "Installing workspace dependencies..."
         Push-Location $wsDir
-        try {
-            & $NPM install --omit=dev 2>$null
-        } catch {}
+        $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+        $wsOut = & $NPM install --omit=dev 2>&1
+        $wsCode = $LASTEXITCODE
+        $ErrorActionPreference = $eap
         Pop-Location
+        if ($wsCode -ne 0) {
+            Write-Host "  ✗  Workspace dependency install failed:" -ForegroundColor Red
+            if ("$wsOut" -match 'Visual Studio|gyp ERR|MSBuild|node-gyp|Python') {
+                Write-Host "  !  Native build tools missing. Install the Visual Studio Build Tools (Desktop C++ workload) + Python 3, then re-run. See https://github.com/nodejs/node-gyp#on-windows" -ForegroundColor Yellow
+            }
+            $wsOut | ForEach-Object { Write-Host "     $_" }
+            exit 1
+        }
     }
 
     # Verify
-    $cliPath = Join-Path $BLOBY_HOME "bin\cli.js"
+    $cliPath = Join-Path $MORPHY_HOME "bin\cli.js"
     if (-not (Test-Path $cliPath)) {
         Write-Host "  ✗  Installation failed" -ForegroundColor Red
         exit 1
@@ -281,11 +366,11 @@ function Install-Bloby {
 
     $script:VERSION = "unknown"
     try {
-        $pkgJson = Get-Content (Join-Path $BLOBY_HOME "package.json") -Raw | ConvertFrom-Json
+        $pkgJson = Get-Content (Join-Path $MORPHY_HOME "package.json") -Raw | ConvertFrom-Json
         $script:VERSION = $pkgJson.version
     } catch {}
 
-    Write-Check "Bloby v${VERSION} installed"
+    Write-Check "Morphy v${VERSION} installed"
 }
 
 # ─── Create wrapper script ──────────────────────────────────────────────────
@@ -294,23 +379,23 @@ function Create-Wrapper {
     New-Item -ItemType Directory -Path $BIN_DIR -Force | Out-Null
 
     # Remove any existing wrapper
-    $wrapperPath = Join-Path $BIN_DIR "bloby.cmd"
+    $wrapperPath = Join-Path $BIN_DIR "morphy.cmd"
     Remove-Item $wrapperPath -Force -ErrorAction SilentlyContinue
 
     if ($USE_SYSTEM_NODE) {
         $wrapper = @"
 @echo off
-node "%USERPROFILE%\.bloby\bin\cli.js" %*
+node "%USERPROFILE%\.morphy\bin\cli.js" %*
 "@
     } else {
         $wrapper = @"
 @echo off
-"%USERPROFILE%\.bloby\tools\node\node.exe" "%USERPROFILE%\.bloby\bin\cli.js" %*
+"%USERPROFILE%\.morphy\tools\node\node.exe" "%USERPROFILE%\.morphy\bin\cli.js" %*
 "@
     }
 
     Set-Content -Path $wrapperPath -Value $wrapper -Encoding ASCII
-    Write-Check "Created ~/.bloby/bin/bloby.cmd"
+    Write-Check "Created ~/.morphy/bin/morphy.cmd"
 }
 
 # ─── Add to PATH ────────────────────────────────────────────────────────────
@@ -328,19 +413,30 @@ function Setup-Path {
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
-New-Item -ItemType Directory -Path $BLOBY_HOME -Force | Out-Null
+New-Item -ItemType Directory -Path $MORPHY_HOME -Force | Out-Null
 
 Detect-Platform
 if (-not (Check-SystemNode)) { Install-Node }
-Install-Bloby
+Install-Morphy
 Create-Wrapper
 Setup-Path
 
+# Smoke-test: the wrapper + node + cli must actually run, not just exist on disk.
+$morphyCmd = Join-Path $BIN_DIR "morphy.cmd"
+$smokeOk = $false
+try { $smokeOk = [bool](& $morphyCmd --version 2>$null) } catch {}
+if (-not $smokeOk) {
+    Write-Host ""
+    Write-Host "  ✗  Morphy installed but failed to run (morphy --version)." -ForegroundColor Red
+    Write-Host "     Open a NEW terminal and run 'morphy --version'; if it still fails, re-run this installer." -ForegroundColor DarkGray
+    exit 1
+}
+
 Write-Host ""
 if ($vtSupported) {
-    Write-Host "  ${PINK}${BOLD}✔  Bloby is installed!${RSET}"
+    Write-Host "  ${PINK}${BOLD}✔  Morphy is installed!${RSET}"
 } else {
-    Write-Host "  ✔  Bloby is installed!" -ForegroundColor Magenta
+    Write-Host "  ✔  Morphy is installed!" -ForegroundColor Magenta
 }
 Write-Host ""
 if ($vtSupported) {
@@ -348,13 +444,13 @@ if ($vtSupported) {
     Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}${BOLD}   NEXT STEP  -  type this, then press Enter:${RSET}          ${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
-    Write-Host "  ${BLUE}${BOLD}│${RSET}${BLUE}${BOLD}       >  bloby init${RSET}                                   ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}${BLUE}${BOLD}       >  morphy init${RSET}                                   ${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}${DIM}   ─────────────────────────────────────────────────${RSET}   ${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}${YELLOW}${BOLD}   Not working?  (`"command not found`")${RSET}                 ${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}   Just open a NEW terminal window and run${RSET}             ${BLUE}${BOLD}│${RSET}"
-    Write-Host "  ${BLUE}${BOLD}│${RSET}   bloby init  again.${RSET}                                  ${BLUE}${BOLD}│${RSET}"
+    Write-Host "  ${BLUE}${BOLD}│${RSET}   morphy init  again.${RSET}                                  ${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}│${RSET}                                                       ${RSET}${BLUE}${BOLD}│${RSET}"
     Write-Host "  ${BLUE}${BOLD}╰───────────────────────────────────────────────────────╯${RSET}"
 } else {
@@ -362,26 +458,26 @@ if ($vtSupported) {
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  |   NEXT STEP  -  type this, then press Enter:          |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
-    Write-Host "  |       >  bloby init                                   |" -ForegroundColor Cyan
+    Write-Host "  |       >  morphy init                                   |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  |   Not working?  (`"command not found`")                 |" -ForegroundColor Cyan
     Write-Host "  |   Just open a NEW terminal window and run             |" -ForegroundColor Cyan
-    Write-Host "  |   bloby init  again.                                  |" -ForegroundColor Cyan
+    Write-Host "  |   morphy init  again.                                  |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  +-------------------------------------------------------+" -ForegroundColor Cyan
 }
 Write-Host ""
 if ($vtSupported) {
     Write-Host "  ${DIM}Other commands:${RSET}"
-    Write-Host "    ${BLUE}bloby start${RSET}     Start your bot"
-    Write-Host "    ${BLUE}bloby status${RSET}    Check if it's running"
-    Write-Host "    ${BLUE}bloby help${RSET}      All commands"
+    Write-Host "    ${BLUE}morphy start${RSET}     Start your bot"
+    Write-Host "    ${BLUE}morphy status${RSET}    Check if it's running"
+    Write-Host "    ${BLUE}morphy help${RSET}      All commands"
 } else {
     Write-Host "  Other commands:" -ForegroundColor DarkGray
-    Write-Host "    bloby start     " -ForegroundColor Cyan -NoNewline; Write-Host "Start your bot"
-    Write-Host "    bloby status    " -ForegroundColor Cyan -NoNewline; Write-Host "Check if it's running"
-    Write-Host "    bloby help      " -ForegroundColor Cyan -NoNewline; Write-Host "All commands"
+    Write-Host "    morphy start     " -ForegroundColor Cyan -NoNewline; Write-Host "Start your bot"
+    Write-Host "    morphy status    " -ForegroundColor Cyan -NoNewline; Write-Host "Check if it's running"
+    Write-Host "    morphy help      " -ForegroundColor Cyan -NoNewline; Write-Host "All commands"
 }
 Write-Host ""
-Write-Host "  https://bloby.bot" -ForegroundColor DarkGray
+Write-Host "  https://morphyagent.com" -ForegroundColor DarkGray
 Write-Host ""

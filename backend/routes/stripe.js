@@ -17,7 +17,7 @@ export function getStripe() {
 }
 
 export function getStripeFrontendUrl() {
-  return process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'bloby.bot'}`;
+  return process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'morphyagent.com'}`;
 }
 
 const router = Router();
@@ -26,7 +26,7 @@ function getConfig() {
   return {
     CALLBACK_BASE: process.env.CALLBACK_BASE_URL || `https://api.${process.env.RELAY_DOMAIN}`,
     // Stripe redirects must go to the canonical domain, not the Railway URL
-    FRONTEND_URL: process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'bloby.bot'}`,
+    FRONTEND_URL: process.env.STRIPE_REDIRECT_URL || `https://www.${process.env.RELAY_DOMAIN || 'morphyagent.com'}`,
     PRICE_IDS: {
       starter: process.env.STRIPE_STARTER_PRICE_ID,
       pro: process.env.STRIPE_PRO_PRICE_ID,
@@ -137,16 +137,16 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
     }
 
     const accountId = new ObjectId(req.account.id);
-    const bloby = await getUsers().findOne({
+    const morphy = await getUsers().findOne({
       _id: new ObjectId(blobyId),
       accountId,
     });
 
-    if (!bloby) {
-      return res.status(404).json({ error: 'Bloby not found' });
+    if (!morphy) {
+      return res.status(404).json({ error: 'Morphy not found' });
     }
-    if (!bloby.walletAddress) {
-      return res.status(400).json({ error: 'Bloby has no wallet address' });
+    if (!morphy.walletAddress) {
+      return res.status(400).json({ error: 'Morphy has no wallet address' });
     }
 
     const stripe = getStripeOnramp();
@@ -160,12 +160,12 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
       destination_currency: 'usdc',
       destination_network: network,
       destination_amount: String(amount),
-      wallet_addresses: { [walletKey]: bloby.walletAddress },
+      wallet_addresses: { [walletKey]: morphy.walletAddress },
       lock_wallet_address: true,
       customer_ip_address: req.ip,
     });
 
-    console.log(`[onramp] session created id=${session.id} network=${network} amount=${amount} bloby=${bloby.username} dest_currency=${session.transaction_details?.destination_currency} dest_network=${session.transaction_details?.destination_network}`);
+    console.log(`[onramp] session created id=${session.id} network=${network} amount=${amount} morphy=${morphy.username} dest_currency=${session.transaction_details?.destination_currency} dest_network=${session.transaction_details?.destination_network}`);
     res.json({
       clientSecret: session.client_secret,
       sessionId: session.id,
@@ -190,7 +190,7 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
     if (!['na', 'eu', 'br'].includes(region)) {
       return res.status(400).json({ error: 'Invalid region' });
     }
-    // Managed mode assigns the bot's subdomain (mybot.bloby.bot) up front. Validate
+    // Managed mode assigns the bot's subdomain (mybot.morphyagent.com) up front. Validate
     // + ensure it's free now so the buyer doesn't pay for a taken name.
     let chosenHandle = '';
     if (username) {

@@ -8,7 +8,7 @@ The Chat UI is a self-contained single-page application that provides the AI cha
 
 ## Vite Configuration
 
-The chat's Vite config is at the project root: `vite.bloby.config.ts`.
+The chat's Vite config is at the project root: `vite.chat.config.ts`.
 
 ```ts
 export default defineConfig({
@@ -18,11 +18,11 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, 'supervisor/chat/src') },
   },
   build: {
-    outDir: '../../dist-bloby',
+    outDir: '../../dist-chat',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        bloby: path.resolve(__dirname, 'supervisor/chat/bloby.html'),
+        bloby: path.resolve(__dirname, 'supervisor/chat/chat.html'),
         onboard: path.resolve(__dirname, 'supervisor/chat/onboard.html'),
       },
     },
@@ -34,17 +34,17 @@ export default defineConfig({
 Key differences from the dashboard config:
 
 - **Base path** is `/bloby/` so all assets are served under that prefix.
-- **Multiple entry points** via Rollup's `input` -- `bloby.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
-- **Build output** goes to `dist-bloby/` at the project root, which is committed to the npm package. The supervisor serves these files statically -- no Vite dev server.
+- **Multiple entry points** via Rollup's `input` -- `chat.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
+- **Build output** goes to `dist-chat/` at the project root, which is committed to the npm package. The supervisor serves these files statically -- no Vite dev server.
 - **Dep optimization** includes `react-markdown`, `remark-gfm`, and `react-syntax-highlighter` for markdown rendering in chat messages.
 
-The build is triggered via `npm run build:bloby` (or as part of `npm run build`). The resulting `dist-bloby/` directory is pre-shipped in the npm package so users do not need to build it.
+The build is triggered via `npm run build:chat` (or as part of `npm run build`). The resulting `dist-chat/` directory is pre-shipped in the npm package so users do not need to build it.
 
 ## Entry Points
 
-### `bloby.html` + `bloby-main.tsx` (Chat)
+### `chat.html` + `chat-main.tsx` (Chat)
 
-The main chat interface. `bloby.html` is minimal -- a `#root` div, the module script entry, and a service worker registration (`/bloby/sw.js`). The `BlobyApp` component in `bloby-main.tsx` is a large root component that handles:
+The main chat interface. `chat.html` is minimal -- a `#root` div, the module script entry, and a service worker registration (`/bloby/sw.js`). The `BlobyApp` component in `chat-main.tsx` is a large root component that handles:
 
 1. **Authentication gate** -- Checks `/api/onboard/status` to determine if a password is configured. If yes, validates the stored JWT token. Shows `LoginScreen` if authentication fails.
 2. **WebSocket connection** -- Creates a `WsClient` instance connecting to `/bloby/ws` with the auth token appended as a query parameter.
@@ -63,7 +63,7 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 
 ### Chat Components (`src/components/Chat/`)
 
-**`ChatView`** -- Wrapper component that wires `useChat` to `MessageList` and `InputBar`. Used by the dashboard-embedded variant (using the simpler `useChat` hook). The standalone Bloby app (`bloby-main.tsx`) uses `useBlobyChat` directly instead.
+**`ChatView`** -- Wrapper component that wires `useChat` to `MessageList` and `InputBar`. Used by the dashboard-embedded variant (using the simpler `useChat` hook). The standalone Morphy app (`chat-main.tsx`) uses `useBlobyChat` directly instead.
 
 **`MessageList`** -- Scrollable message container with:
 
@@ -136,7 +136,7 @@ The simpler of the two chat hooks. Used by `ChatView` for the dashboard-embedded
 
 ### `useBlobyChat` (`src/hooks/useBlobyChat.ts`)
 
-The full-featured hook used by the standalone Bloby chat app. Extends `useChat` with:
+The full-featured hook used by the standalone Morphy chat app. Extends `useChat` with:
 
 - **Authenticated fetching** via `authFetch()` for all API calls.
 - **Cursor-based pagination** (`loadOlder()`) -- fetches 20 messages before the oldest visible message.
@@ -207,15 +207,15 @@ Push states: `loading`, `unsupported`, `denied`, `subscribed`, `unsubscribed`.
 
 The chat UI uses the same Tailwind v4 setup as the dashboard, with an identical `globals.css` theme. The dark color scheme (`#212121` background, `#3C8FFF` primary, `#FD486B` destructive) provides visual consistency. Custom classes include `.text-gradient`, `.bg-gradient-brand`, `.glow-border`, `.animated-border`, and `.input-glow`.
 
-## How dist-bloby/ Works
+## How dist-chat/ Works
 
 The chat UI is pre-built and shipped as static files:
 
-1. `npm run build:bloby` runs `vite build --config vite.bloby.config.ts`.
-2. Output goes to `dist-bloby/` with hashed JS/CSS asset filenames.
-3. Two HTML entry points: `bloby.html` and `onboard.html`.
+1. `npm run build:chat` runs `vite build --config vite.chat.config.ts`.
+2. Output goes to `dist-chat/` with hashed JS/CSS asset filenames.
+3. Two HTML entry points: `chat.html` and `onboard.html`.
 4. The supervisor serves these files statically for any request matching `/bloby/*`.
-5. The `dist-bloby/` directory is included in the npm package's `files` array.
-6. If `dist-bloby/` is missing at startup (e.g., first run after clone), the supervisor auto-builds it.
+5. The `dist-chat/` directory is included in the npm package's `files` array.
+6. If `dist-chat/` is missing at startup (e.g., first run after clone), the supervisor auto-builds it.
 
 This approach means the chat never depends on a dev server being alive -- it works even if Vite crashes, the Node process is restarting, or the dashboard is rebuilding.

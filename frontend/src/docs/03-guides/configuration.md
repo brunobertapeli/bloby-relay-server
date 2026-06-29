@@ -4,7 +4,7 @@ title: Configuration
 
 # Configuration
 
-Bloby stores its config at `~/.bloby/config.json`. Most settings are configured during `bloby init` and onboarding, but you can edit them manually.
+Morphy stores its config at `~/.morphy/config.json`. Most settings are configured during `morphy init` and onboarding, but you can edit them manually.
 
 ## Config file
 
@@ -24,7 +24,7 @@ Bloby stores its config at `~/.bloby/config.json`. Most settings are configured 
 
 ## AI provider settings
 
-AI provider, model, and API keys are configured through the onboarding wizard and stored in the database. You can change them later through the chat by asking Bloby.
+AI provider, model, and API keys are configured through the onboarding wizard and stored in the database. You can change them later through the chat by asking Morphy.
 
 ## Workspace environment
 
@@ -32,7 +32,7 @@ The workspace backend reads from `workspace/.env` for any custom environment var
 
 ## Ports
 
-Bloby uses a base port (default 3000) with automatic offsets:
+Morphy uses a base port (default 3000) with automatic offsets:
 
 | Service | Port |
 |---------|------|

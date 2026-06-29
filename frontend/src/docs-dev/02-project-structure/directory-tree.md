@@ -6,12 +6,12 @@ title: "Directory Tree"
 
 ```plain
 bin/
-  cli.js            The `bloby` command-line interface (59 KB, bundled JS)
+  cli.js            The `morphy` command-line interface (59 KB, bundled JS)
 ```
 
 | File     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli.js` | The executable CLI. Registered as `"bloby"` in `package.json`'s `bin` field. Determines whether it is running in dev mode (has `.git`) or production mode (operates from `~/.bloby/`). Handles all subcommands: `bloby start`, `bloby init`, `bloby daemon install/uninstall/status`, `bloby tunnel`, etc. Supports systemd (Linux) and launchd (macOS) daemon management. Accepts `--hosted` flag for cloud deployments. |
+| `cli.js` | The executable CLI. Registered as `"bloby"` in `package.json`'s `bin` field. Determines whether it is running in dev mode (has `.git`) or production mode (operates from `~/.morphy/`). Handles all subcommands: `morphy start`, `morphy init`, `morphy daemon install/uninstall/status`, `morphy tunnel`, etc. Supports systemd (Linux) and launchd (macOS) daemon management. Accepts `--hosted` flag for cloud deployments. |
 
 ---
 
@@ -37,26 +37,26 @@ supervisor/
 
 | File             | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`       | **The heart of Bloby.** Creates an HTTP server on the configured port (default 3000). Serves the dashboard from `dist/` (production) or proxies to Vite dev server (development). Serves the chat UI from `dist-bloby/` under the `/bloby/` path. Runs a WebSocket server for real-time chat communication. Orchestrates startup: spawns the worker on port+1, backend on port+4, starts Cloudflare tunnel, begins heartbeat to the relay, starts the scheduler. Handles graceful shutdown (SIGINT/SIGTERM). Embeds a service worker for PWA installability and push notifications. |
+| `index.ts`       | **The heart of Morphy.** Creates an HTTP server on the configured port (default 3000). Serves the dashboard from `dist/` (production) or proxies to Vite dev server (development). Serves the chat UI from `dist-chat/` under the `/bloby/` path. Runs a WebSocket server for real-time chat communication. Orchestrates startup: spawns the worker on port+1, backend on port+4, starts Cloudflare tunnel, begins heartbeat to the relay, starts the scheduler. Handles graceful shutdown (SIGINT/SIGTERM). Embeds a service worker for PWA installability and push notifications. |
 | `worker.ts`      | Spawns the worker (`worker/index.ts`) as a child process using `tsx/esm` loader. Exposes `spawnWorker(port)`, `stopWorker()`, `isWorkerAlive()`. Auto-restarts on unexpected exit (up to 3 times with exponential backoff, resets after 30s of stable runtime).                                                                                                                                                                                                                                                                                                                     |
 | `backend.ts`     | Spawns the user's backend (`workspace/backend/index.ts`) as a child process. Same restart logic as `worker.ts`. Logs stdout/stderr to `workspace/.backend.log`. Exposes `spawnBackend(port)`, `stopBackend()`, `isBackendAlive()`, `resetBackendRestarts()`. Port is `basePort + 4`.                                                                                                                                                                                                                                                                                                |
-| `tunnel.ts`      | Manages Cloudflare Tunnel for public access. `installCloudflared()` downloads the binary to `~/.bloby/bin/cloudflared` if not present. `startTunnel(port)` starts a quick tunnel and returns the assigned `*.trycloudflare.com` URL. `startNamedTunnel(configPath, name)` starts a persistent named tunnel with a custom domain. Supports `isTunnelAlive()` health checks and `restartTunnel()`/`restartNamedTunnel()` for recovery.                                                                                                                                                |
+| `tunnel.ts`      | Manages Cloudflare Tunnel for public access. `installCloudflared()` downloads the binary to `~/.morphy/bin/cloudflared` if not present. `startTunnel(port)` starts a quick tunnel and returns the assigned `*.trycloudflare.com` URL. `startNamedTunnel(configPath, name)` starts a persistent named tunnel with a custom domain. Supports `isTunnelAlive()` health checks and `restartTunnel()`/`restartNamedTunnel()` for recovery.                                                                                                                                                |
 | `vite-dev.ts`    | Creates an in-process Vite dev server for the dashboard on port `basePort + 2`. Attaches HMR WebSocket to the supervisor's HTTP server so hot reload works through the tunnel. Pre-warms module transforms on startup. Only active during development (`npm run dev`).                                                                                                                                                                                                                                                                                                              |
 | `bloby-agent.ts` | Lightweight wrapper around `@anthropic-ai/claude-agent-sdk`. Each conversation turn gets a fresh context with memory files (`MYSELF.md`, `MYHUMAN.md`, `MEMORY.md`) and recent conversation history injected into the system prompt. Reads the system prompt from `worker/prompts/bloby-system-prompt.txt`. Supports attachments (images, files) via base64 encoding. Manages active queries with abort controllers for cancellation.                                                                                                                                               |
 | `scheduler.ts`   | Reads `workspace/PULSE.json` and `workspace/CRONS.json` every 60 seconds. Pulse: triggers autonomous agent actions at a configurable interval (default 30 min) with quiet hours support. Crons: evaluates cron expressions (via `cron-parser`) and fires `startBlobyAgentQuery` when schedules match. Supports one-shot crons that auto-disable after firing.                                                                                                                                                                                                                       |
 | `file-saver.ts`  | Handles file uploads from chat. `ensureFileDirs()` creates `workspace/files/audio/`, `workspace/files/images/`, and `workspace/files/documents/`. `saveAttachment()` takes a base64-encoded file, generates a timestamped filename with random suffix, writes it to the appropriate subdirectory, and returns metadata including the relative and absolute paths.                                                                                                                                                                                                                   |
-| `widget.js`      | Vanilla JavaScript snippet (no framework dependencies). Injected into the dashboard via a `<script>` tag in `workspace/client/index.html`. Creates three DOM elements: (1) a floating circular bubble with the Bloby avatar video, (2) a backdrop overlay, and (3) a slide-out side panel containing an iframe pointed at `/bloby/bloby.html`. Handles open/close toggling, mobile responsiveness, and escape-key dismissal.                                                                                                                                                        |
+| `widget.js`      | Vanilla JavaScript snippet (no framework dependencies). Injected into the dashboard via a `<script>` tag in `workspace/client/index.html`. Creates three DOM elements: (1) a floating circular bubble with the Morphy avatar video, (2) a backdrop overlay, and (3) a slide-out side panel containing an iframe pointed at `/bloby/chat.html`. Handles open/close toggling, mobile responsiveness, and escape-key dismissal.                                                                                                                                                        |
 
 ---
 
 ### 2.3 `/supervisor/chat/` -- Pre-built Chat SPA
 
-The chat UI is a standalone React single-page application. It runs inside an iframe embedded by `widget.js` and communicates with the supervisor via WebSocket. It is built separately from the dashboard and ships pre-compiled in `dist-bloby/`.
+The chat UI is a standalone React single-page application. It runs inside an iframe embedded by `widget.js` and communicates with the supervisor via WebSocket. It is built separately from the dashboard and ships pre-compiled in `dist-chat/`.
 
 ```plain
 supervisor/chat/
-  bloby.html              HTML entry point for the chat interface
-  bloby-main.tsx          React entry point for the chat app (21 KB)
+  chat.html              HTML entry point for the chat interface
+  chat-main.tsx          React entry point for the chat app (21 KB)
   onboard.html            HTML entry point for the onboarding wizard
   onboard-main.tsx        React entry point for onboarding (renders OnboardWizard)
   OnboardWizard.tsx       Full onboarding wizard component (94 KB) -- AI setup, config, relay registration
@@ -74,7 +74,7 @@ supervisor/chat/
         TypingIndicator.tsx Animated typing dots indicator
     hooks/
       useChat.ts          Base chat hook -- defines ChatMessage, ToolActivity, Attachment types and core chat logic
-      useBlobyChat.ts     Bloby-specific chat hook -- loads/persists messages via worker API, handles cross-device sync
+      useBlobyChat.ts     Morphy-specific chat hook -- loads/persists messages via worker API, handles cross-device sync
     lib/
       auth.ts             Auth token management (localStorage) and `authFetch()` wrapper that auto-handles 401s
       ws-client.ts        WebSocket client class with auto-reconnect, message queuing, heartbeat, and auth token injection
@@ -109,10 +109,10 @@ worker/
 | File                              | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `index.ts`                        | Express server with all API routes. Password hashing (scrypt), TOTP-based 2FA, session management, conversation CRUD, message storage, settings management, push notification setup (web-push), file upload handling, relay registration (handle availability, registration, release). Imports auth flows from `claude-auth.ts` and `codex-auth.ts`.                                                                                                      |
-| `db.ts`                           | SQLite database using `better-sqlite3`. Schema defines tables: `conversations`, `messages`, `settings`, `sessions`, `push_subscriptions`, `trusted_devices`. Stores data in `~/.bloby/memory.db`. Exports functions: `initDb`, `closeDb`, `listConversations`, `createConversation`, `deleteConversation`, `getMessages`, `addMessage`, `getSetting`, `setSetting`, `createSession`, `getSession`, push subscription CRUD, trusted device CRUD, and more. |
+| `db.ts`                           | SQLite database using `better-sqlite3`. Schema defines tables: `conversations`, `messages`, `settings`, `sessions`, `push_subscriptions`, `trusted_devices`. Stores data in `~/.morphy/memory.db`. Exports functions: `initDb`, `closeDb`, `listConversations`, `createConversation`, `deleteConversation`, `getMessages`, `addMessage`, `getSetting`, `setSetting`, `createSession`, `getSession`, push subscription CRUD, trusted device CRUD, and more. |
 | `claude-auth.ts`                  | Implements OAuth 2.0 PKCE flow for Anthropic's Claude. User signs in at `claude.ai`, receives a code, pastes it back. Stores credentials in `~/.claude/.credentials.json`. Uses macOS Keychain when available. Exposes `startClaudeOAuth()`, `exchangeClaudeCode()`, `getClaudeAuthStatus()`, `readClaudeAccessToken()`.                                                                                                                                  |
 | `codex-auth.ts`                   | Implements OAuth 2.0 PKCE flow for OpenAI's Codex/ChatGPT. Spins up a temporary HTTP server on port 1455 to capture the OAuth callback. Stores credentials in `~/.codex/codedeck-auth.json`. Exposes `startCodexOAuth()`, `cancelCodexOAuth()`, `getCodexAuthStatus()`, `readCodexAccessToken()`.                                                                                                                                                         |
-| `prompts/bloby-system-prompt.txt` | The master system prompt injected into every Claude Agent SDK query. Defines the agent's personality, capabilities, coding rules, memory system, dashboard architecture, file organization, tool usage patterns, and workspace conventions. This is what makes Bloby "Bloby."                                                                                                                                                                             |
+| `prompts/bloby-system-prompt.txt` | The master system prompt injected into every Claude Agent SDK query. Defines the agent's personality, capabilities, coding rules, memory system, dashboard architecture, file organization, tool usage patterns, and workspace conventions. This is what makes Morphy "Morphy."                                                                                                                                                                             |
 
 ---
 
@@ -122,9 +122,9 @@ Utility modules imported by both the supervisor and worker. No runtime-specific 
 
 ```plain
 shared/
-  config.ts           Configuration loader/saver -- reads/writes ~/.bloby/config.json
+  config.ts           Configuration loader/saver -- reads/writes ~/.morphy/config.json
   paths.ts            Central path definitions -- PKG_DIR, DATA_DIR, WORKSPACE_DIR, all derived paths
-  relay.ts            Bloby Relay API client -- handle registration, availability checks, heartbeat, tunnel URL updates
+  relay.ts            Morphy Relay API client -- handle registration, availability checks, heartbeat, tunnel URL updates
   ai.ts               AI provider abstraction -- unified streaming interface for OpenAI, Anthropic, and Ollama
   logger.ts           Minimal colored console logger -- info, warn, error, ok with timestamps
 ```
@@ -133,9 +133,9 @@ shared/
 
 | File        | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config.ts` | Defines `BotConfig` interface: `port`, `username`, `ai` (provider, model, apiKey, baseUrl), `tunnel` (mode: off/quick/named, name, domain, configPath), `relay` (token, tier, url), `tunnelUrl`. `loadConfig()` reads from `~/.bloby/config.json` with backward compatibility migration. `saveConfig()` writes atomically.                                                                                                                                                               |
-| `paths.ts`  | Computes and exports all critical paths: `PKG_DIR` (package install directory), `DATA_DIR` (`~/.bloby/`), `WORKSPACE_DIR` (`{PKG_DIR}/workspace`). The `paths` object maps logical names to absolute paths: `config`, `db`, `widgetJs`, `cloudflared`, `files`, `filesAudio`, `filesImages`, `filesDocuments`.                                                                                                                                                                           |
-| `relay.ts`  | HTTP client for the Bloby Relay cloud service at `https://api.bloby.bot/api`. Functions: `registerHandle(username, tier)` -- registers a public handle, `checkAvailability(username)` -- checks if a handle is taken, `releaseHandle(token)` -- releases a handle, `updateTunnelUrl(token, tunnelUrl)` -- tells the relay where to route traffic, `startHeartbeat(token, tunnelUrl)` -- pings the relay every 30s to stay online, `disconnect(token)` -- graceful shutdown notification. |
+| `config.ts` | Defines `BotConfig` interface: `port`, `username`, `ai` (provider, model, apiKey, baseUrl), `tunnel` (mode: off/quick/named, name, domain, configPath), `relay` (token, tier, url), `tunnelUrl`. `loadConfig()` reads from `~/.morphy/config.json` with backward compatibility migration. `saveConfig()` writes atomically.                                                                                                                                                               |
+| `paths.ts`  | Computes and exports all critical paths: `PKG_DIR` (package install directory), `DATA_DIR` (`~/.morphy/`), `WORKSPACE_DIR` (`{PKG_DIR}/workspace`). The `paths` object maps logical names to absolute paths: `config`, `db`, `widgetJs`, `cloudflared`, `files`, `filesAudio`, `filesImages`, `filesDocuments`.                                                                                                                                                                           |
+| `relay.ts`  | HTTP client for the Morphy Relay cloud service at `https://api.morphyagent.com/api`. Functions: `registerHandle(username, tier)` -- registers a public handle, `checkAvailability(username)` -- checks if a handle is taken, `releaseHandle(token)` -- releases a handle, `updateTunnelUrl(token, tunnelUrl)` -- tells the relay where to route traffic, `startHeartbeat(token, tunnelUrl)` -- pings the relay every 30s to stay online, `disconnect(token)` -- graceful shutdown notification. |
 | `ai.ts`     | Provider-agnostic AI streaming interface. Defines `AiProvider` interface with a `chat()` method that accepts messages, model name, and callbacks (`onToken`, `onDone`, `onError`). Factory function `createProvider(provider, apiKey, baseUrl)` returns an implementation for `openai`, `anthropic`, or `ollama`. All providers use raw `fetch()` with SSE streaming -- zero external AI SDK dependencies. Tracks token usage (`tokensIn`, `tokensOut`).                                 |
 | `logger.ts` | Simple structured logger. All output goes to `console.log`/`console.warn`/`console.error` with ANSI color codes and `HH:MM:SS` timestamps. Levels: `log.info()` (cyan), `log.warn()` (yellow), `log.error()` (red), `log.ok()` (green).                                                                                                                                                                                                                                                  |
 
@@ -177,7 +177,7 @@ workspace/
 
 #### 2.6.1 `/workspace/client/` -- React Dashboard
 
-The dashboard is a Vite-powered React SPA. It is the main user-facing interface -- what the user sees when they visit their Bloby instance. The agent can modify any file here to build custom apps.
+The dashboard is a Vite-powered React SPA. It is the main user-facing interface -- what the user sees when they visit their Morphy instance. The agent can modify any file here to build custom apps.
 
 ```
 workspace/client/
@@ -185,8 +185,8 @@ workspace/client/
   public/
     manifest.json           PWA manifest -- app name, theme color (#212121), icon references
     sw.js                   Service worker -- PWA installability, push notification handling
-    bloby.png               Bloby logo (PNG, 44 KB)
-    bloby_frame1.png        Bloby avatar static frame (PNG, 390 KB, used as fallback)
+    morphy.png               Morphy logo (PNG, 44 KB)
+    bloby_frame1.png        Morphy avatar static frame (PNG, 390 KB, used as fallback)
     morphy_hi.webm          Morphy avatar wave animation (WebM/VP9 alpha, 656x380, ~640 KB)
     morphy_hi.mov           Morphy avatar wave animation (HEVC alpha, Safari fallback, ~1.7 MB)
     morphy_bounce.webm      Morphy avatar bounce/reappear animation (WebM/VP9 alpha, 474x540, ~632 KB)
@@ -236,10 +236,10 @@ workspace/client/
 
 **How the dashboard loads:**
 
-1. Browser navigates to the Bloby URL (local or through the relay).
+1. Browser navigates to the Morphy URL (local or through the relay).
 2. The supervisor serves `workspace/client/index.html` (in production from `dist/`, in dev via Vite proxy).
 3. `index.html` loads `src/main.tsx`, registers the service worker (`sw.js`), and injects `widget.js`.
-4. `widget.js` creates the floating Bloby bubble and the slide-out panel with the chat iframe.
+4. `widget.js` creates the floating Morphy bubble and the slide-out panel with the chat iframe.
 5. `App.tsx` checks if onboarding is complete; if not, it shows the onboard iframe overlay.
 6. The app listens for postMessage events from the chat iframe: `bloby:rebuilding`, `bloby:rebuilt`, `bloby:build-error`, `bloby:onboard-complete`, `bloby:hmr-update`.
 
@@ -268,7 +268,7 @@ Skills are modular agent capabilities. Each skill is a flat folder under `worksp
 workspace/skills/
   {skill-name}/
     SKILL.md              Skill definition -- YAML frontmatter (name, description) + Markdown instructions
-    skill.json            Bloby marketplace metadata (optional)
+    skill.json            Morphy marketplace metadata (optional)
     SCRIPT.md             Customer-facing persona for channel business/assistant modes (optional)
     references/           Supporting documents (optional)
     scripts/              Helper scripts (optional)
@@ -299,26 +299,26 @@ Files are named with the pattern `YYYYMMDD_HHMMSS_{random-hex}.{ext}` to avoid c
 ```
 scripts/
   install              Unix installer (symlink to install.sh)
-  install.sh           Unix installer -- downloads Node.js + Bloby into ~/.bloby (10 KB)
+  install.sh           Unix installer -- downloads Node.js + Morphy into ~/.morphy (10 KB)
   install.ps1          Windows installer (PowerShell) -- same logic as install.sh for Windows (13 KB)
-  postinstall.js       npm postinstall hook -- copies source files to ~/.bloby, installs deps, builds chat UI
+  postinstall.js       npm postinstall hook -- copies source files to ~/.morphy, installs deps, builds chat UI
 ```
 
 | File                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `install` / `install.sh` | Standalone curl installer (`curl -fsSL https://bloby.bot/install \| sh`). Downloads Node.js v22.14.0 if not present, clones Bloby into `~/.bloby/`, installs dependencies, builds the chat UI, and creates a `bloby` symlink in `/usr/local/bin/` or `~/.local/bin/`. Works on Linux, macOS, and ARM (Raspberry Pi).                                                                                                                                                                                     |
-| `install.ps1`            | PowerShell equivalent (`irm https://bloby.bot/install.ps1 \| iex`). Same logic adapted for Windows: downloads Node.js, sets up `~/.bloby/`, installs dependencies.                                                                                                                                                                                                                                                                                                                                       |
-| `postinstall.js`         | Runs after `npm install -g bloby-bot`. Copies application code directories (`bin/`, `supervisor/`, `worker/`, `shared/`, `scripts/`) to `~/.bloby/`, preserving the workspace on updates (only copies workspace template on first install). Installs production dependencies in `~/.bloby/`. Copies or builds `dist-bloby/`. Creates the `bloby` symlink. Includes guards to skip execution during development (if `.git` exists) and to prevent infinite loops (if already running inside `~/.bloby/`). |
+| `install` / `install.sh` | Standalone curl installer (`curl -fsSL https://morphyagent.com/install \| sh`). Downloads Node.js v22.14.0 if not present, clones Morphy into `~/.morphy/`, installs dependencies, builds the chat UI, and creates a `morphy` symlink in `/usr/local/bin/` or `~/.local/bin/`. Works on Linux, macOS, and ARM (Raspberry Pi).                                                                                                                                                                                     |
+| `install.ps1`            | PowerShell equivalent (`irm https://morphyagent.com/install.ps1 \| iex`). Same logic adapted for Windows: downloads Node.js, sets up `~/.morphy/`, installs dependencies.                                                                                                                                                                                                                                                                                                                                       |
+| `postinstall.js`         | Runs after `npm install -g morphyagent`. Copies application code directories (`bin/`, `supervisor/`, `worker/`, `shared/`, `scripts/`) to `~/.morphy/`, preserving the workspace on updates (only copies workspace template on first install). Installs production dependencies in `~/.morphy/`. Copies or builds `dist-chat/`. Creates the `morphy` symlink. Includes guards to skip execution during development (if `.git` exists) and to prevent infinite loops (if already running inside `~/.morphy/`). |
 
 ---
 
-### 2.8 `/dist-bloby/` -- Pre-built Chat UI Bundles
+### 2.8 `/dist-chat/` -- Pre-built Chat UI Bundles
 
-Production build output of `vite.bloby.config.ts`. Shipped with the npm package so users do not need to build from source.
+Production build output of `vite.chat.config.ts`. Shipped with the npm package so users do not need to build from source.
 
 ```
-dist-bloby/
-  bloby.html                  Production entry point for the chat interface
+dist-chat/
+  chat.html                  Production entry point for the chat interface
   onboard.html                Production entry point for the onboarding wizard
   assets/
     bloby-Bcd5tJrt.js         Chat app bundle (838 KB) -- all React components, hooks, libraries

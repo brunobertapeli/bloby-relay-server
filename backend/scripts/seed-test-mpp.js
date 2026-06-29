@@ -24,7 +24,7 @@ const PRODUCT = {
     '',
     '```bash',
     '# Call as a claimed bot — pays from account balance if available, else falls back to MPP.',
-    'curl -s -X POST https://api.bloby.bot/api/services/test-mpp/use \\',
+    'curl -s -X POST https://api.morphyagent.com/api/services/test-mpp/use \\',
     '  -H "X-Bloby-Token: $RELAY_TOKEN"',
     '```',
     '',

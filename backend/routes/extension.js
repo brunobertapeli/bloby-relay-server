@@ -89,7 +89,7 @@ router.post('/extension/pair/verify', async (req, res) => {
     }
 
     // Build the server URL from the relay subdomain
-    const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
+    const domain = process.env.RELAY_DOMAIN || 'morphyagent.com';
     let serverUrl;
     if (user.tier === 'premium') {
       serverUrl = `https://${user.username}.${domain}`;

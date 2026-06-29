@@ -15,7 +15,7 @@ Both databases use `PRAGMA journal_mode = WAL`. Write-Ahead Logging provides:
 - **Crash safety:** WAL mode provides the same ACID guarantees as the default
   journal mode.
 
-For Bloby's use case (single-user, moderate write volume), WAL mode eliminates
+For Morphy's use case (single-user, moderate write volume), WAL mode eliminates
 the possibility of `SQLITE_BUSY` errors in nearly all scenarios.
 
 ### 8.2 Indexing Strategy
@@ -75,7 +75,7 @@ atomically removes all its messages without requiring application logic.
 
 ### 8.5 Data Volume Expectations
 
-Bloby is designed as a single-user self-hosted platform. The expected data
+Morphy is designed as a single-user self-hosted platform. The expected data
 volumes are:
 
 - **Conversations:** Tens to low hundreds

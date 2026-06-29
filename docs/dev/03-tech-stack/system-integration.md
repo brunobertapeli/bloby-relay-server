@@ -4,7 +4,7 @@ title: "System Integration"
 
 ### Cloudflare Tunnel
 
-Bloby auto-installs and manages a `cloudflared` binary to expose the local server to the internet. Two modes:
+Morphy auto-installs and manages a `cloudflared` binary to expose the local server to the internet. Two modes:
 
 | Mode      | Behavior                                          | URL persistence |
 | --------- | ------------------------------------------------- | --------------- |
@@ -15,7 +15,7 @@ Bloby auto-installs and manages a `cloudflared` binary to expose the local serve
 Binary resolution order:
 
 1. System-wide install (checked via `which`/`where`).
-2. Local install at `~/.bloby/bin/cloudflared` (validated by file size >= 10 MB).
+2. Local install at `~/.morphy/bin/cloudflared` (validated by file size >= 10 MB).
 3. Auto-download from GitHub releases (platform-aware: Windows .exe, macOS .tgz, Linux binary).
 
 The supervisor includes a **tunnel watchdog** that runs every 30 seconds and detects:
@@ -41,7 +41,7 @@ The supervisor manages child processes via Node's `child_process` module:
 
 ### OS Service Integration
 
-Bloby supports installation as a system service on all major platforms:
+Morphy supports installation as a system service on all major platforms:
 
 | Platform | Service type     | Manager                |
 | -------- | ---------------- | ---------------------- |

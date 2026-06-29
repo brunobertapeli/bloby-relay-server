@@ -48,7 +48,7 @@ function DashNavbar({ user, onLogout }) {
     { href: '/#features', label: 'Features' },
     { href: '/#how-it-works', label: 'How it works' },
     { href: '/marketplace', label: 'Marketplace' },
-    { href: '/world', label: 'Bloby World' },
+    { href: '/world', label: 'Morphy World' },
     { href: '/docs', label: 'Docs' },
   ]
 
@@ -136,8 +136,8 @@ function DashNavbar({ user, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
-                  <img src="/assets/images/morphy.png" alt="Bloby" className="h-7 w-auto" />
-                  <span className="font-bold font-display text-foreground">Bloby</span>
+                  <img src="/assets/images/morphy.png" alt="Morphy" className="h-7 w-auto" />
+                  <span className="font-bold font-display text-foreground">Morphy</span>
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />
@@ -269,7 +269,7 @@ function ClaimBlobyCard({ onClaimed }) {
             const status = await statusRes.json()
             if (status.claimed) {
               cleanup()
-              setClaimed(status.bloby)
+              setClaimed(status.morphy)
               onClaimed?.()
             }
           }
@@ -285,7 +285,7 @@ function ClaimBlobyCard({ onClaimed }) {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
   const premadeMessage = claimCode
-    ? `I need you to link yourself to my bloby.bot dashboard. Use this claim code to verify: ${claimCode}`
+    ? `I need you to link yourself to my morphyagent.com dashboard. Use this claim code to verify: ${claimCode}`
     : ''
 
   if (claimed) {
@@ -293,7 +293,7 @@ function ClaimBlobyCard({ onClaimed }) {
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-2">
         <div className="flex items-center gap-2">
           <HiCheckCircle className="w-5 h-5 text-emerald-400" />
-          <p className="text-sm font-medium font-display text-emerald-400">Bloby claimed successfully!</p>
+          <p className="text-sm font-medium font-display text-emerald-400">Morphy claimed successfully!</p>
         </div>
         <p className="text-xs text-muted-foreground font-display">
           <span className="text-foreground font-medium">{claimed.username}</span> is now linked to your dashboard.
@@ -304,7 +304,7 @@ function ClaimBlobyCard({ onClaimed }) {
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
-      <p className="text-xs text-muted-foreground font-display">Generate a claim code and send it to your Bloby. Once verified, it will appear here.</p>
+      <p className="text-xs text-muted-foreground font-display">Generate a claim code and send it to your Morphy. Once verified, it will appear here.</p>
       {error && <p className="text-xs text-red-400 font-display">{error}</p>}
       {!claimCode ? (
         <Button
@@ -330,7 +330,7 @@ function ClaimBlobyCard({ onClaimed }) {
             </div>
           </div>
           <div className="rounded-xl bg-background border border-border/50 p-4">
-            <p className="text-xs text-muted-foreground mb-2 font-display">Copy and paste this to your Bloby</p>
+            <p className="text-xs text-muted-foreground mb-2 font-display">Copy and paste this to your Morphy</p>
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-foreground/80 font-display flex-1">{premadeMessage}</p>
               <CopyButton text={premadeMessage} className="shrink-0 mt-0.5" />
@@ -360,7 +360,7 @@ function maskKey(k) {
   return `${k.slice(0, 8)}…${k.slice(-4)}`
 }
 
-function FundWalletModal({ bloby, onClose, onFunded }) {
+function FundWalletModal({ morphy, onClose, onFunded }) {
   const [selected, setSelected] = useState(null)
   const [custom, setCustom] = useState('')
   const [showCustom, setShowCustom] = useState(false)
@@ -431,7 +431,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ blobyId: bloby.id, amount: activeAmount, network }),
+        body: JSON.stringify({ blobyId: morphy.id, amount: activeAmount, network }),
       })
 
       if (!res.ok) {
@@ -504,7 +504,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
               <img src="/assets/images/icons/wallet.png" alt="Wallet" className="h-8 w-auto" />
               <div>
                 <h3 className="text-base font-bold font-display text-foreground">Fund Agent Wallet</h3>
-                <p className="text-xs text-muted-foreground">{bloby.name} &middot; USDC</p>
+                <p className="text-xs text-muted-foreground">{morphy.name} &middot; USDC</p>
               </div>
             </div>
           </div>
@@ -642,7 +642,7 @@ function FundWalletModal({ bloby, onClose, onFunded }) {
                 <div className="text-center">
                   <p className="text-sm font-semibold font-display text-foreground mb-1">Funds delivered!</p>
                   <p className="text-xs text-muted-foreground font-display">
-                    ${activeAmount.toFixed(2)} USDC has been sent to {bloby.name}'s wallet.
+                    ${activeAmount.toFixed(2)} USDC has been sent to {morphy.name}'s wallet.
                   </p>
                 </div>
                 <button
@@ -692,7 +692,7 @@ function MessengerRow({ summary }) {
   return (
     <div className="px-5 py-3.5 border-b border-border/30">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Bloby Messenger</p>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Morphy Messenger</p>
         {hasPending && (
           <span className="text-[10px] text-amber-400/80 font-display">
             {pendingIncoming.length > 0 ? `${pendingIncoming.length} incoming` : `${pendingOutgoing.length} pending`}
@@ -749,10 +749,10 @@ function MessengerRow({ summary }) {
   )
 }
 
-function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
-  const hasWallet = !!bloby.walletAddress
+function BlobyCard({ morphy, onAddFunds, messengerSummary }) {
+  const hasWallet = !!morphy.walletAddress
   const truncatedWallet = hasWallet
-    ? `${bloby.walletAddress.slice(0, 6)}...${bloby.walletAddress.slice(-4)}`
+    ? `${morphy.walletAddress.slice(0, 6)}...${morphy.walletAddress.slice(-4)}`
     : null
 
   return (
@@ -763,15 +763,15 @@ function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
           <div className="relative">
             <img
               src="/assets/images/morphy.png"
-              alt={bloby.name}
+              alt={morphy.name}
               className="w-9 h-9 object-contain"
               style={{ filter: 'grayscale(1) opacity(0.55)' }}
             />
-            <span className={`absolute bottom-1.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${bloby.isOnline ? 'bg-emerald-400' : 'bg-muted-foreground/30'}`} />
+            <span className={`absolute bottom-1.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${morphy.isOnline ? 'bg-emerald-400' : 'bg-muted-foreground/30'}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{bloby.name}</h3>
-            <p className="text-[11px] text-muted-foreground/60 font-mono truncate mt-0.5">{bloby.url}</p>
+            <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{morphy.name}</h3>
+            <p className="text-[11px] text-muted-foreground/60 font-mono truncate mt-0.5">{morphy.url}</p>
           </div>
         </div>
       </div>
@@ -781,7 +781,7 @@ function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Agent Wallet</p>
           <button
-            onClick={() => onAddFunds(bloby)}
+            onClick={() => onAddFunds(morphy)}
             className="flex items-center gap-1.5 h-7 text-muted-foreground/60 hover:text-primary transition-all duration-200 text-[11px] font-medium font-display"
           >
             <span className="w-5 h-5 rounded-md border border-border/50 flex items-center justify-center group-hover:border-primary/40">
@@ -791,12 +791,12 @@ function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
           </button>
         </div>
         <div className="space-y-2">
-          <BalanceRow network="Tempo" amount={bloby.balanceTempo} />
-          <BalanceRow network="Base" amount={bloby.balanceBase} />
+          <BalanceRow network="Tempo" amount={morphy.balanceTempo} />
+          <BalanceRow network="Base" amount={morphy.balanceBase} />
         </div>
       </div>
 
-      {/* Bloby Messenger (taller card) */}
+      {/* Morphy Messenger (taller card) */}
       <MessengerRow summary={messengerSummary} />
 
       {/* Wallet */}
@@ -815,7 +815,7 @@ function BlobyCard({ bloby, onAddFunds, messengerSummary }) {
           <span className={`text-[11px] font-mono flex-1 ${hasWallet ? 'text-muted-foreground/60' : 'text-muted-foreground/30'}`}>
             {truncatedWallet || '0x0000...0000'}
           </span>
-          {hasWallet && <CopyButton text={bloby.walletAddress} />}
+          {hasWallet && <CopyButton text={morphy.walletAddress} />}
         </div>
       </div>
     </div>
@@ -826,7 +826,7 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b border-border/30 last:border-b-0 gap-2 sm:gap-4">
       <span className="font-mono text-sm text-foreground">
-        bloby.bot/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE] font-semibold">{handle.handle}</span>
+        morphyagent.com/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE] font-semibold">{handle.handle}</span>
       </span>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
@@ -1152,7 +1152,7 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
             >
               <HiPlus className="w-4 h-4" />
-              Claim your Bloby
+              Claim your Morphy
             </button>
           </div>
           <p className="text-xs text-muted-foreground/70 font-display mb-5">
@@ -1173,12 +1173,12 @@ export default function Dashboard() {
           </AnimatePresence>
           {blobies.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {blobies.map((bloby) => (
+              {blobies.map((morphy) => (
                 <BlobyCard
-                  key={bloby.id}
-                  bloby={bloby}
+                  key={morphy.id}
+                  morphy={morphy}
                   onAddFunds={setFundingBloby}
-                  messengerSummary={messengerSummary[bloby.name]}
+                  messengerSummary={messengerSummary[morphy.name]}
                 />
               ))}
             </div>
@@ -1189,7 +1189,7 @@ export default function Dashboard() {
                 onClick={() => setShowClaim(true)}
                 className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium font-display transition-colors duration-200"
               >
-                Claim your first Bloby
+                Claim your first Morphy
                 <span className="text-xs">-&gt;</span>
               </button>
             </div>
@@ -1276,7 +1276,7 @@ export default function Dashboard() {
             </div>
           )}
           <p className="text-xs text-muted-foreground/60 mt-3 font-display">
-            Use the activation code during <code className="text-foreground/50">bloby init</code> to claim your handle
+            Use the activation code during <code className="text-foreground/50">morphy init</code> to claim your handle
           </p>
         </motion.section>
 
@@ -1312,7 +1312,7 @@ export default function Dashboard() {
       <AnimatePresence>
         {fundingBloby && (
           <FundWalletModal
-            bloby={fundingBloby}
+            morphy={fundingBloby}
             onClose={() => setFundingBloby(null)}
             onFunded={fetchBlobies}
           />

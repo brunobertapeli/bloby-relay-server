@@ -6,7 +6,7 @@ title: "Skills & Plugins"
 
 ### 2.1 Skills Architecture
 
-Bloby uses a directory-based skill system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are Markdown instructions that give the agent additional context and behavior patterns.
+Morphy uses a directory-based skill system rooted at `workspace/skills/`. Each subdirectory is a self-contained skill that extends the agent's knowledge and capabilities. Skills are **not** code that executes independently -- they are Markdown instructions that give the agent additional context and behavior patterns.
 
 A skill is defined by a single required file: `workspace/skills/{skill-name}/SKILL.md`, whose YAML front matter carries two mandatory keys -- `name` (must equal the folder name) and `description` (the routing/trigger text that tells the agent when the skill applies).
 
@@ -35,7 +35,7 @@ Each skill is a flat folder named after the skill:
 ```plain
 workspace/skills/{skill-name}/
   SKILL.md             Skill definition -- YAML front matter + Markdown instructions (required)
-  skill.json           Bloby marketplace metadata (optional)
+  skill.json           Morphy marketplace metadata (optional)
   SCRIPT.md            Customer-facing persona for channel business/assistant modes (optional)
   references/          Supporting documents (optional)
   scripts/             Helper scripts (optional)
@@ -44,7 +44,7 @@ workspace/skills/{skill-name}/
 
 #### skill.json
 
-Optional Bloby marketplace metadata. When present, its `description` must stay in sync with the SKILL.md front matter.
+Optional Morphy marketplace metadata. When present, its `description` must stay in sync with the SKILL.md front matter.
 
 #### SKILL.md
 
@@ -76,13 +76,13 @@ Both front matter keys are mandatory: `name` must equal the skill's folder name,
 
 ### 2.3 Built-in Skills
 
-Bloby ships with three built-in skills.
+Morphy ships with three built-in skills.
 
 #### 2.3.1 code-reviewer
 
 **Directory**: `workspace/skills/code-reviewer/`
 
-**Purpose**: Reviews code changes and provides improvement suggestions across the Bloby full-stack (React + Tailwind frontend, Express + SQLite backend).
+**Purpose**: Reviews code changes and provides improvement suggestions across the Morphy full-stack (React + Tailwind frontend, Express + SQLite backend).
 
 **Front matter** (`SKILL.md`):
 
@@ -155,13 +155,13 @@ This skill pairs naturally with the cron system. A cron like `{ "id": "morning-s
 
 **Directory**: `workspace/skills/workspace-helper/`
 
-**Purpose**: Helps manage and understand the Bloby workspace structure -- project layout, file organization, code navigation, and scaffolding.
+**Purpose**: Helps manage and understand the Morphy workspace structure -- project layout, file organization, code navigation, and scaffolding.
 
 **Front matter** (`SKILL.md`):
 
 ```yaml
 name: workspace-helper
-description: Helps manage and understand the Bloby workspace structure.
+description: Helps manage and understand the Morphy workspace structure.
 ```
 
 **Activation triggers**: User asks about the project layout, file organization, where things are, how the workspace is structured; needs help navigating the codebase; asks to scaffold new components, pages, or API routes.
@@ -196,7 +196,7 @@ It also provides scaffolding instructions for adding new pages (component + rout
 
 ### 2.4 How to Create a New Skill
 
-Follow these steps to add a custom skill to Bloby:
+Follow these steps to add a custom skill to Morphy:
 
 #### Step 1: Create the directory structure
 
@@ -246,7 +246,7 @@ Show the agent what good output looks like.
 
 #### Step 3: Verify
 
-Send a message to Bloby that matches your skill's activation criteria. Skills are picked up automatically on the next session -- no restart needed. All three harnesses see the same folder: Claude and Codex via their `workspace/.claude/skills` / `workspace/.codex/skills` symlink mirrors, Pi via the `# Installed Skills` index in its system prompt.
+Send a message to Morphy that matches your skill's activation criteria. Skills are picked up automatically on the next session -- no restart needed. All three harnesses see the same folder: Claude and Codex via their `workspace/.claude/skills` / `workspace/.codex/skills` symlink mirrors, Pi via the `# Installed Skills` index in its system prompt.
 
 #### Tips for Effective Skills
 
@@ -259,7 +259,7 @@ Send a message to Bloby that matches your skill's activation criteria. Skills ar
 
 File path: `workspace/MCP.json` (optional -- does not exist by default)
 
-Bloby supports the **Model Context Protocol (MCP)** for connecting external tool servers to the agent. MCP servers give the agent access to external APIs, databases, services, or any custom tooling exposed through the MCP standard.
+Morphy supports the **Model Context Protocol (MCP)** for connecting external tool servers to the agent. MCP servers give the agent access to external APIs, databases, services, or any custom tooling exposed through the MCP standard.
 
 #### Configuration Format
 

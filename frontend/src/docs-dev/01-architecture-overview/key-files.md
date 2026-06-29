@@ -20,7 +20,7 @@ All paths are relative to the repository root.
 | `worker/index.ts`           | Express API server, SQLite, auth, conversations, push              |
 | `worker/db.ts`              | SQLite schema, CRUD, auto-migrations                               |
 | `worker/claude-auth.ts`     | Claude OAuth PKCE, token refresh, Keychain integration             |
-| `shared/config.ts`          | Load/save `~/.bloby/config.json`                                   |
+| `shared/config.ts`          | Load/save `~/.morphy/config.json`                                   |
 | `shared/paths.ts`           | Path constants: PKG_DIR, DATA_DIR, WORKSPACE_DIR                   |
 | `shared/relay.ts`           | Relay API client (register, heartbeat, disconnect, tunnel update)  |
 | `shared/ai.ts`              | AI provider abstraction (Anthropic, OpenAI, Ollama) with streaming |
@@ -47,9 +47,9 @@ All paths are relative to the repository root.
 
 | Path                       | Contents                                              |
 | -------------------------- | ----------------------------------------------------- |
-| `~/.bloby/config.json`     | Port, AI provider, tunnel mode, relay token           |
-| `~/.bloby/memory.db`       | SQLite -- conversations, messages, settings, sessions |
-| `~/.bloby/bin/cloudflared` | Cloudflare tunnel binary                              |
-| `~/.bloby/workspace/`      | User's workspace copy (runtime)                       |
+| `~/.morphy/config.json`     | Port, AI provider, tunnel mode, relay token           |
+| `~/.morphy/memory.db`       | SQLite -- conversations, messages, settings, sessions |
+| `~/.morphy/bin/cloudflared` | Cloudflare tunnel binary                              |
+| `~/.morphy/workspace/`      | User's workspace copy (runtime)                       |
 
 ---

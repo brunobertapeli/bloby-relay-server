@@ -193,7 +193,7 @@ Returns all settings as a flat key-value object.
   ```json
   {
     "user_name": "Bruno",
-    "agent_name": "Bloby",
+    "agent_name": "Morphy",
     "portal_pass": "<scrypt hash>",
     "onboard_complete": "true",
     "vapid_public_key": "...",
@@ -419,14 +419,14 @@ authenticator app.
   {
     "secret": "JBSWY3DPEHPK3PXP...",
     "qrDataUri": "data:image/png;base64,...",
-    "otpauthUri": "otpauth://totp/Bloby:Bloby?secret=...&issuer=Bloby&algorithm=SHA1&digits=6&period=30"
+    "otpauthUri": "otpauth://totp/Morphy:Morphy?secret=...&issuer=Morphy&algorithm=SHA1&digits=6&period=30"
   }
   ```
 
 - **Error**: `401` if not authorized. `500` if QR code generation fails.
 - **Internals**: The secret is stored temporarily in the `totp_pending_secret`
   setting until confirmed via `/totp/verify-setup`. The TOTP label uses the
-  `agent_name` setting (defaults to `"Bloby"`).
+  `agent_name` setting (defaults to `"Morphy"`).
 
 #### `POST /api/portal/totp/verify-setup`
 
@@ -599,7 +599,7 @@ setup steps remain.
   ```json
   {
     "userName": "Bruno",
-    "agentName": "Bloby",
+    "agentName": "Morphy",
     "portalUser": "admin",
     "portalConfigured": true,
     "whisperEnabled": false,
@@ -609,7 +609,7 @@ setup steps remain.
     "handle": {
       "username": "bruno",
       "tier": "free",
-      "url": "https://bruno.bloby.bot"
+      "url": "https://bruno.morphyagent.com"
     },
     "tunnelMode": "quick",
     "tunnelDomain": "",
@@ -632,7 +632,7 @@ everything" endpoint called when the user completes the setup wizard.
   ```json
   {
     "userName": "Bruno",
-    "agentName": "Bloby",
+    "agentName": "Morphy",
     "provider": "anthropic",
     "model": "claude-sonnet-4-20250514",
     "apiKey": "sk-...",
@@ -653,13 +653,13 @@ everything" endpoint called when the user completes the setup wizard.
   ```
 
 - **Internals** (execution order):
-  1. Reads old `agent_name` and `user_name` for BLOBY.md placeholder
+  1. Reads old `agent_name` and `user_name` for MORPHY.md placeholder
      replacement.
   2. Saves `user_name`, `agent_name`, `onboard_complete` to settings.
   3. Hashes and saves `portal_pass` (scrypt with random 16-byte salt).
   4. Saves `portal_user` (lowercased and trimmed).
   5. Saves whisper configuration.
-  6. Reads `workspace/BLOBY.md` and replaces old bot/human name strings
+  6. Reads `workspace/MORPHY.md` and replaces old bot/human name strings
      with the new ones, handling both initial `$BOT`/`$HUMAN` placeholders
      and re-onboard name changes.
   7. Re-reads `config.json` from disk to preserve any relay data written by
@@ -675,7 +675,7 @@ everything" endpoint called when the user completes the setup wizard.
 ### 4.10 Handle Registration (Relay)
 
 These endpoints manage the user's vanity URL handle (e.g.
-`username.bloby.bot`) through the Bloby relay server.
+`username.morphyagent.com`) through the Morphy relay server.
 
 #### `GET /api/handle/check/:username`
 
@@ -707,7 +707,7 @@ Returns the current handle registration status.
     "registered": true,
     "username": "bruno",
     "tier": "free",
-    "url": "https://bruno.bloby.bot"
+    "url": "https://bruno.morphyagent.com"
   }
   ```
 
@@ -730,7 +730,7 @@ Registers a new handle with the relay server.
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://bruno.bloby.bot" }
+  { "ok": true, "url": "https://bruno.morphyagent.com" }
   ```
 
 - **Error**: `400` if `username` or `tier` is missing, or if registration
@@ -758,7 +758,7 @@ Changes an existing handle to a new username.
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://new-name.bloby.bot" }
+  { "ok": true, "url": "https://new-name.morphyagent.com" }
   ```
 
 - **Error**: `400` if fields are missing or if the new registration fails.
@@ -986,14 +986,14 @@ Sends a push notification to all registered subscriptions.
   ```json
   {
     "title": "New Message",
-    "body": "Bloby says hello",
+    "body": "Morphy says hello",
     "tag": "chat",
     "url": "/chat"
   }
   ```
 
   All fields are optional.
-  - `title` defaults to `"Bloby"`.
+  - `title` defaults to `"Morphy"`.
   - `body` defaults to `""`.
   - `tag` defaults to `"bloby"`.
   - `url` defaults to `"/"`.

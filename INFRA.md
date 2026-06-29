@@ -1,9 +1,9 @@
-# Bloby Hosted Infrastructure
+# Morphy Hosted Infrastructure
 
-Auto-provisioning system that spins EC2 instances with Bloby pre-installed from a golden AMI.
+Auto-provisioning system that spins EC2 instances with Morphy pre-installed from a golden AMI.
 
 > **NEW (direct mode):** managed bots are now reached **directly** through Cloudflare
-> (`mybot.bloby.bot` A-record → EC2 public IP, orange-cloud → Caddy → bloby :7400),
+> (`mybot.morphyagent.com` A-record → EC2 public IP, orange-cloud → Caddy → morphy :7400),
 > dropping the cloudflared tunnel and the relay reverse-proxy hop. The flow below
 > still describes the legacy tunnel path; for the direct setup (CF token/cert, Caddy,
 > swap-on-install, AMI v5, the no-Stripe test loop) see **`infra/MANAGED-DIRECT-SETUP.md`**.
@@ -14,7 +14,7 @@ Auto-provisioning system that spins EC2 instances with Bloby pre-installed from 
 ## Architecture
 
 ```
-User on www.bloby.bot
+User on www.morphyagent.com
       │
       ├─ 1. Picks plan (Starter/Pro) + region (NA/EU/BR)
       ├─ 2. Google login
@@ -32,15 +32,15 @@ EC2 Instance boots (golden AMI)
       │
       ├─ 7. cloud-init runs /home/ec2-user/provision.sh
       ├─ 8. provision.sh calls POST /api/instances/callback {status: "initializing"}
-      ├─ 9. Runs: bloby init --hosted
-      ├─ 10. Bloby starts, tunnel comes up
+      ├─ 9. Runs: morphy init --hosted
+      ├─ 10. Morphy starts, tunnel comes up
       ├─ 11. provision.sh calls POST /api/instances/callback {status: "ready", tunnelUrl: "..."}
       │
       ▼
 Frontend polls GET /api/instances/:id/status
       │
       ├─ Shows progress: launching → booting → initializing → ready
-      └─ Shows tunnel URL → user clicks → opens Bloby onboarding wizard
+      └─ Shows tunnel URL → user clicks → opens Morphy onboarding wizard
 ```
 
 ---
@@ -51,18 +51,18 @@ Base: **Amazon Linux 2023** on **ARM64 (Graviton)**
 
 Pre-installed:
 - Node.js 22.22.0 (system-wide via nodesource)
-- Bloby v0.7.8 at `~/.bloby/` (via `curl -fsSL https://bloby.bot/install | sh`)
+- Morphy v0.7.8 at `~/.morphy/` (via `curl -fsSL https://morphyagent.com/install | sh`)
   - All npm dependencies (`node_modules/`)
-  - Pre-built chat UI (`dist-bloby/`)
+  - Pre-built chat UI (`dist-chat/`)
   - cloudflared binary (`bin/cloudflared`)
   - Bundled Node 22 at `tools/node/`
   - Fresh workspace template (no user data)
 - Tailscale v1.94.2 (installed, daemon enabled, needs `tailscale up` with auth key)
 - jq v1.7.1
 
-NOT included (created at runtime by `bloby init`):
-- `~/.bloby/config.json`
-- `~/.bloby/memory.db`
+NOT included (created at runtime by `morphy init`):
+- `~/.morphy/config.json`
+- `~/.morphy/memory.db`
 - `~/.claude/` (user authenticates via onboarding wizard)
 
 ### AMI IDs
@@ -76,16 +76,16 @@ NOT included (created at runtime by `bloby init`):
 ### How to re-bake the AMI
 
 1. SSH into the base instance: `ssh aws1`
-2. Make changes (update bloby, install packages, etc.)
+2. Make changes (update morphy, install packages, etc.)
 3. Clean user state:
    ```bash
-   sudo systemctl stop bloby
-   sudo systemctl disable bloby
+   sudo systemctl stop morphy
+   sudo systemctl disable morphy
    sudo rm -f /etc/systemd/system/bloby.service
    sudo systemctl daemon-reload
    rm -rf ~/.claude ~/.codex
-   rm -f ~/.bloby/config.json ~/.bloby/memory.db*  ~/.bloby/VERSION
-   rm -f ~/.bloby/workspace/app.db*
+   rm -f ~/.morphy/config.json ~/.morphy/memory.db*  ~/.morphy/VERSION
+   rm -f ~/.morphy/workspace/app.db*
    sudo cloud-init clean --logs
    rm -f ~/.bash_history
    ```
@@ -186,21 +186,21 @@ No inbound HTTP needed — Cloudflare tunnel handles public access from inside t
 
 Located at `/home/ec2-user/provision.sh` on the AMI.
 
-**Triggered by:** cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-bloby.cfg`)
+**Triggered by:** cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-morphy.cfg`)
 
 **Reads from EC2 user-data (JSON):**
 ```json
 {
   "instanceId": "internal-db-id",
-  "callbackUrl": "https://api.bloby.bot/api/instances/callback"
+  "callbackUrl": "https://api.morphyagent.com/api/instances/callback"
 }
 ```
 
 **What it does:**
 1. Fetches user-data from IMDS (v2)
 2. POSTs `{status: "initializing"}` to callback
-3. Updates bloby to latest via `npm pack bloby-bot` + extract over `~/.bloby/`
-4. Runs `bloby init --hosted`
+3. Updates morphy to latest via `npm pack morphyagent` + extract over `~/.morphy/`
+4. Runs `morphy init --hosted`
 4. Parses `__HOSTED_READY__` JSON output
 5. POSTs `{status: "ready", tunnelUrl: "..."}` to callback
 
@@ -237,8 +237,8 @@ launching → booting → initializing → ready
 
 - **launching** — DB record created, EC2 API call in progress
 - **booting** — EC2 instance launched, waiting for cloud-init
-- **initializing** — provision.sh running, bloby init in progress
-- **ready** — Bloby is up, tunnel URL available
+- **initializing** — provision.sh running, morphy init in progress
+- **ready** — Morphy is up, tunnel URL available
 - **restarting** — EC2 stop+start in progress (polls until running, waits 15s for services, then → ready)
 - **failed** — Something went wrong
 
@@ -274,9 +274,9 @@ Steps: **plan → region → login → payment → provisioning → ready → da
 
 The provisioning screen polls `GET /api/instances/:id/status` every 3 seconds and maps the status to a visual step indicator:
 - Step 0: Spinning up your instance... (`launching`)
-- Step 1: Installing Bloby... (`booting`)
-- Step 2: Initializing Bloby... (`initializing`)
-- Step 3: Your Bloby is ready! (`ready`)
+- Step 1: Installing Morphy... (`booting`)
+- Step 2: Initializing Morphy... (`initializing`)
+- Step 3: Your Morphy is ready! (`ready`)
 
 On `ready`, displays the tunnel URL with a copy button and link.
 

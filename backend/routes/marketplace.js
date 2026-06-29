@@ -103,7 +103,7 @@ function generateBlueprintSection(bp) {
   if (bp.price === 0) {
     lines.push('', '**Download (free — no purchase required):**', '',
       '```bash',
-      `curl -sL https://bloby.bot/api/marketplace/download/free/${bp.id} \\`,
+      `curl -sL https://morphyagent.com/api/marketplace/download/free/${bp.id} \\`,
       '  -H "Authorization: Bearer $RELAY_TOKEN" \\',
       `  -o /tmp/${bp.id}.tar.gz`);
     if (bp.sha256) {
@@ -117,19 +117,19 @@ function generateBlueprintSection(bp) {
     lines.push('', '**Purchase options.** Both return JSON `{ skills: [{ url, sha256, ... }] }` — follow each `url` to download the .tar.gz, then extract to `skills/`.', '');
     lines.push('a. *If your human gave you a redeem code* — they paid via Stripe on the website:', '',
       '```bash',
-      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
+      'curl -s -X POST https://morphyagent.com/api/marketplace/redeem \\',
       '  -H "Content-Type: application/json" \\',
       '  -d \'{"code":"<REDEEM_CODE>"}\'',
       '```', '');
     lines.push('b. *Buy autonomously (Tempo USDC)* — the relay tries your owner\'s credits first, then falls back to your wallet via MPP on Tempo:', '',
       '```bash',
-      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
-      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bp.id} \\`,
+      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.morphy/config.json) \\',
+      `  npx -y mppx https://morphyagent.com/api/marketplace/buy/${bp.id} \\`,
       '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
       '```', '');
     lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
       '```',
-      `POST https://bloby.bot/api/marketplace/buy-base/${bp.id}`,
+      `POST https://morphyagent.com/api/marketplace/buy-base/${bp.id}`,
       'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```', '');
     lines.push(`**After downloading:** Read \`skills/${bp.id}/SKILL.md\` and follow it exactly. The blueprint's own instructions tell you what to do — install an ongoing skill folder that stays active, run a one-time setup and archive it to \`skills/_archive/\` when done, add env vars, write entries to your memory, and/or register cron/Pulse tasks. Do only what the blueprint says, then confirm with your human.`);
@@ -149,19 +149,19 @@ function generateBundleSection(bundle) {
     lines.push('', '**Purchase options.** Both return JSON `{ skills: [...] }` with download URLs for every skill in the bundle.', '');
     lines.push('a. *If your human gave you a redeem code:*', '',
       '```bash',
-      'curl -s -X POST https://bloby.bot/api/marketplace/redeem \\',
+      'curl -s -X POST https://morphyagent.com/api/marketplace/redeem \\',
       '  -H "Content-Type: application/json" \\',
       '  -d \'{"code":"<REDEEM_CODE>"}\'',
       '```', '');
     lines.push('b. *Buy autonomously (Tempo USDC)* — credits first, MPP fallback on Tempo:', '',
       '```bash',
-      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.bloby/config.json) \\',
-      `  npx -y mppx https://bloby.bot/api/marketplace/buy/${bundle.id} \\`,
+      'MPPX_PRIVATE_KEY=$(jq -r .wallet.privateKey ~/.morphy/config.json) \\',
+      `  npx -y mppx https://morphyagent.com/api/marketplace/buy/${bundle.id} \\`,
       '  -X POST -H "X-Bloby-Token: $RELAY_TOKEN"',
       '```', '');
     lines.push('c. *Buy autonomously (Coinbase BASE USDC)* — same flow, but the x402 challenge settles on Base mainnet. Use any x402-compatible client (e.g. `x402-fetch`):', '',
       '```',
-      `POST https://bloby.bot/api/marketplace/buy-base/${bundle.id}`,
+      `POST https://morphyagent.com/api/marketplace/buy-base/${bundle.id}`,
       'Header: X-Bloby-Token: $RELAY_TOKEN',
       '```');
   }
@@ -195,7 +195,7 @@ function generateServiceSection(service) {
     // Fallback: basic usage
     lines.push('', '**Usage:**', '',
       '```bash',
-      `curl -s -X POST https://bloby.bot/api/services/${service.id}/use \\`,
+      `curl -s -X POST https://morphyagent.com/api/services/${service.id}/use \\`,
       '  -H "Authorization: Bearer $RELAY_TOKEN"',
       '```');
   }
@@ -380,7 +380,7 @@ async function buildStripeLineItems(items) {
           currency: 'usd',
           unit_amount: Math.round(amount * 100),
           product_data: {
-            name: `$${amount.toFixed(2)} Bloby Credits`,
+            name: `$${amount.toFixed(2)} Morphy Credits`,
             description: 'Account credit balance — usable across all your agents',
           },
         },
@@ -1245,7 +1245,7 @@ router.post(
       // ── Wallet check (commission payouts target this) ───────────────
       if (!req.user.walletAddress) {
         return res.status(400).json({
-          error: 'Register a wallet before submitting products. Run `bloby init` (or top up your wallet from the dashboard) so the relay knows where to send your commission payouts.',
+          error: 'Register a wallet before submitting products. Run `morphy init` (or top up your wallet from the dashboard) so the relay knows where to send your commission payouts.',
         });
       }
 
@@ -1374,7 +1374,7 @@ router.post(
         tags,
         categories,
         content,
-        // `official` is a Bloby-team designation, never self-declared by a
+        // `official` is a Morphy-team designation, never self-declared by a
         // submitting agent. New submissions are always non-official.
         official: false,
         featured: false,

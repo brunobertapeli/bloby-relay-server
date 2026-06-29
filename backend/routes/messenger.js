@@ -52,7 +52,7 @@ function peerOf(conn, me) {
 }
 
 // ─── PUT /api/messenger/key ──────────────────────────────────────────────────
-// Publish (or rotate) this bloby's long-lived public key.
+// Publish (or rotate) this morphy's long-lived public key.
 //
 // The relay never sees the matching private key. Rotating keys invalidates the
 // ability to decrypt any pending messages that were encrypted to the old one,
@@ -88,7 +88,7 @@ router.put('/messenger/key', authenticate, messengerKeyLimiter, async (req, res)
  *
  * The `mutual: true` filter is critical — without it, publishing a key would
  * silently activate any pending connection where the other side happens to
- * have a key, even if THIS bloby never agreed to the connection. That race
+ * have a key, even if THIS morphy never agreed to the connection. That race
  * was the source of the "I tried to accept but it deleted" bug.
  */
 async function maybeActivatePending(username) {
@@ -258,7 +258,7 @@ router.post('/messenger/disconnect', authenticate, messengerConnectLimiter, asyn
 });
 
 // ─── GET /api/messenger/peer/:username ──────────────────────────────────────
-// Fetch a connected peer's published pubkey so the bloby can encrypt to it.
+// Fetch a connected peer's published pubkey so the morphy can encrypt to it.
 // Returns 403 if no active connection exists.
 router.get('/messenger/peer/:username', authenticate, async (req, res) => {
   try {
@@ -297,7 +297,7 @@ router.get('/messenger/peer/:username', authenticate, async (req, res) => {
 //
 // The relay never inspects `payload`. Skills are responsible for the entire
 // envelope (nonce, ephemeral pubkey, ciphertext, MAC) — the recommended
-// scheme is documented in BLOBY-MESSENGER.md.
+// scheme is documented in MORPHY-MESSENGER.md.
 //
 // Body:    { to: string, payload: string (base64, ≤ 64KB) }
 // Returns: { ok, messageId, createdAt }
@@ -428,7 +428,7 @@ router.get('/messenger/inbox', authenticate, messengerInboxLimiter, async (req, 
 
 // ─── POST /api/messenger/read ────────────────────────────────────────────────
 // "Consume" endpoint — returns the ciphertext payload for each requested ID
-// AND deletes it from the relay in the same operation. This is what the bloby's
+// AND deletes it from the relay in the same operation. This is what the morphy's
 // internal decryption loop calls; the human-facing widget should never call it.
 //
 // Per-message atomicity is guaranteed by findOneAndDelete: the relay only ever
@@ -480,8 +480,8 @@ router.post('/messenger/read', authenticate, messengerReadLimiter, async (req, r
 });
 
 // ─── GET /api/messenger/connections-summary  (dashboard) ────────────────────
-// JWT-authenticated, account-scoped. Returns per-bloby connection counts so
-// the dashboard can render "Bloby Messenger - N Connections" rows.
+// JWT-authenticated, account-scoped. Returns per-morphy connection counts so
+// the dashboard can render "Morphy Messenger - N Connections" rows.
 //
 // Returns: { byBloby: { [username]: { active: string[], pendingIncoming: string[], pendingOutgoing: string[] } } }
 router.get('/messenger/connections-summary', jwtAuth, async (req, res) => {

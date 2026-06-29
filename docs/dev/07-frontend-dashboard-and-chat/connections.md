@@ -17,7 +17,7 @@ Browser request to :3000
     +-- /sw.js, /bloby/sw.js --> Serve embedded service worker constant
     +-- /app/api/*           --> Proxy to user's backend server (:3004)
     +-- /api/*               --> Proxy to worker process (:3001)
-    +-- /bloby/*             --> Serve static files from dist-bloby/
+    +-- /bloby/*             --> Serve static files from dist-chat/
     +-- /* (everything else) --> Proxy to dashboard Vite dev server (:3002)
 ```
 
@@ -54,10 +54,10 @@ If the Vite dev server is down, the supervisor returns a "Dashboard is restartin
 
 ### Chat Routing
 
-Requests to `/bloby/*` are served as static files from the pre-built `dist-bloby/` directory. The URL prefix `/bloby/` is stripped before resolving the file path. Security: a directory traversal check ensures the resolved path stays within `dist-bloby/`.
+Requests to `/bloby/*` are served as static files from the pre-built `dist-chat/` directory. The URL prefix `/bloby/` is stripped before resolving the file path. Security: a directory traversal check ensures the resolved path stays within `dist-chat/`.
 
 Cache headers differ by file type:
-- **HTML files** (`bloby.html`, `onboard.html`): `Cache-Control: no-cache` so rebuilds are picked up immediately.
+- **HTML files** (`chat.html`, `onboard.html`): `Cache-Control: no-cache` so rebuilds are picked up immediately.
 - **Hashed assets** (`.js`, `.css`): `Cache-Control: public, max-age=31536000, immutable` since filenames include content hashes.
 
 The MIME type is resolved from the file extension via a static map supporting `.html`, `.js`, `.css`, `.png`, `.jpg`, `.svg`, `.webm`, `.woff2`, and `.json`.
@@ -104,7 +104,7 @@ try {
 } catch (e) {}
 ```
 
-However, the chat iframe itself is not affected by dashboard HMR because it is served from `dist-bloby/` (static files). The iframe's WebSocket connection, message history, and streaming state survive a full dashboard page reload.
+However, the chat iframe itself is not affected by dashboard HMR because it is served from `dist-chat/` (static files). The iframe's WebSocket connection, message history, and streaming state survive a full dashboard page reload.
 
 ## HMR: Dashboard vs Chat
 
@@ -135,7 +135,7 @@ server.on('upgrade', async (req, socket, head) => {
     // Vite's HMR handler (attached via hmr.server) handles this
     return;
   }
-  // Bloby chat WebSocket
+  // Morphy chat WebSocket
   blobyWss.handleUpgrade(req, socket, head, (ws) => blobyWss.emit('connection', ws, req));
 });
 ```
@@ -144,11 +144,11 @@ When the agent modifies dashboard source files, Vite picks up the changes and pu
 
 ### Chat: No HMR (Static)
 
-The chat app has no HMR and no dev server in production. It is pre-built into `dist-bloby/` and served as static files. To update the chat UI:
+The chat app has no HMR and no dev server in production. It is pre-built into `dist-chat/` and served as static files. To update the chat UI:
 
 1. Modify source files in `supervisor/chat/`.
-2. Run `npm run build:bloby`.
-3. The new `dist-bloby/` files are served immediately (HTML has `no-cache` headers).
+2. Run `npm run build:chat`.
+3. The new `dist-chat/` files are served immediately (HTML has `no-cache` headers).
 4. Users need a page reload to pick up the new bundle (hashed filenames change).
 
 This is intentional: the chat must never be affected by a failed build or broken HMR update that would prevent the user from communicating with the agent.
@@ -158,7 +158,7 @@ This is intentional: the chat must never be affected by a failed build or broken
 The supervisor runs a single HTTP server that handles two types of WebSocket connections:
 
 1. **Vite HMR WebSocket** -- Handled by Vite's built-in handler (attached via `hmr.server`). The URL path is `/__vite_hmr` or similar (managed by Vite internals).
-2. **Bloby Chat WebSocket** -- Handled by a `WebSocketServer` instance (`blobyWss`). URL path: `/bloby/ws`.
+2. **Morphy Chat WebSocket** -- Handled by a `WebSocketServer` instance (`blobyWss`). URL path: `/bloby/ws`.
 
 The routing logic in the `upgrade` event listener:
 

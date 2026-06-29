@@ -38,7 +38,7 @@ The `SchedulerOpts` interface defines the four dependencies injected from the su
 
 | Option           | Type                                     | Purpose                                                       |
 | ---------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `broadcastBloby` | `(type: string, data: any) => void`      | Sends a WebSocket message to all connected Bloby chat clients |
+| `broadcastBloby` | `(type: string, data: any) => void`      | Sends a WebSocket message to all connected Morphy chat clients |
 | `workerApi`      | `(path, method?, body?) => Promise<any>` | Calls the worker HTTP API (conversations, push, onboard)      |
 | `restartBackend` | `() => void`                             | Restarts the workspace backend after file-tool mutations      |
 | `getModel`       | `() => string`                           | Returns the currently configured AI model identifier          |
@@ -342,7 +342,7 @@ For each extracted message, three things happen in parallel:
 
 1. **Database persistence** -- The message is saved to the user's conversation in the DB via `workerApi('/api/conversations/{id}/messages', 'POST', ...)` with `role: 'assistant'`.
 
-2. **WebSocket broadcast** -- The message is broadcast to all connected Bloby chat clients as a `chat:sync` event:
+2. **WebSocket broadcast** -- The message is broadcast to all connected Morphy chat clients as a `chat:sync` event:
 
     ```typescript
     broadcastBloby('chat:sync', {
@@ -368,7 +368,7 @@ For each extracted message, three things happen in parallel:
     }
     ```
 
-    The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Bloby chat.
+    The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Morphy chat.
 
 #### Backend Restart After File Mutations
 

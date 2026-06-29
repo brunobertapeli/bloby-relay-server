@@ -43,7 +43,7 @@ Key points:
 - **Dep optimization** pre-bundles `react`, `react-dom/client`, `lucide-react`, `framer-motion`, `recharts`, `zustand`, and `sonner`.
 - **File watch ignores** database files (`.db`, `.db-journal`, `.db-wal`), log files, `.env`, and the `backend/` directory to avoid unnecessary rebuilds.
 
-In production (dev mode -- Bloby always runs in dev mode), the supervisor spawns Vite internally via `createViteServer()` in `supervisor/vite-dev.ts`. It binds to port `supervisor_port + 2` (e.g., 3002 when supervisor is on 3000) and attaches HMR directly to the supervisor's HTTP server so hot-module replacement works transparently through the proxy.
+In production (dev mode -- Morphy always runs in dev mode), the supervisor spawns Vite internally via `createViteServer()` in `supervisor/vite-dev.ts`. It binds to port `supervisor_port + 2` (e.g., 3002 when supervisor is on 3000) and attaches HMR directly to the supervisor's HTTP server so hot-module replacement works transparently through the proxy.
 
 ## Entry Point and App Structure
 
@@ -77,13 +77,13 @@ The root component handles three concerns:
 1. **Onboarding detection** -- Fetches `/api/settings` on mount. If `onboard_complete !== 'true'`, renders the onboarding wizard as a full-screen iframe (`/bloby/onboard.html`, z-index 200).
 
 2. **Rebuild overlays** -- Listens for `postMessage` events from the chat iframe:
-   - `bloby:rebuilding` -- Shows a loading overlay with the Bloby animation.
+   - `bloby:rebuilding` -- Shows a loading overlay with the Morphy animation.
    - `bloby:rebuilt` -- Dismisses overlay, triggers `location.reload()`.
    - `bloby:build-error` -- Shows error text for 5 seconds.
    - `bloby:hmr-update` -- Logged but not acted on (Vite HMR handles it natively).
    - `bloby:onboard-complete` -- Hides the onboarding iframe.
 
-3. **Error boundary** -- Wraps the entire layout in `<ErrorBoundary>` with a custom fallback (`DashboardError`) that shows the Bloby animation and tells the user to use the chat.
+3. **Error boundary** -- Wraps the entire layout in `<ErrorBoundary>` with a custom fallback (`DashboardError`) that shows the Morphy animation and tells the user to use the chat.
 
 The component tree is:
 
@@ -101,14 +101,14 @@ The component tree is:
 
 **`DashboardLayout`** -- The app shell. Uses `h-dvh` (dynamic viewport height) for proper mobile display. Contains:
 
-- A mobile header (visible `md:hidden`) with `<MobileNav />` hamburger menu and the Bloby logo.
+- A mobile header (visible `md:hidden`) with `<MobileNav />` hamburger menu and the Morphy logo.
 - A desktop sidebar (visible `hidden md:flex`).
 - The main content area with scrollable `<main>` and a sticky `<Footer>`.
 - A health-check poller that pings `/api/health` every 15 seconds and updates the `connected` state passed to `Footer`.
 
 **`Sidebar`** -- 256px-wide sidebar (`w-64`) with:
 
-- Bloby logo and brand name.
+- Morphy logo and brand name.
 - A time-aware greeting ("Good Morning/Afternoon/Evening").
 - Navigation items: Dashboard (active), My Apps (collapsible dropdown), Reports, Research, What Else.
 - Uses `lucide-react` icons (`LayoutDashboard`, `AppWindow`, `BarChart3`, `Search`, `HelpCircle`).

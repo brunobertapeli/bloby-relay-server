@@ -26,7 +26,7 @@ processes. Look for these prefixes to identify the source:
 | `[worker]` | `worker/index.ts` -- API routes, database |
 | `[backend]` | `workspace/backend/index.ts` -- user's custom backend |
 | `[watcher]` | Supervisor file watcher -- `.env` and backend file changes |
-| `[bloby]` | `supervisor/bloby-agent.ts` -- AI agent interactions |
+| `[morphy]` | `supervisor/bloby-agent.ts` -- AI agent interactions |
 
 The user backend also writes logs to `workspace/.backend.log` (cleared on each
 restart).
@@ -65,7 +65,7 @@ This starts on port `5173` with proxying to `localhost:3000` (API) and
 **Chat UI Vite dev server only**:
 
 ```bash
-npx vite --config vite.bloby.config.ts
+npx vite --config vite.chat.config.ts
 ```
 
 ### Common issues and fixes
@@ -73,7 +73,7 @@ npx vite --config vite.bloby.config.ts
 #### `Error: Port 3000 is already in use`
 
 Another process is occupying the port. Either stop it or change `port` in
-`~/.bloby/config.json`.
+`~/.morphy/config.json`.
 
 Find the process:
 
@@ -85,16 +85,16 @@ lsof -i :3000
 netstat -ano | findstr :3000
 ```
 
-#### `No config. Run 'bloby init'.`
+#### `No config. Run 'morphy init'.`
 
-The supervisor cannot find `~/.bloby/config.json`. Create it manually:
+The supervisor cannot find `~/.morphy/config.json`. Create it manually:
 
 ```bash
-mkdir -p ~/.bloby
-echo '{"port":3000,"username":"","ai":{"provider":"","model":"","apiKey":""},"tunnel":{"mode":"off"},"relay":{"token":"","tier":"","url":""}}' > ~/.bloby/config.json
+mkdir -p ~/.morphy
+echo '{"port":3000,"username":"","ai":{"provider":"","model":"","apiKey":""},"tunnel":{"mode":"off"},"relay":{"token":"","tier":"","url":""}}' > ~/.morphy/config.json
 ```
 
-Or run `bloby init` once to generate it interactively.
+Or run `morphy init` once to generate it interactively.
 
 #### `better-sqlite3` build errors
 
@@ -132,18 +132,18 @@ dashboard through a cloudflare tunnel, HMR uses the same origin (no separate
 WebSocket port). This should work out of the box. If it does not, check that
 WebSocket upgrade requests are not being blocked.
 
-#### `dist-bloby/` missing
+#### `dist-chat/` missing
 
 If the chat UI build artifacts are missing, the supervisor tries to build them
 on first run:
 
 ```js
-if (!fs.existsSync(DIST_BLOBY)) {
-  execSync('npx vite build --config vite.bloby.config.ts', { cwd: PKG_DIR });
+if (!fs.existsSync(DIST_CHAT)) {
+  execSync('npx vite build --config vite.chat.config.ts', { cwd: PKG_DIR });
 }
 ```
 
-You can also build manually: `npm run build:bloby`.
+You can also build manually: `npm run build:chat`.
 
 ### Port conflicts
 

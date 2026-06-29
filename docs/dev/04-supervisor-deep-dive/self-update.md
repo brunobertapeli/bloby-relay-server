@@ -2,7 +2,7 @@
 title: "Self-Update"
 ---
 
-The `runDeferredUpdate()` function (lines 683-711) spawns a detached `bloby update`
+The `runDeferredUpdate()` function (lines 683-711) spawns a detached `morphy update`
 process that survives the supervisor's own restart. Platform-specific strategies:
 
 - **Linux**: Uses `sudo systemd-run` to create a transient systemd unit

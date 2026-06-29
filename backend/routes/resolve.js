@@ -156,8 +156,8 @@ export async function lookupBotForWs(username, tier) {
 
 // ─── Subdomain middleware ───────────────────────────────────────────────────
 // Intercepts:
-//   bruno.bloby.bot/*        → premium (username from subdomain)
-//   bruno.at.bloby.bot/*     → free "at" tier (username from subdomain)
+//   bruno.morphyagent.com/*        → premium (username from subdomain)
+//   bruno.at.morphyagent.com/*     → free "at" tier (username from subdomain)
 
 export function subdomainResolver(req, res, next) {
   const domain = process.env.RELAY_DOMAIN;
@@ -183,8 +183,8 @@ export function subdomainResolver(req, res, next) {
 
 // ─── Path-based shortcut: GET /:username ─────────────────────────────────────
 // Redirects:
-//   bloby.bot/bruno      →  bruno.bloby.bot       (premium)
-//   open.bloby.bot/bruno   →  bruno.open.bloby.bot    (free)
+//   morphyagent.com/bruno      →  bruno.morphyagent.com       (premium)
+//   open.morphyagent.com/bruno   →  bruno.open.morphyagent.com    (free)
 
 router.get('/:username', redirectLimiter, async (req, res) => {
   try {
@@ -200,7 +200,7 @@ router.get('/:username', redirectLimiter, async (req, res) => {
       return res.redirect(301, `https://www.${domain}/${username}`);
     }
 
-    // Determine tier from host: open.bloby.bot → free ("at"), bloby.bot → premium
+    // Determine tier from host: open.morphyagent.com → free ("at"), morphyagent.com → premium
     const host = req.hostname;
     const tier = (domain && host === `open.${domain}`) ? 'at' : 'premium';
 

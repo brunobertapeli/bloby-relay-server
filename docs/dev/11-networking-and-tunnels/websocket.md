@@ -2,9 +2,9 @@
 title: "WebSocket Networking"
 ---
 
-Bloby uses WebSockets for two distinct purposes: the Bloby chat interface and Vite Hot Module Replacement (HMR).
+Morphy uses WebSockets for two distinct purposes: the Morphy chat interface and Vite Hot Module Replacement (HMR).
 
-### 6.1 Bloby Chat WebSocket
+### 6.1 Morphy Chat WebSocket
 
 The chat WebSocket is served at the path `/bloby/ws`. It is implemented as a `noServer` WebSocket using the `ws` library:
 
@@ -17,7 +17,7 @@ The supervisor intercepts HTTP upgrade requests in the `server.on('upgrade')` ha
 ```ts
 server.on('upgrade', async (req, socket, head) => {
   if (!req.url?.startsWith('/bloby/ws')) {
-    return; // Let Vite handle non-Bloby upgrades
+    return; // Let Vite handle non-Morphy upgrades
   }
   // Auth check...
   blobyWss.handleUpgrade(req, socket, head, (ws) => {
@@ -63,10 +63,10 @@ Where `hmrServer` is the supervisor's `http.Server` instance. This means the HMR
 
 The `server.on('upgrade')` handler routes upgrade requests:
 
-- If the URL starts with `/bloby/ws`, it is handled by the Bloby chat WebSocket.
+- If the URL starts with `/bloby/ws`, it is handled by the Morphy chat WebSocket.
 - All other upgrade requests fall through to Vite's own upgrade listener (which Vite attached to the server when `hmr.server` was set).
 
-No explicit `clientPort` is configured for HMR. The comment in `vite-dev.ts` explains: "the browser connects on the same origin the page is served from, so it works both locally (localhost:3000) and through the relay (riven.bloby.bot:443)."
+No explicit `clientPort` is configured for HMR. The comment in `vite-dev.ts` explains: "the browser connects on the same origin the page is served from, so it works both locally (localhost:3000) and through the relay (riven.morphyagent.com:443)."
 
 ### 6.3 WebSocket Through Tunnel Considerations
 

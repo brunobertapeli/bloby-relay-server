@@ -6,12 +6,12 @@ title: "Quick Reference"
 
 ```bash
 # Clone and install
-git clone https://github.com/<org>/bloby.git && cd bloby
+git clone https://github.com/<org>/bloby.git && cd morphy
 npm install
 
 # Create config (if it does not exist)
-mkdir -p ~/.bloby
-# Then either run `bloby init` or create config.json manually
+mkdir -p ~/.morphy
+# Then either run `morphy init` or create config.json manually
 
 # Start development
 npm run dev
@@ -24,7 +24,7 @@ npm run dev
 npm run build
 
 # Build chat UI only
-npm run build:bloby
+npm run build:chat
 
 # Start in production mode
 npm start

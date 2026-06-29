@@ -38,8 +38,8 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Overview</h2>
               <p>
-                By using Bloby ("the Service"), you agree to these terms. Bloby is an AI agent
-                platform licensed under the Business Source License (BSL). The hosted version at bloby.bot
+                By using Morphy ("the Service"), you agree to these terms. Morphy is an AI agent
+                platform licensed under the Business Source License (BSL). The hosted version at morphyagent.com
                 is provided as-is. If you don't agree with these terms, please don't use the Service.
               </p>
             </section>
@@ -47,7 +47,7 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">The Software</h2>
               <p>
-                Bloby is distributed under the <strong className="text-foreground">Business Source License (BSL)</strong>.
+                Morphy is distributed under the <strong className="text-foreground">Business Source License (BSL)</strong>.
                 You may use and modify the software for non-production purposes. Production use requires a
                 valid commercial license unless the BSL terms have converted to a permissive license per the
                 schedule defined in the license file. The hosted version we operate is subject to these
@@ -58,7 +58,7 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Handle Reservations</h2>
               <p>
-                Bloby handles (e.g. @yourname) are assigned on a <strong className="text-foreground">first-come, first-served</strong> basis.
+                Morphy handles (e.g. @yourname) are assigned on a <strong className="text-foreground">first-come, first-served</strong> basis.
                 Once a handle is reserved and payment is confirmed, it belongs to your account. We do not
                 guarantee the availability of any specific handle. Handle reservations are non-transferable
                 unless explicitly agreed upon in writing. We reserve the right to reclaim handles that violate
@@ -73,7 +73,7 @@ export default function Terms() {
                   Important: AI Agent Risks & Safety
                 </h2>
                 <p className="mb-4">
-                  Bloby gives your AI agent real capabilities: shell access, file system control, messaging,
+                  Morphy gives your AI agent real capabilities: shell access, file system control, messaging,
                   and more. This is powerful but comes with real risks. <strong className="text-foreground">You
                   are fully responsible for everything your agent does.</strong> Please read this section carefully.
                 </p>
@@ -86,8 +86,8 @@ export default function Terms() {
                   cause data loss, expose sensitive information, or compromise your system.
                 </p>
                 <ul className="list-disc list-inside space-y-1.5 mb-4">
-                  <li><strong className="text-foreground">Use a dedicated machine.</strong> We strongly recommend running Bloby on a separate computer, VM, or container — not your personal workstation. This isolates the blast radius if something goes wrong.</li>
-                  <li><strong className="text-foreground">Limit file system scope.</strong> Bloby operates within its workspace directory. Do not place sensitive files (credentials, personal documents, financial data) in or near this directory.</li>
+                  <li><strong className="text-foreground">Use a dedicated machine.</strong> We strongly recommend running Morphy on a separate computer, VM, or container — not your personal workstation. This isolates the blast radius if something goes wrong.</li>
+                  <li><strong className="text-foreground">Limit file system scope.</strong> Morphy operates within its workspace directory. Do not place sensitive files (credentials, personal documents, financial data) in or near this directory.</li>
                   <li><strong className="text-foreground">Review agent actions.</strong> Monitor what your agent does, especially when first setting it up. Check logs regularly.</li>
                 </ul>
 
@@ -132,12 +132,12 @@ export default function Terms() {
                   <li>Be cautious about what content your agent processes from untrusted sources.</li>
                   <li>Don't give your agent access to sensitive systems it doesn't need.</li>
                   <li>Review your agent's actions regularly, especially after it processes external content.</li>
-                  <li>Use Bloby's portal password and 2FA to prevent unauthorized access to your agent.</li>
+                  <li>Use Morphy's portal password and 2FA to prevent unauthorized access to your agent.</li>
                 </ul>
 
                 <h3 className="text-sm font-semibold text-foreground mt-5 mb-2">Network & Tunnel Exposure</h3>
                 <p>
-                  If you expose your Bloby instance via a tunnel (Cloudflare, etc.), anyone with the URL can
+                  If you expose your Morphy instance via a tunnel (Cloudflare, etc.), anyone with the URL can
                   attempt to access it. <strong className="text-foreground">Always set a strong portal password
                   and enable two-factor authentication.</strong> Without these, your agent's full capabilities —
                   including shell access — are effectively public.
@@ -166,7 +166,7 @@ export default function Terms() {
                 >
                   Alexa Privacy Policy
                 </a>
-                . The skill simply forwards your voice requests to your own self-hosted Bloby agent — we do
+                . The skill simply forwards your voice requests to your own self-hosted Morphy agent — we do
                 not control what your agent does in response. The same{' '}
                 <strong className="text-foreground">AI Agent Risks & Safety</strong> rules above apply: a
                 voice request can trigger any action your agent is capable of, so treat it exactly like a
@@ -175,7 +175,7 @@ export default function Terms() {
               <p>
                 <strong className="text-foreground">
                   Amazon, Alexa, Echo, and all related trademarks are the property of Amazon.com, Inc.
-                  Morphy Agent and Bloby are not affiliated with, endorsed by, or sponsored by Amazon in
+                  Morphy Agent and Morphy are not affiliated with, endorsed by, or sponsored by Amazon in
                   any way.
                 </strong>
               </p>
@@ -196,13 +196,13 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Hosting & Infrastructure</h2>
               <p>
-                The hosted version of Bloby runs on Amazon Web Services (AWS) infrastructure.{' '}
+                The hosted version of Morphy runs on Amazon Web Services (AWS) infrastructure.{' '}
                 <strong className="text-foreground">
                   Amazon Web Services, AWS, and all related trademarks are the property of Amazon.com, Inc.
-                  Bloby is not affiliated with, endorsed by, or sponsored by Amazon or AWS in any way.
+                  Morphy is not affiliated with, endorsed by, or sponsored by Amazon or AWS in any way.
                 </strong>{' '}
                 We simply use their cloud infrastructure to deliver the Service. Any issues with the hosted
-                version of Bloby are our responsibility, not Amazon's.
+                version of Morphy are our responsibility, not Amazon's.
               </p>
             </section>
 
@@ -219,7 +219,7 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Liability</h2>
               <p>
-                Bloby is provided "as is" without warranties of any kind. We are not liable for costs from
+                Morphy is provided "as is" without warranties of any kind. We are not liable for costs from
                 AI providers, actions taken by your agent (including messages sent, files modified, or commands
                 executed), data loss, security breaches, prompt injection attacks, or downtime. Use the
                 Service at your own risk. We strongly recommend following the safety guidelines above.

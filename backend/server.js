@@ -52,7 +52,7 @@ app.use(
       if (!origin) return cb(null, true); // non-browser requests
       if (origin.includes('.up.railway.app')) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
-      // Allow any subdomain of the relay domain (e.g. www.bloby.bot)
+      // Allow any subdomain of the relay domain (e.g. www.morphyagent.com)
       if (relayDomain && origin.endsWith(`.${relayDomain}`)) return cb(null, true);
       // Allow Chrome extension origins
       if (origin.startsWith('chrome-extension://')) return cb(null, true);
@@ -66,7 +66,7 @@ app.use(
 await connect();
 
 // ─── Subdomain resolver (before any route matching) ─────────────────────────
-// Intercepts  username.bloby.bot  →  reverse-proxies to tunnel
+// Intercepts  username.morphyagent.com  →  reverse-proxies to tunnel
 // MUST run before body parsing — express.json() consumes the request stream,
 // which prevents http-proxy from forwarding POST bodies to bot tunnels.
 app.use(subdomainResolver);
@@ -101,8 +101,8 @@ app.use('/api', alexaRoutes);
 app.use('/api', healthRoutes);
 
 // ─── Install scripts ────────────────────────────────────────────────────────
-// curl -fsSL https://bloby.bot/install | sh
-// irm https://bloby.bot/install.ps1 | iex
+// curl -fsSL https://morphyagent.com/install | sh
+// irm https://morphyagent.com/install.ps1 | iex
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,13 +115,13 @@ app.get('/install.ps1', (_req, res) => {
 });
 
 // ─── OAuth code-paste redirect landing page ──────────────────────────────────
-// Shared, permanent redirect target for all Bloby OAuth code-paste flows (Fitbit /
-// Google Health, etc). Google redirects the browser to https://bloby.bot/oauth/connect
+// Shared, permanent redirect target for all Morphy OAuth code-paste flows (Fitbit /
+// Google Health, etc). Google redirects the browser to https://morphyagent.com/oauth/connect
 // after consent; this dumb static page shows the auth tail (search + hash) in a copy
 // box so the user can paste it back into their self-hosted agent. Generic & never
 // changes — each blueprint just registers this URI on its own Google OAuth client.
 //
-// Public + unauthenticated (Google's redirect carries no Bloby session). Both the
+// Public + unauthenticated (Google's redirect carries no Morphy session). Both the
 // bare and trailing-slash forms are served (Google sends exactly what's registered).
 //
 // SECURITY: the query string holds a single-use OAuth `code` — do NOT log _req.url /
@@ -131,7 +131,7 @@ app.get(['/oauth/connect', '/oauth/connect/'], (_req, res) => {
 });
 
 // ─── Bare domain → www redirect ──────────────────────────────────────────────
-// bloby.bot  →  www.bloby.bot  (so visitors see the website, not "Cannot GET /")
+// morphyagent.com  →  www.morphyagent.com  (so visitors see the website, not "Cannot GET /")
 app.get('/', (req, res, next) => {
   const domain = process.env.RELAY_DOMAIN;
   if (domain && req.hostname === domain) {
@@ -141,7 +141,7 @@ app.get('/', (req, res, next) => {
 });
 
 // ─── Path-based fallback (must be last route) ────────────────────────────────
-// Handles  relay.bloby.bot/username  →  reverse-proxies to tunnel
+// Handles  relay.morphyagent.com/username  →  reverse-proxies to tunnel
 app.use('/', resolveRoutes);
 
 // ─── Branded catch-all 404 ───────────────────────────────────────────────────
@@ -231,7 +231,7 @@ server.on('upgrade', async (req, socket, head) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[relay] Bloby relay server listening on :${PORT}`);
+  console.log(`[relay] Morphy relay server listening on :${PORT}`);
 });
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────

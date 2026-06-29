@@ -8,11 +8,11 @@ title: "External Services"
 
 **Binary management** (`supervisor/tunnel.ts`):
 
-- Auto-downloads `cloudflared` to `~/.bloby/bin/` on first run
+- Auto-downloads `cloudflared` to `~/.morphy/bin/` on first run
 - Validates binary by file size (minimum 10 MB -- a valid binary is 30-50 MB)
 - Platform-specific download URLs (Linux amd64/arm64/arm, macOS amd64/arm64, Windows amd64/arm64)
 
-**Two tunnel modes** (selected during `bloby init`):
+**Two tunnel modes** (selected during `morphy init`):
 
 | Mode  | Command                                                          | URL Behavior                                     | Relay Needed                 |
 | ----- | ---------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- |
@@ -29,16 +29,16 @@ title: "External Services"
 - Quick tunnel: re-extracts new URL, updates relay if configured
 - Named tunnel: restarts process, URL is unchanged
 
-### Bloby Relay (Optional)
+### Morphy Relay (Optional)
 
-**Purpose**: Provide a stable `username.bloby.bot` domain that maps to the user's ephemeral Quick Tunnel URL. Not needed for Named Tunnel mode.
+**Purpose**: Provide a stable `username.morphyagent.com` domain that maps to the user's ephemeral Quick Tunnel URL. Not needed for Named Tunnel mode.
 
-**Architecture**: Node.js + Express + `http-proxy` + MongoDB, hosted on Railway at `api.bloby.bot`.
+**Architecture**: Node.js + Express + `http-proxy` + MongoDB, hosted on Railway at `api.morphyagent.com`.
 
 ```plain
 Request Flow Through Relay:
 
-  Browser hits bruno.bloby.bot
+  Browser hits bruno.morphyagent.com
     |
     v
   Subdomain middleware extracts username + tier from hostname
@@ -65,8 +65,8 @@ Request Flow Through Relay:
 
 | Tier    | Subdomain Pattern       | Path Shortcut           | Cost  |
 | ------- | ----------------------- | ----------------------- | ----- |
-| Premium | `username.bloby.bot`    | `bloby.bot/username`    | $5/mo |
-| Free    | `username.open.bloby.bot` | `open.bloby.bot/username` | Free  |
+| Premium | `username.morphyagent.com`    | `morphyagent.com/username`    | $5/mo |
+| Free    | `username.open.morphyagent.com` | `open.morphyagent.com/username` | Free  |
 
 ### Claude API (via Agent SDK)
 

@@ -252,9 +252,9 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
 
   const provisioningSteps = [
     'Spinning up your instance...',
-    'Installing Bloby...',
-    'Initializing Bloby...',
-    'Your Bloby is ready!',
+    'Installing Morphy...',
+    'Initializing Morphy...',
+    'Your Morphy is ready!',
   ]
 
   if (step === 'plan') {
@@ -339,7 +339,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
           <p className="text-xs text-muted-foreground font-display">Sign in to continue</p>
         </div>
         <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Bloby instance</p>
+          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Morphy instance</p>
           <button
             onClick={onLogin}
             className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-white text-[#1a1a1a] font-medium text-sm hover:bg-white/90 transition-colors duration-200"
@@ -438,8 +438,8 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
         >
           <FaCheck className="w-5 h-5 text-emerald-400" />
         </motion.div>
-        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Bloby is ready!</h4>
-        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Bloby at:</p>
+        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Morphy is ready!</h4>
+        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Morphy at:</p>
         <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border mb-4">
           <span className="text-sm font-mono text-[#0069FE]">{tunnelUrl}</span>
           <CopyButton text={tunnelUrl} />
@@ -594,19 +594,19 @@ function Terminal({ user, onLogin, onLogout }) {
 
   const commands = {
     oneliner: [
-      { comment: 'Install & start Bloby in one line', command: 'curl -fsSL https://www.bloby.bot/install | sh' },
+      { comment: 'Install & start Morphy in one line', command: 'curl -fsSL https://www.morphyagent.com/install | sh' },
     ],
     windows: [
-      { comment: 'Install & start Bloby on Windows', command: 'iwr -useb https://www.bloby.bot/install.ps1 | iex', prompt: '>' },
+      { comment: 'Install & start Morphy on Windows', command: 'iwr -useb https://www.morphyagent.com/install.ps1 | iex', prompt: '>' },
     ],
     npm: [
-      { comment: 'Install Bloby', command: 'npm i -g bloby-bot' },
-      { comment: 'Launch your workspace', command: 'bloby init' },
+      { comment: 'Install Morphy', command: 'npm i -g morphyagent' },
+      { comment: 'Launch your workspace', command: 'morphy init' },
     ],
     hackable: [
       { comment: 'Clone the repo', command: 'git clone https://github.com/bloby-ai/bloby.git' },
-      { comment: 'Install dependencies', command: 'cd bloby && npm install' },
-      { comment: 'Start Bloby', command: 'npm run dev' },
+      { comment: 'Install dependencies', command: 'cd morphy && npm install' },
+      { comment: 'Start Morphy', command: 'npm run dev' },
     ],
   }
 
@@ -938,7 +938,7 @@ function Terminal({ user, onLogin, onLogout }) {
               </div>
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
-              Fully managed Bloby instance on AWS. No setup, no maintenance.
+              Fully managed Morphy instance on AWS. No setup, no maintenance.
             </p>
           </motion.div>
         ) : (
@@ -1020,18 +1020,18 @@ function Features() {
     {
       image: '/assets/images/icons/sandbox.png',
       title: 'Full-stack sandbox',
-      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Bloby adds them as modules to your workspace.'
+      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Morphy adds them as modules to your workspace.'
     },
     {
       image: '/assets/images/icons/chat.png',
       title: 'Indestructible chat',
-      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Bloby and ask for fixes.',
+      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Morphy and ask for fixes.',
       scale: 'scale-105',
     },
     {
       image: '/assets/images/icons/miniapps.png',
       title: 'Mini apps on demand',
-      description: '"I need a calorie counter." Bloby builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
+      description: '"I need a calorie counter." Morphy builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
     },
     {
       image: '/assets/images/icons/hardware.png',
@@ -1041,7 +1041,7 @@ function Features() {
     {
       image: '/assets/images/icons/voice.png',
       title: 'Voice & mobile-first',
-      description: 'A PWA you install like a native app. Send voice messages, and Bloby transcribes them with Whisper. It\'s like talking to your codebase.'
+      description: 'A PWA you install like a native app. Send voice messages, and Morphy transcribes them with Whisper. It\'s like talking to your codebase.'
     },
     {
       image: '/assets/images/icons/secure.png',
@@ -1062,7 +1062,7 @@ function Features() {
             Not just a chat. <span className="text-gradient">A whole app.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Other agents live in your terminal. Bloby lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
+            Other agents live in your terminal. Morphy lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
           </p>
         </motion.div>
 
@@ -1100,7 +1100,7 @@ function UseCases() {
     },
     {
       label: 'Team research hub',
-      description: 'Your agent runs daily lead research. Your team checks the findings at bloby.bot/companybot every morning.',
+      description: 'Your agent runs daily lead research. Your team checks the findings at morphyagent.com/companybot every morning.',
     },
     {
       label: 'Public showcase',
@@ -1173,7 +1173,7 @@ function HowItWorks() {
       num: '01',
       title: 'Install',
       description: 'One command. Mac, Windows, Linux. The installer handles everything, Node.js included.',
-      detail: 'bloby init'
+      detail: 'morphy init'
     },
     {
       num: '02',
@@ -1185,7 +1185,7 @@ function HowItWorks() {
       num: '03',
       title: 'Use it everywhere',
       description: 'Open it from your phone, laptop, anywhere. A PWA that\'s always on, always yours.',
-      detail: 'bloby.bot/yourname'
+      detail: 'morphyagent.com/yourname'
     },
   ]
 
@@ -1261,7 +1261,7 @@ function OpenSource() {
             <span className="text-gradient">Owned by everyone.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
-            Bloby is fully open source. Fork it, run it, break it, rebuild it.
+            Morphy is fully open source. Fork it, run it, break it, rebuild it.
             The best tools are the ones the community shapes together.
           </p>
 
@@ -1288,7 +1288,7 @@ function OpenSource() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
             <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
-              Install Bloby
+              Install Morphy
               <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
             </a>
             <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
@@ -1314,11 +1314,11 @@ function BlobyWorldSection() {
           variants={fadeUp}
         >
           <div className="mx-auto mb-5 sm:mb-6">
-            <img src="/assets/images/morphy.png" alt="Bloby" className="h-16 sm:h-20 w-auto mx-auto" />
+            <img src="/assets/images/morphy.png" alt="Morphy" className="h-16 sm:h-20 w-auto mx-auto" />
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Bloby World
+            Morphy World
           </h2>
 
           <span className="inline-flex items-center h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-medium font-display mb-4">
@@ -1350,7 +1350,7 @@ function Footer() {
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/assets/images/morphy_mascot.png" alt="Bloby" className="h-8 w-auto" />
+              <img src="/assets/images/morphy_mascot.png" alt="Morphy" className="h-8 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               AI agent platform under BSL. Your agent, your rules.
@@ -1372,7 +1372,7 @@ function Footer() {
               <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
               <li><a href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Marketplace</a></li>
               <li><a href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Docs</a></li>
-              <li><a href="/world" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Bloby World</a></li>
+              <li><a href="/world" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Morphy World</a></li>
             </ul>
           </div>
 
@@ -1398,7 +1398,7 @@ function Footer() {
         {/* Bottom bar */}
         <div className="pt-6 border-t border-border/20 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground/60">
-            &copy; {new Date().getFullYear()} Bloby. Licensed under BSL.
+            &copy; {new Date().getFullYear()} Morphy. Licensed under BSL.
           </p>
           <div className="flex items-center gap-4">
             <a href="/terms" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Terms</a>
@@ -1608,7 +1608,7 @@ function BotRedirect() {
   useEffect(() => {
     const slug = pathname.replace(/^\//, '')
     if (slug) {
-      window.location.replace(`https://bloby.bot/${slug}`)
+      window.location.replace(`https://morphyagent.com/${slug}`)
     }
   }, [pathname])
   return null

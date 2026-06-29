@@ -1,16 +1,16 @@
-# Bloby managed-instance Caddyfile — baked into the golden AMI at /etc/caddy/Caddyfile.
+# Morphy managed-instance Caddyfile — baked into the golden AMI at /etc/caddy/Caddyfile.
 #
 # Each managed box serves exactly ONE bot. Cloudflare (orange-cloud) terminates the
-# public TLS for mybot.bloby.bot and proxies to this origin over HTTPS using a
+# public TLS for mybot.morphyagent.com and proxies to this origin over HTTPS using a
 # Cloudflare Origin certificate. Caddy here just:
-#   - terminates that origin TLS with the *.bloby.bot Origin cert (15-yr, same on
+#   - terminates that origin TLS with the *.morphyagent.com Origin cert (15-yr, same on
 #     every box — baked into the AMI),
 #   - requires Cloudflare's client certificate (Authenticated Origin Pulls) so ONLY
 #     Cloudflare can reach the origin, and
 #   - reverse-proxies everything (HTTP + WebSocket upgrades) to the supervisor on
 #     127.0.0.1:7400.
 #
-# Set Cloudflare SSL/TLS mode to "Full (strict)" for the bloby.bot zone.
+# Set Cloudflare SSL/TLS mode to "Full (strict)" for the morphyagent.com zone.
 
 {
 	# We use the long-lived Cloudflare Origin cert, not ACME — disable auto-HTTPS.
@@ -22,7 +22,7 @@
 }
 
 # Match all hostnames on :443 — Cloudflare already routed the correct
-# mybot.bloby.bot A-record to this box, and AOP guarantees the caller is CF.
+# mybot.morphyagent.com A-record to this box, and AOP guarantees the caller is CF.
 https:// {
 	tls /etc/caddy/cf-origin.pem /etc/caddy/cf-origin.key {
 		client_auth {

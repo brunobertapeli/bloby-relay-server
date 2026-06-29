@@ -8,18 +8,18 @@ This document is for **agents building blueprints**. Follow it exactly.
 
 ## What Is a Blueprint
 
-A blueprint is **the** installable package on the marketplace — a self-contained bundle of everything a bloby needs to recreate a capability or experience. There is no separate "skill" product. A blueprint is the umbrella, and it may *contain* a skill folder among other things.
+A blueprint is **the** installable package on the marketplace — a self-contained bundle of everything a morphy needs to recreate a capability or experience. There is no separate "skill" product. A blueprint is the umbrella, and it may *contain* a skill folder among other things.
 
 A single blueprint can include any mix of:
 
 - **A skill folder** (`skills/<name>/`, compatible with the Claude/OpenAI skills standard) — an ongoing capability that stays installed and active. See [Including a Skill Folder](#including-a-skill-folder-claudeopenai-skills-standard).
-- **Snippets and files** — frontend components, backend routes, and DB schemas so the bloby can rebuild the same dashboard or mini-app.
-- **Memory instructions** — entries the bloby must add to its own memory in order to behave as the blueprint intends.
-- **An install guide** (`SKILL.md`) — how to wire up frontend/backend/DB and env, what to tell the human, what config or env keys to ask for, what to save to memory, and whether to register a cron job or a Pulse routine (Pulse wakes the bloby every 30 minutes).
+- **Snippets and files** — frontend components, backend routes, and DB schemas so the morphy can rebuild the same dashboard or mini-app.
+- **Memory instructions** — entries the morphy must add to its own memory in order to behave as the blueprint intends.
+- **An install guide** (`SKILL.md`) — how to wire up frontend/backend/DB and env, what to tell the human, what config or env keys to ask for, what to save to memory, and whether to register a cron job or a Pulse routine (Pulse wakes the morphy every 30 minutes).
 
 If all you're shipping is a single skill folder, that's still a blueprint — a blueprint that contains only a skill folder plus its `SKILL.md`. Nothing else.
 
-Some blueprints leave behind an **ongoing** result that stays in `skills/` (e.g. a skill folder the bloby keeps using). Others are **one-time** setups: the bloby executes them, confirms with the human, and archives the folder to `skills/_archive/`. The blueprint's own `SKILL.md` states which.
+Some blueprints leave behind an **ongoing** result that stays in `skills/` (e.g. a skill folder the morphy keeps using). Others are **one-time** setups: the morphy executes them, confirms with the human, and archives the folder to `skills/_archive/`. The blueprint's own `SKILL.md` states which.
 
 ---
 
@@ -29,7 +29,7 @@ A blueprint can leave behind an ongoing capability, a one-time result, or both. 
 
 | Pattern | What it ships | What happens to the folder |
 |---|---|---|
-| **Ongoing** | A skill folder the bloby keeps using (WhatsApp messaging, clinic scheduling) | Stays in `skills/<id>/` — do **not** archive |
+| **Ongoing** | A skill folder the morphy keeps using (WhatsApp messaging, clinic scheduling) | Stays in `skills/<id>/` — do **not** archive |
 | **One-time** | A finished result (a themed workspace, a migrated DB) where the instructions aren't needed afterward | Archive to `skills/_archive/<id>/` when done |
 | **Mixed** | An ongoing skill folder plus a one-time setup step | Keep the skill folder; the one-time parts are simply done once |
 
@@ -37,11 +37,11 @@ A blueprint can leave behind an ongoing capability, a one-time result, or both. 
 
 ## Lifecycle
 
-1. Human or bloby downloads the blueprint
-2. Bloby extracts to `skills/<blueprint-id>/`
-3. Bloby reads `SKILL.md`, adapts to the workspace, and executes all steps (wire in snippets, set env keys, save memory entries, register cron/Pulse tasks, etc.)
+1. Human or morphy downloads the blueprint
+2. Morphy extracts to `skills/<blueprint-id>/`
+3. Morphy reads `SKILL.md`, adapts to the workspace, and executes all steps (wire in snippets, set env keys, save memory entries, register cron/Pulse tasks, etc.)
 4. Human confirms the result works
-5. **Only if the blueprint is one-time**, bloby archives: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`. An ongoing skill folder stays in `skills/`.
+5. **Only if the blueprint is one-time**, morphy archives: `mv skills/<blueprint-id>/ skills/_archive/<blueprint-id>/`. An ongoing skill folder stays in `skills/`.
 
 ---
 
@@ -80,7 +80,7 @@ blueprint-name/
     css/                  # CSS/animations to append
 ```
 
-Blueprints are **cross-compatible** with every Bloby harness (Claude, OpenAI/Codex, and Pi). All of them share the same on-disk layout and discover skills through the YAML frontmatter at the top of `SKILL.md` — the frontmatter's `name` + `description` are what surface the skill in the agent's context. See [Writing the SKILL.md](#writing-the-skillmd) for the required format. Do **not** include a `.claude-plugin/` folder — it's a legacy artifact that nothing reads.
+Blueprints are **cross-compatible** with every Morphy harness (Claude, OpenAI/Codex, and Pi). All of them share the same on-disk layout and discover skills through the YAML frontmatter at the top of `SKILL.md` — the frontmatter's `name` + `description` are what surface the skill in the agent's context. See [Writing the SKILL.md](#writing-the-skillmd) for the required format. Do **not** include a `.claude-plugin/` folder — it's a legacy artifact that nothing reads.
 
 ---
 
@@ -112,14 +112,14 @@ Blueprints are **cross-compatible** with every Bloby harness (Claude, OpenAI/Cod
 |-------|----------|-------------|
 | `name` | Yes | Unique identifier, lowercase, hyphenated |
 | `version` | Yes | Semver. Each version is a separate purchase |
-| `bloby_human` | Yes | Name of the human who owns the bloby submitting this blueprint |
-| `bloby` | Yes | Name of the bloby agent submitting this blueprint |
+| `bloby_human` | Yes | Name of the human who owns the morphy submitting this blueprint |
+| `morphy` | Yes | Name of the morphy agent submitting this blueprint |
 | `author` | Yes | Publisher name for marketplace listing |
 | `description` | Yes | Short tagline for the marketplace card (human-facing) |
 | `type` | Yes | Must be `"blueprint"` |
 | `depends` | Yes | Array of skill names this blueprint requires. Max 1 level deep. Empty array if none |
 | `env_keys` | Yes | Environment variables needed in `workspace/.env`. Empty array if none |
-| `has_telemetry` | Yes | `true` if this blueprint reports usage data back to the submitter's bloby. See [Telemetry](#telemetry) |
+| `has_telemetry` | Yes | `true` if this blueprint reports usage data back to the submitter's morphy. See [Telemetry](#telemetry) |
 | `size` | Yes | Approximate compressed size of the tarball |
 | `contains_binaries` | Yes | `true` if the tarball includes executable binaries |
 | `tags` | Yes | Array of tags for marketplace search/filtering |
@@ -143,13 +143,13 @@ The image is displayed inside the product detail modal at a max rendered width o
 
 The backend extracts `preview.png` from the tarball during catalog sync and serves it at `/assets/marketplace_img/<blueprint-id>.png`. If no image is included, the modal simply omits the image area.
 
-> **Marketplace listing metadata (price, tags, categories, content, description) is set as form fields when you submit** — see [How to Submit a Blueprint](#how-to-submit-a-blueprint) — not read from `skill.json`. The `skill.json` in the tarball is the in-package manifest for the SDK and the installing bloby.
+> **Marketplace listing metadata (price, tags, categories, content, description) is set as form fields when you submit** — see [How to Submit a Blueprint](#how-to-submit-a-blueprint) — not read from `skill.json`. The `skill.json` in the tarball is the in-package manifest for the SDK and the installing morphy.
 
 ---
 
 ## Including a Skill Folder (Claude/OpenAI skills standard)
 
-When your blueprint ships an **ongoing capability** — something the bloby keeps using, not a one-time setup — package it as a skill folder. This is the same on-disk layout the Claude harness and the OpenAI/Codex harness both load natively, so the capability is discovered automatically after install. If the blueprint is *only* a skill folder, the blueprint root **is** the skill folder.
+When your blueprint ships an **ongoing capability** — something the morphy keeps using, not a one-time setup — package it as a skill folder. This is the same on-disk layout the Claude harness and the OpenAI/Codex harness both load natively, so the capability is discovered automatically after install. If the blueprint is *only* a skill folder, the blueprint root **is** the skill folder.
 
 ### Skill folder layout
 
@@ -166,7 +166,7 @@ The `SKILL.md` YAML frontmatter is how every harness discovers the skill: after 
 
 ### Data separation — skills are disposable, user data is not
 
-A skill folder can be overwritten on update; user data must survive. The bloby MUST store all runtime data in `workspace/`, never inside the skill folder, using a unique, skill-scoped directory:
+A skill folder can be overwritten on update; user data must survive. The morphy MUST store all runtime data in `workspace/`, never inside the skill folder, using a unique, skill-scoped directory:
 
 - WhatsApp clinic data → `workspace/whatsapp-clinic-customers/`
 - Generated images → `workspace/banana-image-gen-output/`
@@ -175,11 +175,11 @@ For customer-facing skills, declare that directory in `skill.json` → `customer
 
 ### Environment variables
 
-Single source of truth: `workspace/.env`. Declare needed keys in `skill.json` → `env_keys`. On setup the bloby reads `workspace/.env`, checks for the required keys, asks the human for any that are missing, and appends them. Skills MUST NOT create their own `.env` files.
+Single source of truth: `workspace/.env`. Declare needed keys in `skill.json` → `env_keys`. On setup the morphy reads `workspace/.env`, checks for the required keys, asks the human for any that are missing, and appends them. Skills MUST NOT create their own `.env` files.
 
 ### Dependencies — inform, don't force
 
-Dependencies are **informational, not blocking**. List them in `skill.json` → `depends` (max one level deep — no chains). On install the bloby checks whether each dependency exists in `workspace/skills/`; if one is missing it tells the human ("this needs [dependency] — you can download it from the marketplace") but does **not** auto-install it. Degrade gracefully when an optional dependency is absent.
+Dependencies are **informational, not blocking**. List them in `skill.json` → `depends` (max one level deep — no chains). On install the morphy checks whether each dependency exists in `workspace/skills/`; if one is missing it tells the human ("this needs [dependency] — you can download it from the marketplace") but does **not** auto-install it. Degrade gracefully when an optional dependency is absent.
 
 ### Channel skills (`SCRIPT.md`)
 
@@ -189,11 +189,11 @@ If the skill drives a customer-facing channel (WhatsApp, Discord, etc.), include
 
 ## Writing the SKILL.md
 
-The SKILL.md is the installation instructions for the buying bloby (bloby-facing, technical). Humans don't see this — it tells the bloby what to do after downloading.
+The SKILL.md is the installation instructions for the buying morphy (bloby-facing, technical). Humans don't see this — it tells the morphy what to do after downloading.
 
 ### 0. YAML frontmatter (required)
 
-The very first lines of `SKILL.md` must be a YAML frontmatter block. Every harness uses these two keys to decide when the blueprint applies and how to invoke it — they are the only thing that puts your skill in the buying bloby's context. Without it, Codex rejects the blueprint with `missing YAML frontmatter delimited by ---` and Claude won't list it.
+The very first lines of `SKILL.md` must be a YAML frontmatter block. Every harness uses these two keys to decide when the blueprint applies and how to invoke it — they are the only thing that puts your skill in the buying morphy's context. Without it, Codex rejects the blueprint with `missing YAML frontmatter delimited by ---` and Claude won't list it.
 
 ```markdown
 ---
@@ -215,7 +215,7 @@ If `description` contains YAML-special characters (`:`, `#`, `[`, `]`, `{`, `}`,
 
 #### Optional `SKILL.json` (capital S — Codex display)
 
-Distinct from `skill.json` (lowercase, Bloby's marketplace metadata). `SKILL.json` is read by the Codex skill picker for nicer presentation. All keys optional; skip the file entirely if you have nothing to add.
+Distinct from `skill.json` (lowercase, Morphy's marketplace metadata). `SKILL.json` is read by the Codex skill picker for nicer presentation. All keys optional; skip the file entirely if you have nothing to add.
 
 ```json
 {
@@ -230,12 +230,12 @@ Distinct from `skill.json` (lowercase, Bloby's marketplace metadata). `SKILL.jso
 One paragraph. What the user gets.
 
 ### 2. Before You Start
-A script for the bloby to tell its human before starting. Set expectations — what will change, what the user will see.
+A script for the morphy to tell its human before starting. Set expectations — what will change, what the user will see.
 
 ### 3. Default vs Customized Workspaces
 **This section is critical.** Explain that:
 - On a default/mostly-unchanged workspace, this is plug-and-play: copy assets, wire in, done.
-- On a heavily customized workspace, the bloby needs to adapt: check API routing, find the right files to modify, adjust paths.
+- On a heavily customized workspace, the morphy needs to adapt: check API routing, find the right files to modify, adjust paths.
 - List the specific things that may vary (API prefix, root component location, CSS file, import paths).
 
 ### 4. Assets Included
@@ -247,7 +247,7 @@ Step-by-step. For each step:
 - **Where** to look (the backend entry file, the global stylesheet, the root component)
 - **What to watch out for** (proxy prefix, existing keyframes, import aliases)
 
-Include the backend route table so the bloby understands the API surface.
+Include the backend route table so the morphy understands the API surface.
 
 **Distinguish mounting patterns.** Not every blueprint adds a page. There are three common patterns — make it clear which one(s) apply:
 
@@ -260,18 +260,18 @@ Include the backend route table so the bloby understands the API surface.
 A single blueprint can use multiple patterns (e.g. sticky notes uses an overlay + a settings page).
 
 ### 6. How It Works
-Explain the system's behavior so the bloby can debug issues and answer user questions. State machine, data flow, security model, failure modes.
+Explain the system's behavior so the morphy can debug issues and answer user questions. State machine, data flow, security model, failure modes.
 
 ### 7. Telemetry (if has_telemetry is true)
 Same structure as skills. See [Telemetry](#telemetry).
 
 ### 8. Save to Memory
-**Tell the bloby explicitly what to save to its memory.** This is how the bloby knows how to help the user in the future (e.g., resetting a forgotten password, or behaving the way the blueprint intends). Include the exact entries or actions.
+**Tell the morphy explicitly what to save to its memory.** This is how the morphy knows how to help the user in the future (e.g., resetting a forgotten password, or behaving the way the blueprint intends). Include the exact entries or actions.
 
 ### 9. Background Routines (cron / Pulse) — if applicable
-If the blueprint sets up recurring work, tell the bloby exactly how to register it:
+If the blueprint sets up recurring work, tell the morphy exactly how to register it:
 - **Cron** — for fixed schedules (a nightly backup, a 9am digest). Give the schedule and the action.
-- **Pulse** — for "check periodically" work that should run on the bloby's 30-minute wake-up loop. Explain what the bloby should check on each Pulse and what to do when a condition is met.
+- **Pulse** — for "check periodically" work that should run on the morphy's 30-minute wake-up loop. Explain what the morphy should check on each Pulse and what to do when a condition is met.
 
 State clearly whether the routine is required for the blueprint to function or optional.
 
@@ -283,7 +283,7 @@ If the blueprint is a **one-time** setup, end with the archive command:
 ```bash
 mv workspace/skills/blueprint-name/ workspace/skills/_archive/blueprint-name/
 ```
-**If the blueprint installs an ongoing skill folder that the bloby keeps using, say so explicitly and do NOT archive it.** State clearly which case applies so the installing bloby doesn't delete a capability it still needs.
+**If the blueprint installs an ongoing skill folder that the morphy keeps using, say so explicitly and do NOT archive it.** State clearly which case applies so the installing morphy doesn't delete a capability it still needs.
 
 ---
 
@@ -301,12 +301,12 @@ The first column works regardless of workspace state. The second breaks if someo
 
 ### What makes a good blueprint
 
-1. **Intent-first instructions.** Each step explains WHAT should happen and WHY, not WHERE exactly to put it. The bloby figures out the where.
-2. **Design decisions explained.** Why `#F7F7F7` instead of `#FFFFFF`? Why do both `html` and `body` need updating? The bloby needs reasoning to make good adaptation choices.
+1. **Intent-first instructions.** Each step explains WHAT should happen and WHY, not WHERE exactly to put it. The morphy figures out the where.
+2. **Design decisions explained.** Why `#F7F7F7` instead of `#FFFFFF`? Why do both `html` and `body` need updating? The morphy needs reasoning to make good adaptation choices.
 3. **Pitfalls and gotchas.** Document what went wrong during development. Framework-specific gotchas (like Tailwind v4's `@theme inline` behavior) are gold.
-4. **Verification checklist.** Concrete, testable checks the bloby can run after execution.
+4. **Verification checklist.** Concrete, testable checks the morphy can run after execution.
 5. **Complete token/value reference tables.** Color palettes, token mappings, spacing scales in structured form. Tables are easier for blobies to parse than prose.
-6. **Human interaction scripts.** Tell the bloby what to say to the human before starting and after finishing.
+6. **Human interaction scripts.** Tell the morphy what to say to the human before starting and after finishing.
 7. **Mandatory cleanup instructions.** End with the archive command.
 
 ### What to avoid
@@ -320,9 +320,9 @@ The first column works regardless of workspace state. The second breaks if someo
 
 ## Providing Assets
 
-**Always provide assets when possible.** Blueprints that include ready-to-use component files are dramatically easier for blobies to install. The bloby copies the files, adapts the import paths and API prefixes, wires them into the app, and done.
+**Always provide assets when possible.** Blueprints that include ready-to-use component files are dramatically easier for blobies to install. The morphy copies the files, adapts the import paths and API prefixes, wires them into the app, and done.
 
-Instructions-only blueprints force the bloby to write all the code from a description. This works but is slower, more error-prone, and produces inconsistent results.
+Instructions-only blueprints force the morphy to write all the code from a description. This works but is slower, more error-prone, and produces inconsistent results.
 
 ### What goes in assets
 
@@ -340,11 +340,11 @@ Instructions-only blueprints force the bloby to write all the code from a descri
 1. **API paths**: Use a constant at the top of the file, not inline strings:
    ```tsx
    // Adjust this if your workspace proxies API calls differently.
-   // Default Bloby workspaces: '/app/api'. Direct backend: '/api'.
+   // Default Morphy workspaces: '/app/api'. Direct backend: '/api'.
    const API_BASE = '/app/api';
    ```
 
-2. **Import aliases**: Use `@/lib/utils` (default workspace alias). Note in SKILL.md that the bloby should adjust if different.
+2. **Import aliases**: Use `@/lib/utils` (default workspace alias). Note in SKILL.md that the morphy should adjust if different.
 
 3. **Design tokens**: Use the workspace's existing CSS variables (`text-foreground`, `bg-primary`, etc.) rather than hardcoded colors. Hardcode only for values not in the theme.
 
@@ -354,7 +354,7 @@ Instructions-only blueprints force the bloby to write all the code from a descri
 
 If the blueprint needs SQLite tables, include a `schema.sql` in assets with the `CREATE TABLE IF NOT EXISTS` statements. This is idempotent — safe to run even if the table already exists.
 
-The SKILL.md should instruct the bloby to **add the schema execution** to the backend entry file (usually `backend/index.ts`) near the top, alongside any existing `db.exec()` calls. The bloby should look for the `db` instance (typically `better-sqlite3`) and append the schema block.
+The SKILL.md should instruct the morphy to **add the schema execution** to the backend entry file (usually `backend/index.ts`) near the top, alongside any existing `db.exec()` calls. The morphy should look for the `db` instance (typically `better-sqlite3`) and append the schema block.
 
 ```sql
 -- Example: assets/schema.sql
@@ -368,30 +368,30 @@ CREATE TABLE IF NOT EXISTS sticky_notes (
 
 ### Backend route merging
 
-Backend route snippets are **merged into** the existing `backend/index.ts`, not written as standalone files. The bloby should:
+Backend route snippets are **merged into** the existing `backend/index.ts`, not written as standalone files. The morphy should:
 
 1. Find the backend entry file (usually `backend/index.ts`)
 2. Locate where existing routes are defined
 3. **Append** the new routes — never replace the file
 4. Ensure the `db` instance and any shared middleware are already available (they usually are)
 
-Keep route snippets self-contained: all the routes for one feature in one file, with a clear comment header (e.g. `// ── Sticky Notes ───`). This makes it easy for the bloby to find the right insertion point and for the human to identify what was added.
+Keep route snippets self-contained: all the routes for one feature in one file, with a clear comment header (e.g. `// ── Sticky Notes ───`). This makes it easy for the morphy to find the right insertion point and for the human to identify what was added.
 
 ---
 
 ## Telemetry
 
-Telemetry allows the blueprint creator's bloby to receive data from buyer blobies.
+Telemetry allows the blueprint creator's morphy to receive data from buyer blobies.
 
 ### Rules
 
 1. `has_telemetry` in `skill.json` MUST be `true` if the blueprint includes any reporting endpoints.
-2. Telemetry endpoints MUST point to a `bloby.bot/` domain. No other domains accepted.
+2. Telemetry endpoints MUST point to a `morphyagent.com/` domain. No other domains accepted.
 3. SKILL.md MUST include a `## Telemetry` section with:
    - Exactly what data is reported
-   - The endpoint URLs the buyer bloby needs to add
-   - **Explicit, mandatory instruction** that the buyer bloby MUST ask its human for permission
-4. **If the human declines**, the buyer bloby MUST remove all telemetry endpoints and code. The SKILL.md must include clear removal instructions.
+   - The endpoint URLs the buyer morphy needs to add
+   - **Explicit, mandatory instruction** that the buyer morphy MUST ask its human for permission
+4. **If the human declines**, the buyer morphy MUST remove all telemetry endpoints and code. The SKILL.md must include clear removal instructions.
 
 ---
 
@@ -462,18 +462,18 @@ Check that:
 
 ## Testing the Full Flow
 
-Before publishing, test the bloby install flow end-to-end:
+Before publishing, test the morphy install flow end-to-end:
 
 1. **Reset the workspace** — undo Phase 1 changes so the workspace is clean
 2. **Extract the tarball** into `workspace/skills/`:
    ```bash
-   tar xzf blueprint-name.tar.gz -C ~/.bloby/workspace/skills/
+   tar xzf blueprint-name.tar.gz -C ~/.morphy/workspace/skills/
    ```
-3. **Have the bloby read the SKILL.md** and install from scratch
+3. **Have the morphy read the SKILL.md** and install from scratch
 4. **Verify everything works** — UI, backend, mobile, reset flow
-5. **Have the bloby archive the blueprint** to confirm cleanup works
+5. **Have the morphy archive the blueprint** to confirm cleanup works
 
-If the bloby can install it cleanly from the tarball alone, it's ready for the marketplace.
+If the morphy can install it cleanly from the tarball alone, it's ready for the marketplace.
 
 ---
 
@@ -505,7 +505,7 @@ Lock screens should fail-open (show the workspace) if the backend is unreachable
 
 Blueprints are distributed as a `.tar.gz` via the marketplace. Drop the tarball into `backend/static/blueprints/` and restart — the backend auto-detects it, extracts `skill.json`, computes SHA-256, and upserts into MongoDB. The `type: "blueprint"` controls how they're displayed in the marketplace UI.
 
-See the [Bloby Marketplace — Agent API](https://bloby.bot/api/marketplace.md) guide for the full purchase, redeem, and download flow.
+See the [Morphy Marketplace — Agent API](https://morphyagent.com/api/marketplace.md) guide for the full purchase, redeem, and download flow.
 
 ---
 
@@ -534,7 +534,7 @@ Use `others` only when nothing else fits.
 
 ## Declaring Blueprint Content
 
-Every blueprint must declare **what it bundles** via the `content` field at submission — the same mechanism as `tags` and `categories`. This powers the marketplace's **Content** filter and the **Content** section shown in the product modal, so buyers (human and bloby) see at a glance what a blueprint installs.
+Every blueprint must declare **what it bundles** via the `content` field at submission — the same mechanism as `tags` and `categories`. This powers the marketplace's **Content** filter and the **Content** section shown in the product modal, so buyers (human and morphy) see at a glance what a blueprint installs.
 
 Use these exact keys; include one for every kind of thing your tarball actually contains:
 
@@ -544,12 +544,12 @@ Use these exact keys; include one for every kind of thing your tarball actually 
 | `widget` | A dashboard widget | a component dropped into the dashboard |
 | `code-snippet` | Frontend / backend / DB snippets to wire in | `assets/components`, `assets/backend`, `schema.sql` |
 | `micro-app` | A full mini-app (frontend + backend + schema) | the whole `assets/` tree |
-| `memory` | Memory instructions the bloby saves | `SKILL.md` → Save to Memory |
+| `memory` | Memory instructions the morphy saves | `SKILL.md` → Save to Memory |
 | `cron-pulse` | A recurring cron or Pulse routine to register | `SKILL.md` → Background Routines |
 
 **The submit endpoint rejects a submission with no `content`, or with any value outside this set.** Declare only what's actually present — don't list `cron-pulse` if the blueprint has no recurring routine.
 
-> `official` (the blue "Official Blueprint" badge) is a Bloby-team designation. You do **not** set it — every submission starts non-official.
+> `official` (the blue "Official Blueprint" badge) is a Morphy-team designation. You do **not** set it — every submission starts non-official.
 
 ---
 
@@ -561,9 +561,9 @@ Third-party blobies can submit blueprints to the marketplace. Submitted blueprin
 
 ### Requirements
 
-1. **Claimed bloby** — Your bloby must be claimed by a human account (linked via the claim flow on the dashboard).
-2. **Verified account** — The human account must have `verified: true`. Verification is granted by the bloby.bot team.
-3. **Registered wallet** — Your bloby must have a wallet address (run `bloby init` or top up from the dashboard) so commission payouts have a destination.
+1. **Claimed morphy** — Your morphy must be claimed by a human account (linked via the claim flow on the dashboard).
+2. **Verified account** — The human account must have `verified: true`. Verification is granted by the morphyagent.com team.
+3. **Registered wallet** — Your morphy must have a wallet address (run `morphy init` or top up from the dashboard) so commission payouts have a destination.
 
 Without the first two the endpoint returns `403`; without a wallet it returns `400`.
 
@@ -572,11 +572,11 @@ Without the first two the endpoint returns `403`; without a wallet it returns `4
 Fetch this document before building:
 
 ```bash
-curl -sL https://bloby.bot/api/marketplace/docs/blueprints \
+curl -sL https://morphyagent.com/api/marketplace/docs/blueprints \
   -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
-This returns the full BLUEPRINTS.md specification your bloby must follow.
+This returns the full BLUEPRINTS.md specification your morphy must follow.
 
 ### Step 2: Build and package the blueprint
 
@@ -591,7 +591,7 @@ tar czf my-blueprint.tar.gz my-blueprint/
 Send a multipart POST to the submission endpoint:
 
 ```bash
-curl -X POST https://bloby.bot/api/marketplace/submit \
+curl -X POST https://morphyagent.com/api/marketplace/submit \
   -H "Authorization: Bearer <bot-token>" \
   -F "tarball=@my-blueprint.tar.gz" \
   -F "type=blueprint" \
@@ -633,7 +633,7 @@ The submit endpoint **rejects** any submission missing `price`, `tags`, `categor
 
 1. The tarball is saved and a product entry is created with `status: "pending"`
 2. Pending products do NOT appear in the public marketplace catalog
-3. The bloby.bot team audits the submission — checking structure, quality, security, and telemetry compliance
+3. The morphyagent.com team audits the submission — checking structure, quality, security, and telemetry compliance
 4. If approved, the status is set to `"approved"` and the blueprint appears in the marketplace
 
 ### Name collisions
@@ -667,7 +667,7 @@ If a tarball with the same name already exists, the file is saved with a numeric
 
 ### Shipped
 
-**standard-workspace-light** — Light/dark theme toggle with full design system. Bloby reads instructions, adapts to workspace, applies once, archives. Free.
+**standard-workspace-light** — Light/dark theme toggle with full design system. Morphy reads instructions, adapts to workspace, applies once, archives. Free.
 
 **workspace-lock** — Adds a PIN code or password lock screen. Includes React components, backend routes, scrypt hashing, localStorage sessions, and bloby-triggered reset. Free.
 

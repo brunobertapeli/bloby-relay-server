@@ -46,11 +46,11 @@ the worker files and restarting manually rather than relying on `tsx watch`
 ### Editing chat UI code (`supervisor/chat/src/**`)
 
 - The chat UI is **not live-reloaded** in the default `npm run dev` setup. It
-  is served as pre-built static files from `dist-bloby/`.
+  is served as pre-built static files from `dist-chat/`.
 - After editing chat UI code, rebuild:
 
   ```bash
-  npm run build:bloby
+  npm run build:chat
   ```
 
   Then refresh the browser (the supervisor serves static files with
@@ -60,7 +60,7 @@ the worker files and restarting manually rather than relying on `tsx watch`
   directly:
 
   ```bash
-  npx vite --config vite.bloby.config.ts
+  npx vite --config vite.chat.config.ts
   ```
 
   This starts on a separate port with HMR. Note that the chat UI expects API

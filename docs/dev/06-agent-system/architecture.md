@@ -6,7 +6,7 @@ title: "Agent Architecture"
 
 ### 1.1 Claude Agent SDK Integration
 
-The primary agent path uses the `@anthropic-ai/claude-agent-sdk` package. The integration lives in `supervisor/bloby-agent.ts` and wraps the SDK's `query()` function with Bloby-specific context assembly, streaming I/O, and lifecycle management.
+The primary agent path uses the `@anthropic-ai/claude-agent-sdk` package. The integration lives in `supervisor/bloby-agent.ts` and wraps the SDK's `query()` function with Morphy-specific context assembly, streaming I/O, and lifecycle management.
 
 Key import (line 6):
 
@@ -14,11 +14,11 @@ Key import (line 6):
 import { query, type SDKMessage, type SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 ```
 
-The SDK is invoked in `startBlobyAgentQuery()` (line 116) with a call to `query()` (line 192) that returns an async iterable of SDK messages. The function iterates over these messages, extracting text blocks, tool-use blocks, and result events, then re-emits them as Bloby's internal event protocol (`bot:token`, `bot:tool`, `bot:response`, `bot:error`, `bot:done`).
+The SDK is invoked in `startBlobyAgentQuery()` (line 116) with a call to `query()` (line 192) that returns an async iterable of SDK messages. The function iterates over these messages, extracting text blocks, tool-use blocks, and result events, then re-emits them as Morphy's internal event protocol (`bot:token`, `bot:tool`, `bot:response`, `bot:error`, `bot:done`).
 
 ### 1.2 Session Management
 
-Bloby uses a **fresh-context-per-turn** model. There is no persistent Agent SDK session carried across turns. The file header (lines 1-4) states this explicitly:
+Morphy uses a **fresh-context-per-turn** model. There is no persistent Agent SDK session carried across turns. The file header (lines 1-4) states this explicitly:
 
 ```
 Fresh context per turn -- memory files and conversation history

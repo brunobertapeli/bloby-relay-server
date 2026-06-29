@@ -11,7 +11,7 @@ The system prompt is built in two stages: a base prompt with placeholder replace
 The base prompt lives at `worker/prompts/bloby-system-prompt.txt` (381 lines). It is read by `readSystemPrompt()` in `supervisor/bloby-agent.ts` (line 98):
 
 ```ts
-function readSystemPrompt(botName = 'Bloby', humanName = 'Human'): string {
+function readSystemPrompt(botName = 'Morphy', humanName = 'Human'): string {
   const raw = fs.readFileSync(PROMPT_FILE, 'utf-8').trim();
   return raw.replace(/\$BOT/g, botName).replace(/\$HUMAN/g, humanName);
 }
@@ -39,7 +39,7 @@ The system prompt (`bloby-system-prompt.txt`) is organized into these major sect
 
 4. **PULSE and CRON** -- Instructions for handling `<PULSE/>` and `<CRON>id</CRON>` trigger messages from the scheduler. Covers config file editing, quiet hours, importance rating, and the `<Message>` output tag.
 
-5. **Self-Update** -- How the agent checks for and triggers its own updates via `touch ~/.bloby/workspace/.update`.
+5. **Self-Update** -- How the agent checks for and triggers its own updates via `touch ~/.morphy/workspace/.update`.
 
 6. **Task Files** -- How `tasks/{cron-id}.md` files extend cron task definitions with detailed instructions.
 
@@ -104,7 +104,7 @@ Messages are fetched from the database via the worker API at `/api/conversations
 
 ### 2.5 Context Enrichment
 
-Unlike some agent frameworks, Bloby does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and installed skills.
+Unlike some agent frameworks, Morphy does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and installed skills.
 
 The working directory context is provided implicitly via the `cwd` option in the SDK query (line 196):
 

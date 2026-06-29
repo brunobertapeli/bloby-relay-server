@@ -17,7 +17,7 @@ function generateTOTPSecret(): string {
 }
 
 function verifyTOTPCode(code: string, secret: string): boolean {
-  const totp = new TOTP({ issuer: 'Bloby', algorithm: 'SHA1', digits: 6, period: 30, secret });
+  const totp = new TOTP({ issuer: 'Morphy', algorithm: 'SHA1', digits: 6, period: 30, secret });
   const delta = totp.validate({ token: code, window: 1 });
   return delta !== null;
 }
@@ -41,7 +41,7 @@ TOTP configuration:
 
 1. Authorization is verified via Bearer token, password, or during initial onboard (when no password is set).
 2. A secret is generated and stored temporarily as `totp_pending_secret`.
-3. An `otpauth://` URI is built: `otpauth://totp/{botName}?issuer=Bloby&algorithm=SHA1&digits=6&period=30&secret={secret}`.
+3. An `otpauth://` URI is built: `otpauth://totp/{botName}?issuer=Morphy&algorithm=SHA1&digits=6&period=30&secret={secret}`.
 4. A QR code data URI is generated via `QRCode.toDataURL()` at 256px width.
 5. The response includes `{ secret, qrDataUri, otpauthUri }`.
 

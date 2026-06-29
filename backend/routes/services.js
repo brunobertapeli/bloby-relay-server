@@ -23,7 +23,7 @@ const router = Router();
 //   ctx.estimatedMinutes / ctx.priceUsd / ctx.assumedBitrateBps: per-minute pricing fields
 
 const TEST_MESSAGES = [
-  '# PINEAPPLE-RADAR-7\n\nThis is a verified Bloby test service response. If your agent is reading this, the full services pipeline works: auth, transaction recording, and delivery.\n\n**Timestamp:** {{time}}',
+  '# PINEAPPLE-RADAR-7\n\nThis is a verified Morphy test service response. If your agent is reading this, the full services pipeline works: auth, transaction recording, and delivery.\n\n**Timestamp:** {{time}}',
 ];
 
 const serviceHandlers = {

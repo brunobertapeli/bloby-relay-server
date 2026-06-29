@@ -5,7 +5,7 @@
 // Conventions:
 //   - The route MUST attach the loaded product as `req.product` before this
 //     chain runs (a Mongo `products` doc with `id`, `price`, `type`,
-//     optional `bloby`).
+//     optional `morphy`).
 //   - The route MUST set `req.user` (bot identity) before this chain runs.
 //   - On success: req.paidVia = 'free' | 'balance' | 'mpp' | 'mpp-base'.
 //   - For MPP-paid (Tempo): req.mppxWithReceipt is set so the route handler
@@ -38,9 +38,9 @@ function isCommissionable(product) {
   return product && product.type !== 'service' && !!product.bloby;
 }
 
-async function findSellerWallet(bloby) {
+async function findSellerWallet(morphy) {
   const seller = await getUsers().findOne(
-    { username: bloby },
+    { username: morphy },
     { projection: { walletAddress: 1 } },
   );
   return seller?.walletAddress || null;

@@ -7,7 +7,7 @@
 //   4. launch the EC2 box, passing identity + token via user-data
 //
 // On "ready", the box calls /api/instances/callback; the relay then reads the
-// public IP (describeInstance) and creates the  mybot.bloby.bot → IP  CF record.
+// public IP (describeInstance) and creates the  mybot.morphyagent.com → IP  CF record.
 //
 // Used by the Stripe webhook (production) and the dev-launch endpoint (testing).
 
@@ -23,11 +23,11 @@ const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex'
 /**
  * @param {object}   opts
  * @param {string}   opts.accountId  — account that owns the instance
- * @param {string}   opts.username   — desired bot handle (→ mybot.bloby.bot)
+ * @param {string}   opts.username   — desired bot handle (→ mybot.morphyagent.com)
  * @param {string}   opts.plan       — 'starter' | 'pro'
  * @param {string}   opts.region     — 'na' | 'eu' | 'br'
  * @param {string}  [opts.tier]      — 'premium' (default) | 'at' (free)
- * @param {string}  [opts.callbackBase] — e.g. https://api.bloby.bot
+ * @param {string}  [opts.callbackBase] — e.g. https://api.morphyagent.com
  * @param {string}  [opts.stripeSubscriptionId]
  * @param {object}  [opts.ai]        — { provider, model, apiKey } to inject (optional)
  * @returns {Promise<{ instanceId, username, tier, relayUrl }>}

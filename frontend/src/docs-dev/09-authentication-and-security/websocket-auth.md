@@ -13,7 +13,7 @@ WebSocket connections to `/bloby/ws` carry the session token as a query paramete
 ```typescript
 server.on('upgrade', async (req, socket: net.Socket, head) => {
   if (!req.url?.startsWith('/bloby/ws')) {
-    return; // Let Vite handle non-Bloby upgrades (HMR)
+    return; // Let Vite handle non-Morphy upgrades (HMR)
   }
 
   const needsAuth = await isAuthRequired();

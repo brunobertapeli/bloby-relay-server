@@ -14,7 +14,7 @@ title: "High-Level Architecture"
 |  |   reverse proxy  |  auth middleware  |  file server        |  |
 |  |                                                            |  |
 |  |   +------------------+    +----------------------------+   |  |
-|  |   |   SCHEDULER      |    |   BLOBY AGENT              |   |  |
+|  |   |   SCHEDULER      |    |   MORPHY AGENT              |   |  |
 |  |   |   (in-process)   |    |   (in-process)             |   |  |
 |  |   |   scheduler.ts   |    |   bloby-agent.ts           |   |  |
 |  |   |   60s tick loop  |    |   Claude Agent SDK         |   |  |
@@ -46,8 +46,8 @@ title: "High-Level Architecture"
                                     |                       |
                                     v                       v
                           +----------------+     +-------------------+
-                          | BLOBY RELAY    |     | DIRECT ACCESS     |
-                          | api.bloby.bot  |     | *.trycloudflare   |
+                          | MORPHY RELAY    |     | DIRECT ACCESS     |
+                          | api.morphyagent.com  |     | *.trycloudflare   |
                           | (optional)     |     | or user's domain  |
                           +----------------+     +-------------------+
                                     |
@@ -69,6 +69,6 @@ All ports are derived from the configured base port (default `3000`):
 | Vite Dev   | `base + 2`   | 3002    | `supervisor/vite-dev.ts:startViteDevServers()` |
 | Backend    | `base + 4`   | 3004    | `supervisor/backend.ts:getBackendPort()`       |
 
-The base port is read from `~/.bloby/config.json` via `shared/config.ts:loadConfig()`.
+The base port is read from `~/.morphy/config.json` via `shared/config.ts:loadConfig()`.
 
 ---

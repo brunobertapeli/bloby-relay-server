@@ -30,7 +30,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
     { href: isHome ? '#features' : '/#features', label: 'Features' },
     { href: isHome ? '#how-it-works' : '/#how-it-works', label: 'How it works' },
     { href: '/marketplace', label: 'Marketplace' },
-    { href: '/world', label: 'Bloby World' },
+    { href: '/world', label: 'Morphy World' },
     { href: '/docs', label: 'Docs' },
   ]
 
@@ -150,7 +150,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <img src="/assets/images/morphy_mascot.png" alt="Bloby" className="h-[31px] w-auto" />
+                  <img src="/assets/images/morphy_mascot.png" alt="Morphy" className="h-[31px] w-auto" />
                 </div>
                 <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <HiXMark className="w-5 h-5" />

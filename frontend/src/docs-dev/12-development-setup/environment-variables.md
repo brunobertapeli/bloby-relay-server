@@ -13,8 +13,8 @@ manually:
 |----------|--------|---------|-------|
 | `WORKER_PORT` | `supervisor/worker.ts` | `worker/index.ts` | `basePort + 1` (default `3001`) |
 | `BACKEND_PORT` | `supervisor/backend.ts` | `workspace/backend/index.ts` | `basePort + 4` (default `3004`) |
-| `BLOBY_REAL_HOME` | `bin/cli.js` (sudo re-exec) | `bin/cli.js` | Original user's home directory |
-| `BLOBY_NODE_PATH` | `bin/cli.js` (daemon install) | systemd/launchd unit | Absolute path to `node` binary |
+| `MORPHY_REAL_HOME` | `bin/cli.js` (sudo re-exec) | `bin/cli.js` | Original user's home directory |
+| `MORPHY_NODE_PATH` | `bin/cli.js` (daemon install) | systemd/launchd unit | Absolute path to `node` binary |
 
 ### `workspace/.env`
 
@@ -35,7 +35,7 @@ DEBUG=true
 When `workspace/.env` is modified, the supervisor's file watcher detects the
 change and auto-restarts the user backend.
 
-### `~/.bloby/config.json`
+### `~/.morphy/config.json`
 
 This is the primary runtime configuration. It is **not** an environment
 variable file -- it is JSON read by `shared/config.ts` via `loadConfig()`.
@@ -54,8 +54,8 @@ Key fields:
 | `tunnel.name` | string | undefined | Named tunnel identifier |
 | `tunnel.domain` | string | undefined | Custom domain for named tunnel |
 | `tunnel.configPath` | string | undefined | Path to cloudflared YAML config |
-| `relay.token` | string | `""` | Bloby relay server auth token |
-| `relay.url` | string | `""` | Public URL via relay (e.g. `https://open.bloby.bot/HANDLE`) |
+| `relay.token` | string | `""` | Morphy relay server auth token |
+| `relay.url` | string | `""` | Public URL via relay (e.g. `https://open.morphyagent.com/HANDLE`) |
 | `tunnelUrl` | string | undefined | Written at runtime -- current tunnel URL |
 
 ---

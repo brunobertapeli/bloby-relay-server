@@ -22,10 +22,10 @@ title: "Common Tasks"
 
 ### Adding a New Chat Feature
 
-1. Edit `supervisor/chat/bloby-main.tsx` for top-level chat behavior
+1. Edit `supervisor/chat/chat-main.tsx` for top-level chat behavior
 2. Add components in `supervisor/chat/src/components/`
 3. If the feature needs to persist data, use the WebSocket sidecar channel (not HTTP POST from the iframe)
-4. Rebuild: `npm run build:bloby`
+4. Rebuild: `npm run build:chat`
 5. Restart the dev server and verify the feature works in the chat iframe
 
 ### Adding a New Skill

@@ -6,7 +6,7 @@ title: "Agent Tools"
 
 ### 4.1 Built-in Claude Agent SDK Tools
 
-When the agent runs through the Claude Agent SDK path, it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Bloby's codebase). The agent can:
+When the agent runs through the Claude Agent SDK path, it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Morphy's codebase). The agent can:
 
 - **Read** -- Read file contents from disk
 - **Write** -- Write/create files

@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS settings (
 | Key | Description | Example Value |
 |---|---|---|
 | `user_name` | Human user's display name | `"Bruno"` |
-| `agent_name` | AI agent's display name | `"Bloby"` |
+| `agent_name` | AI agent's display name | `"Morphy"` |
 | `onboard_complete` | Whether onboarding wizard has been completed | `"true"` |
 | `portal_user` | Portal login username | `"admin"` |
 | `portal_pass` | Scrypt-hashed portal password | `"<salt>:<hash>"` |

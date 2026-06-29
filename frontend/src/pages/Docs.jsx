@@ -37,7 +37,7 @@ const docSets = {
         items: [
           { slug: 'introduction', title: 'Introduction' },
           { slug: 'installation', title: 'Installation' },
-          { slug: 'setup', title: 'Setup (bloby init)' },
+          { slug: 'setup', title: 'Setup (morphy init)' },
           { slug: 'onboarding', title: 'Onboarding Wizard' },
           { slug: 'first-conversation', title: 'First Conversation' },
         ],
@@ -56,7 +56,7 @@ const docSets = {
         group: 'Connectivity',
         items: [
           { slug: 'tunnels', title: 'Tunnels & Remote Access' },
-          { slug: 'relay', title: 'Bloby Relay' },
+          { slug: 'relay', title: 'Morphy Relay' },
         ],
       },
       {
@@ -189,7 +189,7 @@ const docSets = {
         group: 'Networking & Tunnels',
         items: [
           { slug: 'cloudflare-tunnel', title: 'Cloudflare Tunnel' },
-          { slug: 'bloby-relay', title: 'Bloby Relay' },
+          { slug: 'morphy-relay', title: 'Morphy Relay' },
           { slug: 'https-tls', title: 'HTTPS & TLS' },
         ],
       },

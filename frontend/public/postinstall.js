@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Copies source files to ~/.bloby/ so everything lives in one
-// predictable location. Backward compat for `npm install -g bloby`.
+// Copies source files to ~/.morphy/ so everything lives in one
+// predictable location. Backward compat for `npm install -g morphy`.
 
 import fs from 'fs';
 import path from 'path';
@@ -11,15 +11,15 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = path.resolve(__dirname, '..');
-const BLOBY_HOME = path.join(os.homedir(), '.bloby');
+const MORPHY_HOME = path.join(os.homedir(), '.morphy');
 
-// Loop guard: if we're already running inside ~/.bloby/, exit
+// Loop guard: if we're already running inside ~/.morphy/, exit
 // (prevents infinite loop when npm install triggers postinstall again).
 // Compare realpaths — npm may run us from a symlinked cwd (e.g. /tmp vs
 // /private/tmp on macOS), and a missed match makes cpSync copy a dir onto
 // itself, which is a hard error on Node 22+.
 const realOrSelf = (p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
-if (realOrSelf(PKG_ROOT) === realOrSelf(BLOBY_HOME)) {
+if (realOrSelf(PKG_ROOT) === realOrSelf(MORPHY_HOME)) {
   process.exit(0);
 }
 
@@ -28,29 +28,29 @@ if (fs.existsSync(path.join(PKG_ROOT, '.git'))) {
   process.exit(0);
 }
 
-// ── Copy source files to ~/.bloby/ ──
+// ── Copy source files to ~/.morphy/ ──
 
-fs.mkdirSync(BLOBY_HOME, { recursive: true });
+fs.mkdirSync(MORPHY_HOME, { recursive: true });
 
 // Code directories — always overwrite (these are application code)
 const CODE_DIRS = ['bin', 'supervisor', 'worker', 'shared', 'scripts'];
 
 // Code files — always overwrite
 const CODE_FILES = [
-  'package.json', 'vite.config.ts', 'vite.bloby.config.ts',
+  'package.json', 'vite.config.ts', 'vite.chat.config.ts',
   'tsconfig.json', 'postcss.config.js', 'components.json',
 ];
 
 for (const dir of CODE_DIRS) {
   const src = path.join(PKG_ROOT, dir);
   if (!fs.existsSync(src)) continue;
-  const dst = path.join(BLOBY_HOME, dir);
+  const dst = path.join(MORPHY_HOME, dir);
   fs.cpSync(src, dst, { recursive: true, force: true });
 }
 
 // Workspace template — only on first install (preserves user files, uploads, etc.)
 const wsSrc = path.join(PKG_ROOT, 'workspace');
-const wsDst = path.join(BLOBY_HOME, 'workspace');
+const wsDst = path.join(MORPHY_HOME, 'workspace');
 if (fs.existsSync(wsSrc) && !fs.existsSync(wsDst)) {
   fs.cpSync(wsSrc, wsDst, { recursive: true });
 }
@@ -58,7 +58,7 @@ if (fs.existsSync(wsSrc) && !fs.existsSync(wsDst)) {
 // Ensure workspace has its own package.json and .npmrc (handles upgrades from older versions)
 for (const f of ['package.json', '.npmrc']) {
   const src = path.join(PKG_ROOT, 'workspace', f);
-  const dst = path.join(BLOBY_HOME, 'workspace', f);
+  const dst = path.join(MORPHY_HOME, 'workspace', f);
   if (fs.existsSync(src) && !fs.existsSync(dst)) {
     fs.copyFileSync(src, dst);
   }
@@ -67,10 +67,10 @@ for (const f of ['package.json', '.npmrc']) {
 for (const file of CODE_FILES) {
   const src = path.join(PKG_ROOT, file);
   if (!fs.existsSync(src)) continue;
-  fs.copyFileSync(src, path.join(BLOBY_HOME, file));
+  fs.copyFileSync(src, path.join(MORPHY_HOME, file));
 }
 
-// ── Install dependencies in ~/.bloby/ ──
+// ── Install dependencies in ~/.morphy/ ──
 
 // This script runs as an npm lifecycle hook, so the environment carries the
 // parent install's npm_config_* vars (global=true, prefix, etc.). A nested
@@ -81,11 +81,11 @@ const NPM_ENV = Object.fromEntries(
 );
 
 // claude-agent-sdk 0.3.x moved @anthropic-ai/sdk + @modelcontextprotocol/sdk to
-// peerDependencies; upgrading the existing ~/.bloby tree in place deadlocks npm's
+// peerDependencies; upgrading the existing ~/.morphy tree in place deadlocks npm's
 // resolver (ERESOLVE). Persist legacy-peer-deps so this install — and the manual
 // recovery command below — resolve cleanly. (.npmrc is excluded from npm tarballs.)
 try {
-  const npmrc = path.join(BLOBY_HOME, '.npmrc');
+  const npmrc = path.join(MORPHY_HOME, '.npmrc');
   const cur = fs.existsSync(npmrc) ? fs.readFileSync(npmrc, 'utf-8') : '';
   if (!/^legacy-peer-deps\s*=/m.test(cur)) {
     fs.writeFileSync(npmrc, (cur && !cur.endsWith('\n') ? cur + '\n' : cur) + 'legacy-peer-deps=true\n');
@@ -94,28 +94,28 @@ try {
 
 try {
   execSync('npm install --omit=dev', {
-    cwd: BLOBY_HOME,
+    cwd: MORPHY_HOME,
     stdio: 'inherit',
     env: NPM_ENV,
   });
 } catch (e) {
-  // Don't swallow this — partial deps leave bloby in a crash loop on first
+  // Don't swallow this — partial deps leave morphy in a crash loop on first
   // start (e.g. missing @anthropic-ai/claude-agent-sdk after a release that
   // adds a new dep). The CLI has a self-heal pass but only triggers when the
-  // user runs `bloby` again, so make the failure visible here too.
-  console.error(`\nError: npm install failed in ${BLOBY_HOME}: ${e.message}`);
-  console.error(`Run manually: cd ${BLOBY_HOME} && npm install --omit=dev\n`);
+  // user runs `morphy` again, so make the failure visible here too.
+  console.error(`\nError: npm install failed in ${MORPHY_HOME}: ${e.message}`);
+  console.error(`Run manually: cd ${MORPHY_HOME} && npm install --omit=dev\n`);
   process.exit(1);
 }
 
 // Verify every declared dependency actually landed on disk.
-const installedDeps = JSON.parse(fs.readFileSync(path.join(BLOBY_HOME, 'package.json'), 'utf-8')).dependencies || {};
+const installedDeps = JSON.parse(fs.readFileSync(path.join(MORPHY_HOME, 'package.json'), 'utf-8')).dependencies || {};
 const missing = Object.keys(installedDeps).filter(
-  d => !fs.existsSync(path.join(BLOBY_HOME, 'node_modules', d, 'package.json'))
+  d => !fs.existsSync(path.join(MORPHY_HOME, 'node_modules', d, 'package.json'))
 );
 if (missing.length > 0) {
   console.error(`\nError: npm install reported success but these deps are missing: ${missing.join(', ')}`);
-  console.error(`Try: cd ${BLOBY_HOME} && rm -rf node_modules package-lock.json && npm install --omit=dev\n`);
+  console.error(`Try: cd ${MORPHY_HOME} && rm -rf node_modules package-lock.json && npm install --omit=dev\n`);
   process.exit(1);
 }
 
@@ -129,7 +129,7 @@ if (process.platform === 'linux') {
   const unwanted = systemIsMusl
     ? `claude-agent-sdk-linux-${process.arch}`
     : `claude-agent-sdk-linux-${process.arch}-musl`;
-  const unwantedPath = path.join(BLOBY_HOME, 'node_modules', '@anthropic-ai', unwanted);
+  const unwantedPath = path.join(MORPHY_HOME, 'node_modules', '@anthropic-ai', unwanted);
   if (fs.existsSync(unwantedPath)) {
     fs.rmSync(unwantedPath, { recursive: true, force: true });
   }
@@ -141,28 +141,28 @@ if (process.platform === 'linux') {
 
 try {
   execSync('npm install --omit=dev', {
-    cwd: path.join(BLOBY_HOME, 'workspace'),
+    cwd: path.join(MORPHY_HOME, 'workspace'),
     stdio: 'inherit',
     env: NPM_ENV,
   });
 } catch {
   console.error('Error: workspace dependency install failed — backend will not start until fixed.');
-  console.error(`Run manually: cd ${path.join(BLOBY_HOME, 'workspace')} && npm install --omit=dev`);
+  console.error(`Run manually: cd ${path.join(MORPHY_HOME, 'workspace')} && npm install --omit=dev`);
   process.exit(1);
 }
 
 // ── Copy pre-built UI if available, otherwise build ──
 
-const distSrc = path.join(PKG_ROOT, 'dist-bloby');
-const distDst = path.join(BLOBY_HOME, 'dist-bloby');
+const distSrc = path.join(PKG_ROOT, 'dist-chat');
+const distDst = path.join(MORPHY_HOME, 'dist-chat');
 if (fs.existsSync(distSrc)) {
   // Always use the pre-built UI from the package (handles updates)
   if (fs.existsSync(distDst)) fs.rmSync(distDst, { recursive: true });
   fs.cpSync(distSrc, distDst, { recursive: true });
 } else if (!fs.existsSync(path.join(distDst, 'onboard.html'))) {
   try {
-    execSync('npm run build:bloby', {
-      cwd: BLOBY_HOME,
+    execSync('npm run build:chat', {
+      cwd: MORPHY_HOME,
       stdio: 'ignore',
       env: NPM_ENV,
     });
@@ -171,16 +171,16 @@ if (fs.existsSync(distSrc)) {
   }
 }
 
-// ── Create bloby symlink ──
+// ── Create morphy symlink ──
 
-const cliPath = path.join(BLOBY_HOME, 'bin', 'cli.js');
+const cliPath = path.join(MORPHY_HOME, 'bin', 'cli.js');
 fs.chmodSync(cliPath, 0o755);
 
 if (process.platform === 'win32') {
   // On Windows, npm handles the bin linking via package.json "bin" field
   // Just ensure the files are in place
 } else {
-  const targets = ['/usr/local/bin/bloby', path.join(os.homedir(), '.local', 'bin', 'bloby')];
+  const targets = ['/usr/local/bin/morphy', path.join(os.homedir(), '.local', 'bin', 'morphy')];
   let linked = false;
 
   for (const target of targets) {
@@ -196,6 +196,6 @@ if (process.platform === 'win32') {
   }
 
   if (!linked) {
-    console.log(`Note: Could not create bloby symlink. You can run it directly: node ${cliPath}`);
+    console.log(`Note: Could not create morphy symlink. You can run it directly: node ${cliPath}`);
   }
 }

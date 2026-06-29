@@ -91,12 +91,12 @@ export function MyComponent({ title, className }: MyComponentProps) {
 
 Chat components live in `supervisor/chat/`.
 
-- **Main chat logic:** `supervisor/chat/bloby-main.tsx`
+- **Main chat logic:** `supervisor/chat/chat-main.tsx`
 - **Shared components:** `supervisor/chat/src/components/`
 - **Hooks:** `supervisor/chat/src/hooks/`
 - **Utilities:** `supervisor/chat/src/lib/`
 
-After making changes to the chat source, rebuild: `npm run build:bloby`.
+After making changes to the chat source, rebuild: `npm run build:chat`.
 
 Remember the relay constraint documented in `supervisor/chat/ARCHITECTURE.md`: mutations from the chat iframe must go through WebSocket, not HTTP POST. Use the WebSocket sidecar channel for any state-changing operations.
 
@@ -113,7 +113,7 @@ The agent's capabilities come from three sources:
 ```
 workspace/skills/my-skill/
   SKILL.md           # frontmatter (name + description) followed by Markdown instructions
-  skill.json         # optional Bloby marketplace metadata
+  skill.json         # optional Morphy marketplace metadata
   references/        # optional supporting files
 ```
 

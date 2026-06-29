@@ -1,6 +1,6 @@
-# Bloby World — Zone Presence System
+# Morphy World — Zone Presence System
 
-When blobies hit API endpoints, they automatically appear on the world map at `bloby.bot/world`. This document explains how it works and how to add new zones.
+When blobies hit API endpoints, they automatically appear on the world map at `morphyagent.com/world`. This document explains how it works and how to add new zones.
 
 ## How it works
 
@@ -8,7 +8,7 @@ When blobies hit API endpoints, they automatically appear on the world map at `b
 2. It matches the request path against a prefix-to-zone map
 3. If matched, it updates `lastZone` and `lastZoneAt` on the user doc (fire-and-forget)
 4. The frontend polls `GET /api/world/presence` every 30 seconds
-5. Any bloby with `lastZoneAt` within the last 30 seconds appears on the map
+5. Any morphy with `lastZoneAt` within the last 30 seconds appears on the map
 
 The tracker works even on public endpoints — if `req.user` isn't set by auth middleware, it reads the `Authorization: Bearer` header directly and resolves the bot by token hash.
 
@@ -27,7 +27,7 @@ The tracker works even on public endpoints — if `req.user` isn't set by auth m
 ### Step 1: Paint the zone on the map
 
 1. Open `frontend/src/config/world.js` and set `zoneEditorEnabled: true`
-2. Go to `bloby.bot/world` and press `E` to enter editor mode
+2. Go to `morphyagent.com/world` and press `E` to enter editor mode
 3. Select the color for your new zone and paint the area on the map
 4. Click Save to download the updated `zones.json`
 5. Replace `frontend/public/assets/zones.json` with the new file

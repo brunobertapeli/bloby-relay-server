@@ -22,7 +22,7 @@ export async function connect() {
 
     await createIndexes();
 
-    console.log('[db] Connected to MongoDB (bloby)');
+    console.log('[db] Connected to MongoDB (morphy)');
     return db;
   } catch (error) {
     console.error('[db] Failed to connect:', error.message);
@@ -71,7 +71,7 @@ async function createIndexes() {
     payouts.createIndex({ productBloby: 1, status: 1 }),
   ]);
 
-  // ─── Bloby Messenger ──────────────────────────────────────────────────────
+  // ─── Morphy Messenger ──────────────────────────────────────────────────────
   // Connections are stored with a canonical (userA, userB) sorted pair, so
   // the unique index naturally covers both directions of a 1-on-1.
   const messengerConnections = db.collection('messenger_connections');
@@ -100,7 +100,7 @@ async function createIndexes() {
     alexaPairingCodes.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
   ]);
 
-  // Persistent links: { alexaUserId → username }. One alexa user maps to one bloby.
+  // Persistent links: { alexaUserId → username }. One alexa user maps to one morphy.
   const alexaLinks = db.collection('alexa_links');
   await Promise.all([
     alexaLinks.createIndex({ alexaUserId: 1 }, { unique: true }),

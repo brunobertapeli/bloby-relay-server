@@ -5,7 +5,7 @@
         "architecture",
         "port-allocation",
         "cloudflare-tunnel",
-        "bloby-relay",
+        "morphy-relay",
         "reverse-proxy",
         "websocket",
         "https-tls",

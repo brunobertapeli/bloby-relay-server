@@ -1,7 +1,7 @@
 {
-  "name": "bloby-relay",
+  "name": "morphy-relay",
   "version": "1.0.0",
-  "description": "Bloby relay server — stable URL routing for self-hosted bots",
+  "description": "Morphy relay server — stable URL routing for self-hosted bots",
   "type": "module",
   "main": "server.js",
   "engines": {

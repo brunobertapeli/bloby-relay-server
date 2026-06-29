@@ -4,13 +4,13 @@ title: Daemon & Auto-Start
 
 # Daemon & Auto-Start
 
-The daemon keeps Bloby running in the background and starts it automatically when your machine boots.
+The daemon keeps Morphy running in the background and starts it automatically when your machine boots.
 
 ## macOS (launchd)
 
-Bloby creates a launch agent at:
+Morphy creates a launch agent at:
 ```
-~/Library/LaunchAgents/com.bloby.bot.plist
+~/Library/LaunchAgents/com.morphyagent.com.plist
 ```
 
 Logs go to:
@@ -22,7 +22,7 @@ It starts automatically on login and restarts if it crashes.
 
 ## Linux (systemd)
 
-Bloby creates a systemd service at:
+Morphy creates a systemd service at:
 ```
 /etc/systemd/system/bloby.service
 ```
@@ -31,20 +31,20 @@ It starts on boot with auto-restart on failure. Some daemon commands require `su
 
 ## Windows
 
-No built-in daemon support yet. Run `bloby start` manually, or set up Windows Task Scheduler to run it on login.
+No built-in daemon support yet. Run `morphy start` manually, or set up Windows Task Scheduler to run it on login.
 
 ## Commands
 
 ```bash
-bloby daemon install    # Set up auto-start
-bloby daemon start      # Start the daemon
-bloby daemon stop       # Stop the daemon
-bloby daemon restart    # Restart
-bloby daemon status     # Check status
-bloby daemon logs       # View logs
-bloby daemon uninstall  # Remove auto-start
+morphy daemon install    # Set up auto-start
+morphy daemon start      # Start the daemon
+morphy daemon stop       # Stop the daemon
+morphy daemon restart    # Restart
+morphy daemon status     # Check status
+morphy daemon logs       # View logs
+morphy daemon uninstall  # Remove auto-start
 ```
 
 ## When is it installed?
 
-The daemon is set up automatically during `bloby init` on macOS and Linux. You don't need to do anything extra.
+The daemon is set up automatically during `morphy init` on macOS and Linux. You don't need to do anything extra.

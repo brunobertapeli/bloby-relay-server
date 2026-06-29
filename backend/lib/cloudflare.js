@@ -1,16 +1,16 @@
 // Cloudflare DNS client for the MANAGED ("hosted") tier.
 //
-// Each managed bot gets its own proxied A-record  mybot.bloby.bot → <EC2 public IP>
+// Each managed bot gets its own proxied A-record  mybot.morphyagent.com → <EC2 public IP>
 // on the operator's Cloudflare zone, so the browser reaches the box DIRECTLY through
 // Cloudflare's edge (TLS + DDoS) with no relay hop and no cloudflared tunnel.
 //
-// A more-specific A-record overrides the existing wildcard  *.bloby.bot → relay,
+// A more-specific A-record overrides the existing wildcard  *.morphyagent.com → relay,
 // so SELF-HOSTED bots (which fall through the wildcard to the relay's reverse-proxy)
 // are completely unaffected. This is purely additive.
 //
 // Needs two env vars (set in Railway):
-//   CF_API_TOKEN  — a scoped token with  Zone → DNS → Edit  on the bloby.bot zone
-//   CF_ZONE_ID    — the bloby.bot zone id
+//   CF_API_TOKEN  — a scoped token with  Zone → DNS → Edit  on the morphyagent.com zone
+//   CF_ZONE_ID    — the morphyagent.com zone id
 //
 // Records are tagged with comment "bloby-managed" so they're easy to audit/sweep.
 
@@ -42,7 +42,7 @@ async function cf(path, { method = 'GET', body } = {}) {
 
 /** Build the DNS record name for a managed bot from its username + tier. */
 export function managedHostname(username, tier) {
-  const domain = process.env.RELAY_DOMAIN || 'bloby.bot';
+  const domain = process.env.RELAY_DOMAIN || 'morphyagent.com';
   // Free tier lives under open.<domain>; premium is a bare subdomain.
   return tier === 'at' ? `${username}.open.${domain}` : `${username}.${domain}`;
 }

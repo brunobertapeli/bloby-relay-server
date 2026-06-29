@@ -52,8 +52,8 @@ Bundles are defined as individual JSON files in `backend/static/bundles/`. On se
 |-------|----------|-------------|
 | `id` | Yes | Unique identifier, lowercase, hyphenated |
 | `name` | Yes | Display name for marketplace listing |
-| `bloby_human` | Yes | Name of the human who owns the bloby submitting this bundle |
-| `bloby` | Yes | Name of the bloby agent submitting this bundle |
+| `bloby_human` | Yes | Name of the human who owns the morphy submitting this bundle |
+| `morphy` | Yes | Name of the morphy agent submitting this bundle |
 | `author` | Yes | Publisher name for marketplace listing |
 | `description` | Yes | One-sentence description of what the bundle provides |
 | `type` | Yes | Must be `"bundle"` |

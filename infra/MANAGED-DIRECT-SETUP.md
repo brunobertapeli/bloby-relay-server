@@ -4,26 +4,26 @@ The managed/hosted tier now reaches each bot **directly** through Cloudflare,
 removing the cloudflared quick-tunnel and the relay reverse-proxy hop.
 
 ```
-OLD:  browser → CF (mybot.bloby.bot) → Railway relay → CF (trycloudflare) → cloudflared → bloby :7400
-NEW:  browser → CF (mybot.bloby.bot, A→EC2 IP, orange) → Caddy :443 on EC2 → bloby :7400
-      bloby.bot/mybot → CF 302 → mybot.bloby.bot
+OLD:  browser → CF (mybot.morphyagent.com) → Railway relay → CF (trycloudflare) → cloudflared → morphy :7400
+NEW:  browser → CF (mybot.morphyagent.com, A→EC2 IP, orange) → Caddy :443 on EC2 → morphy :7400
+      morphyagent.com/mybot → CF 302 → mybot.morphyagent.com
 ```
 
 One hop instead of three; the EC2 public IP is hidden behind CF's proxy (same
-"it just works, address bar shows mybot.bloby.bot" UX as before).
+"it just works, address bar shows mybot.morphyagent.com" UX as before).
 
 **This is additive.** Self-hosted bots still use cloudflared tunnels + the relay
-reverse-proxy via the `*.bloby.bot → relay` wildcard. A managed bot gets a
-*more-specific* A-record (`mybot.bloby.bot → <EC2 IP>`) that overrides the
+reverse-proxy via the `*.morphyagent.com → relay` wildcard. A managed bot gets a
+*more-specific* A-record (`mybot.morphyagent.com → <EC2 IP>`) that overrides the
 wildcard for just that name, so self-hosted is untouched.
 
 ---
 
 ## What changed in code (already done)
 
-**Agent (`Bloby` repo)**
-- `bin/cli.js` — `bloby init --hosted` now honors `BLOBY_TUNNEL_MODE` (managed
-  AMI sets `off`), seeds `BLOBY_USERNAME/RELAY_TOKEN/TIER/URL` into config, and
+**Agent (`Morphy` repo)**
+- `bin/cli.js` — `morphy init --hosted` now honors `MORPHY_TUNNEL_MODE` (managed
+  AMI sets `off`), seeds `MORPHY_USERNAME/RELAY_TOKEN/TIER/URL` into config, and
   emits `__HOSTED_READY__` with `status:"ok"` on health (no tunnel needed).
   The supervisor already no-ops cleanly on `tunnel.mode==='off'`.
 
@@ -32,7 +32,7 @@ wildcard for just that name, so self-hosted is untouched.
 - `backend/lib/provision.js` (new) — `provisionManagedInstance()`: pre-register the
   handle, mint a `provisionToken`, create the instance, launch EC2 with identity.
 - `backend/routes/instances.js` — callback now (a) authenticates via `provisionToken`,
-  (b) on `ready` reads the EC2 public IP and creates `mybot.bloby.bot → IP`,
+  (b) on `ready` reads the EC2 public IP and creates `mybot.morphyagent.com → IP`,
   (c) refreshes DNS after a restart (stop/start changes the IP), (d) deletes the
   record on terminate. Plus a secret-gated `POST /api/instances/dev-launch`.
 - `backend/lib/aws.js` — `launchInstance` passes identity via user-data.
@@ -45,20 +45,20 @@ wildcard for just that name, so self-hosted is untouched.
 ## One-time Cloudflare setup
 
 1. **API token** — My Profile → API Tokens → Create → *Edit zone DNS* template,
-   scoped to **Zone:DNS:Edit** on the **bloby.bot** zone only. Save as Railway env
+   scoped to **Zone:DNS:Edit** on the **morphyagent.com** zone only. Save as Railway env
    `CF_API_TOKEN`.
-2. **Zone ID** — bloby.bot overview page → "Zone ID". Save as `CF_ZONE_ID`.
-3. **SSL/TLS mode** — set the bloby.bot zone to **Full (strict)**.
+2. **Zone ID** — morphyagent.com overview page → "Zone ID". Save as `CF_ZONE_ID`.
+3. **SSL/TLS mode** — set the morphyagent.com zone to **Full (strict)**.
 4. **Origin certificate** — SSL/TLS → Origin Server → Create Certificate, hostnames
-   `*.bloby.bot, bloby.bot`, 15-year. Save the cert → `cf-origin.pem` and key →
+   `*.morphyagent.com, morphyagent.com`, 15-year. Save the cert → `cf-origin.pem` and key →
    `cf-origin.key` (these get baked into the AMI at `/etc/caddy/`).
 5. **Authenticated Origin Pulls CA** — download Cloudflare's origin-pull CA
    (`https://developers.cloudflare.com/.../origin-pull-ca.pem`) → bake as
    `/etc/caddy/cloudflare-aop.pem`.
-6. **Redirect rule** (`bloby.bot/mybot` → `mybot.bloby.bot`) — Rules → Redirect Rules:
-   - When incoming requests match: `Hostname equals bloby.bot AND URI Path matches regex ^/([a-z0-9][a-z0-9-]{1,28}[a-z0-9])$`
+6. **Redirect rule** (`morphyagent.com/mybot` → `mybot.morphyagent.com`) — Rules → Redirect Rules:
+   - When incoming requests match: `Hostname equals morphyagent.com AND URI Path matches regex ^/([a-z0-9][a-z0-9-]{1,28}[a-z0-9])$`
    - Then: Dynamic redirect → `concat("https://", http.request.uri.path.0... )` →
-     simplest is expression `concat("https://", regex_replace(http.request.uri.path, "^/", ""), ".bloby.bot/")`, status **302**.
+     simplest is expression `concat("https://", regex_replace(http.request.uri.path, "^/", ""), ".morphyagent.com/")`, status **302**.
    - (The relay's existing `GET /:username` 302 also covers this; the edge rule just
      avoids a relay round-trip.)
 
@@ -80,9 +80,9 @@ wildcard for just that name, so self-hosted is untouched.
 
 ```
 CF_API_TOKEN=<scoped token>
-CF_ZONE_ID=<bloby.bot zone id>
+CF_ZONE_ID=<morphyagent.com zone id>
 DEV_PROVISION_SECRET=<random>          # enables /api/instances/dev-launch for testing
-# already present: CALLBACK_BASE_URL=https://api.bloby.bot, RELAY_DOMAIN=bloby.bot, AWS creds, AMI/SG ids
+# already present: CALLBACK_BASE_URL=https://api.morphyagent.com, RELAY_DOMAIN=morphyagent.com, AWS creds, AMI/SG ids
 ```
 
 ---
@@ -102,7 +102,7 @@ sudo systemctl enable caddy      # starts on boot; provision.sh also ensures it
 # 2. Provisioning script + cloud-init trigger
 sudo cp provision.sh /home/ec2-user/provision.sh
 sudo chmod +x /home/ec2-user/provision.sh
-sudo cp cloud-init-99-bloby.cfg /etc/cloud/cloud.cfg.d/99-bloby.cfg
+sudo cp cloud-init-99-morphy.cfg /etc/cloud/cloud.cfg.d/99-morphy.cfg
 
 # 3. jq must be present (provision.sh uses it) — already on v4
 which jq || sudo dnf install -y jq
@@ -113,7 +113,7 @@ which jq || sudo dnf install -y jq
 
 `provision.sh` adds a **4 GB swapfile before** the `npm` install (the t4g.small
 2 GB OOM fix), seeds the config (tunnel OFF, pre-registered identity), runs
-`bloby init --hosted`, and calls back `ready`. Caddy is already running, so the bot
+`morphy init --hosted`, and calls back `ready`. Caddy is already running, so the bot
 is reachable the moment DNS is created.
 
 ---
@@ -124,7 +124,7 @@ With `DEV_PROVISION_SECRET` set and a known `accountId` (from a Google login row
 `accounts`):
 
 ```bash
-curl -X POST https://api.bloby.bot/api/instances/dev-launch \
+curl -X POST https://api.morphyagent.com/api/instances/dev-launch \
   -H "x-dev-secret: $DEV_PROVISION_SECRET" \
   -H 'content-type: application/json' \
   -d '{"accountId":"<ACCOUNT_ID>","username":"mytest","plan":"starter","region":"na"}'
@@ -133,9 +133,9 @@ curl -X POST https://api.bloby.bot/api/instances/dev-launch \
 Watch it progress: `launching → booting → initializing → ready`
 (`GET /api/instances/:id/status`, or the dashboard). On `ready`:
 
-1. `dig +short mytest.bloby.bot` → a Cloudflare anycast IP (orange-cloud).
-2. `https://mytest.bloby.bot` → the bot's chat UI (TLS valid, WebSocket chat works).
-3. `https://bloby.bot/mytest` → 302 → `https://mytest.bloby.bot`.
+1. `dig +short mytest.morphyagent.com` → a Cloudflare anycast IP (orange-cloud).
+2. `https://mytest.morphyagent.com` → the bot's chat UI (TLS valid, WebSocket chat works).
+3. `https://morphyagent.com/mytest` → 302 → `https://mytest.morphyagent.com`.
 4. On the box: `journalctl -u caddy` clean; `cat /var/log/bloby-provision.log` shows
    swap created + `callback ready ok`; `swapon --show` lists `/swapfile`.
 
@@ -158,4 +158,4 @@ was removed.
   legacy tunnel path still works (callback falls back to `tunnelUrl` linking).
 - Globally: unset `CF_API_TOKEN` → `cfConfigured()` is false → the webhook/callback
   fall back to the legacy launch + tunnel linking. Delete any per-bot A-records to
-  let the `*.bloby.bot → relay` wildcard take over again.
+  let the `*.morphyagent.com → relay` wildcard take over again.

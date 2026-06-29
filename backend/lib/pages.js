@@ -2,11 +2,11 @@
 //
 // Lives in its own module so both lib/proxy.js (upstream-response substitution) and
 // routes/resolve.js (DB-state-driven pages) can import the same pages without a circular
-// import. All pages are dark-theme + Inter/Space Grotesk + the bloby "what-happened" video
+// import. All pages are dark-theme + Inter/Space Grotesk + the morphy "what-happened" video
 // (with a graceful onerror hide so a missing asset never shows a broken-media icon) and carry
 // NO_CACHE so a CDN can never pin an error page after the agent recovers.
 
-const RELAY_DOMAIN = process.env.RELAY_DOMAIN || 'bloby.bot';
+const RELAY_DOMAIN = process.env.RELAY_DOMAIN || 'morphyagent.com';
 // Assets come from the website (www.<domain>), never the dead bot subdomain. webm keeps the
 // transparent alpha (incl. iPhone Safari); mp4 is the no-alpha fallback. Both confirmed present.
 const videoBase = `https://www.${RELAY_DOMAIN}/assets/videos/what-happened`;
@@ -40,7 +40,7 @@ export function shell(title, body) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} | Bloby</title>
+  <title>${title} | Morphy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -125,7 +125,7 @@ export function restartingPage(username) {
      <p>This can happen after an update, a restart, or a brief network hiccup. No action needed —
         the page refreshes automatically once it's back.</p>
      <div class="status-pill"><span class="status-dot"></span><span id="statusText">Reconnecting…</span></div>
-     <div><span class="badge">Powered by Bloby</span></div>
+     <div><span class="badge">Powered by Morphy</span></div>
      ${retryScript('fast')}`,
   );
 }
@@ -143,7 +143,7 @@ export function offlinePage(username) {
      <p>Its owner has stopped it, or the host machine is powered down. It'll be back the moment
         <strong>${esc(username)}</strong> brings it online again.</p>
      <div class="status-pill"><span class="status-dot off"></span><span id="statusText">Offline</span></div>
-     <div><span class="badge">Powered by Bloby</span></div>
+     <div><span class="badge">Powered by Morphy</span></div>
      ${retryScript('slow')}`,
   );
 }
@@ -187,12 +187,12 @@ export function tooManyRequestsPage() {
 }
 
 // ─── OAuth code-paste landing page ───────────────────────────────────────────
-// Shared, permanent redirect target for ALL Bloby OAuth code-paste flows
+// Shared, permanent redirect target for ALL Morphy OAuth code-paste flows
 // (Fitbit / Google Health today, more later). Self-hosted blobies can't expose a
 // public callback, so Google redirects the browser here; this dumb static page
 // surfaces everything after the path (location.search + location.hash) in a copy
 // box so the user can paste it back into their agent. It is GENERIC and never
-// changes — it doesn't know or care which skill triggered the flow; the bloby's
+// changes — it doesn't know or care which skill triggered the flow; the morphy's
 // backend parses whatever param it needs out of the pasted tail.
 //
 // SECURITY: the tail holds a single-use OAuth `code`. The route serving this MUST
@@ -202,7 +202,7 @@ export function tooManyRequestsPage() {
 //
 // Pure client-side: it reads the tail in the browser; the server only emits HTML.
 // Design mirrors the relay's branded pages — dark theme, Inter/Space Grotesk, the
-// brand gradient, the bloby mascot, and the spinning conic-gradient border from
+// brand gradient, the morphy mascot, and the spinning conic-gradient border from
 // the website's focused "Reserve your handle" input field.
 export function oauthConnectPage() {
   return `<!DOCTYPE html>
@@ -211,7 +211,7 @@ export function oauthConnectPage() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Connect | Bloby</title>
+  <title>Connect | Morphy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -269,11 +269,11 @@ export function oauthConnectPage() {
       </video>
     </div>
     <h1 id="title" class="gradient">You're authorized</h1>
-    <p class="lead" id="sub">Copy the value below, go back to your Bloby, and paste it to finish connecting.</p>
+    <p class="lead" id="sub">Copy the value below, go back to your Morphy, and paste it to finish connecting.</p>
     <div class="box" id="box"><div class="box-inner"><code id="payload"></code></div></div>
     <button id="copyBtn">Copy</button>
     <div class="hint" id="hint">Tip: it was auto-copied to your clipboard.</div>
-    <div><span class="badge">Powered by Bloby</span></div>
+    <div><span class="badge">Powered by Morphy</span></div>
   </div>
 <script>
   // Everything after the path: query string + hash. Future-proof — the agent decides

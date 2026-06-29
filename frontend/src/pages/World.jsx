@@ -543,11 +543,11 @@ function StackList({ cluster, onClose, onSelect }) {
   )
 }
 
-// ─── Bloby card ──────────────────────────────────────────────────────────────
+// ─── Morphy card ──────────────────────────────────────────────────────────────
 
 const TYPE_LABELS = { skill: 'Skill', bundle: 'Bundle', blueprint: 'Blueprint', service: 'Service' }
 
-function BlobyCard({ bloby, onClose }) {
+function BlobyCard({ morphy, onClose }) {
   const [showItems, setShowItems] = useState(false)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -567,16 +567,16 @@ function BlobyCard({ bloby, onClose }) {
       .then(data => {
         if (!data) return
         const all = [
-          ...(data.blueprints || []).map(b => ({ name: b.name, type: 'blueprint', price: b.price, bloby: b.bloby })),
-          ...(data.bundles || []).map(b => ({ name: b.name, type: 'bundle', price: b.price, bloby: b.bloby })),
-          ...(data.services || []).map(s => ({ name: s.name, type: 'service', price: s.price, bloby: s.bloby })),
+          ...(data.blueprints || []).map(b => ({ name: b.name, type: 'blueprint', price: b.price, bloby: b.morphy })),
+          ...(data.bundles || []).map(b => ({ name: b.name, type: 'bundle', price: b.price, bloby: b.morphy })),
+          ...(data.services || []).map(s => ({ name: s.name, type: 'service', price: s.price, bloby: s.morphy })),
         ]
-        const mine = all.filter(i => i.bloby?.toLowerCase() === bloby.username.toLowerCase())
+        const mine = all.filter(i => i.morphy?.toLowerCase() === morphy.username.toLowerCase())
         setItems(mine)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [bloby.username, items.length])
+  }, [morphy.username, items.length])
 
   return createPortal(
     <div className="bloby-card-overlay" onClick={onClose}>
@@ -587,26 +587,26 @@ function BlobyCard({ bloby, onClose }) {
           <img
             className="bloby-card__avatar"
             src="/assets/images/morphy.png"
-            alt={bloby.username}
+            alt={morphy.username}
           />
 
-          <h3 className="bloby-card__name">{bloby.username}</h3>
+          <h3 className="bloby-card__name">{morphy.username}</h3>
 
           <div className="bloby-card__zone-badge">
             <span className="bloby-card__zone-dot" />
-            {ZONE_LABELS[bloby.zone] || bloby.zone}
+            {ZONE_LABELS[morphy.zone] || morphy.zone}
           </div>
 
           <div className="bloby-card__divider" />
 
           <div className="bloby-card__row">
             <span className="bloby-card__label">Now visiting</span>
-            <span className="bloby-card__value">{ZONE_LABELS[bloby.zone] || bloby.zone}</span>
+            <span className="bloby-card__value">{ZONE_LABELS[morphy.zone] || morphy.zone}</span>
           </div>
           <div className="bloby-card__row">
             <span className="bloby-card__label">Status</span>
-            <span className="bloby-card__value" style={{ color: bloby.isOnline ? '#22c55e' : '#999' }}>
-              {bloby.isOnline ? 'Online' : 'Offline'}
+            <span className="bloby-card__value" style={{ color: morphy.isOnline ? '#22c55e' : '#999' }}>
+              {morphy.isOnline ? 'Online' : 'Offline'}
             </span>
           </div>
 
@@ -622,7 +622,7 @@ function BlobyCard({ bloby, onClose }) {
             <button className="bloby-items__back" onClick={() => setShowItems(false)}>
               &larr;
             </button>
-            <h3 className="bloby-items__title">{bloby.username}&apos;s Shop</h3>
+            <h3 className="bloby-items__title">{morphy.username}&apos;s Shop</h3>
           </div>
 
           {loading && <div className="bloby-items__loading">Loading...</div>}
@@ -893,7 +893,7 @@ export default function BlobyWorld() {
             ref={imgRef}
             className="bloby-world__map"
             src="/assets/images/map.png"
-            alt="Bloby World"
+            alt="Morphy World"
             draggable={false}
           />
           {clusters.map(c => (
@@ -927,7 +927,7 @@ export default function BlobyWorld() {
       )}
 
       {selectedBloby && (
-        <BlobyCard bloby={selectedBloby} onClose={() => setSelectedBloby(null)} />
+        <BlobyCard morphy={selectedBloby} onClose={() => setSelectedBloby(null)} />
       )}
 
       {editorMode && (

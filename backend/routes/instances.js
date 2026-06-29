@@ -122,7 +122,7 @@ router.post('/instances/callback', instanceCallbackLimiter, async (req, res) => 
     if (status === 'ready') {
       try {
         // ── MANAGED (direct) mode ──────────────────────────────────────────
-        // The box has a public IP; point  mybot.bloby.bot → <IP>  as a proxied
+        // The box has a public IP; point  mybot.morphyagent.com → <IP>  as a proxied
         // (orange-cloud) CF A-record. No tunnel, no relay data-plane hop.
         if (inst.username && inst.ec2InstanceId && cfConfigured()) {
           const tier = inst.tier || 'premium';
@@ -210,7 +210,7 @@ router.post('/instances/:id/restart', jwtAuth, async (req, res) => {
       restartInstance(instance.ec2InstanceId, instance.region)
         .then(async () => {
           // A stop+start assigns a NEW public IP — refresh the managed CF A-record
-          // so mybot.bloby.bot keeps resolving to the live box.
+          // so mybot.morphyagent.com keeps resolving to the live box.
           if (instance.username && cfConfigured()) {
             try {
               const tier = instance.tier || 'premium';
@@ -232,7 +232,7 @@ router.post('/instances/:id/restart', jwtAuth, async (req, res) => {
               console.error(`[instances] ${instId} DNS refresh after restart failed:`, dnsErr.message);
             }
           }
-          // Give bloby ~15s to come up after EC2 is running
+          // Give morphy ~15s to come up after EC2 is running
           await new Promise(r => setTimeout(r, 15000));
           await db.collection('accounts').updateOne(
             { 'instances.id': instId },

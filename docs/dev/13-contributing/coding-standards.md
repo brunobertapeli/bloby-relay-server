@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button'; // resolves to workspace/client
 Note: The `@` alias resolves differently depending on which Vite config is in play:
 
 - `vite.config.ts` (dashboard): `@` = `workspace/client/src/`
-- `vite.bloby.config.ts` (chat): `@` = `supervisor/chat/src/`
+- `vite.chat.config.ts` (chat): `@` = `supervisor/chat/src/`
 
 **Server-side imports** use relative paths with `.js` extensions (required by ESM):
 

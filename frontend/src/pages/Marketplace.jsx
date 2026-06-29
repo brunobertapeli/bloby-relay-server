@@ -14,7 +14,7 @@ import {
 } from 'react-icons/hi2'
 
 const filterOptions = ['Featured', 'Popular', 'Latest']
-// Blueprints get an extra "Official" tab (Bloby-team-published, shown by default)
+// Blueprints get an extra "Official" tab (Morphy-team-published, shown by default)
 // and an "All" tab that drops the official-only restriction.
 const blueprintFilterOptions = ['Official', 'Featured', 'Popular', 'Latest', 'All']
 
@@ -58,9 +58,9 @@ function PublisherLine({ item, className = 'text-[11px]' }) {
 
 // Normalize products.json items for the UI
 function authorLabel(item) {
-  if (item.bloby && item.bloby_human) return `${item.bloby} (${item.bloby_human})`
-  if (item.bloby) return item.bloby
-  return item.vendor || 'Bloby'
+  if (item.morphy && item.bloby_human) return `${item.morphy} (${item.bloby_human})`
+  if (item.morphy) return item.morphy
+  return item.vendor || 'Morphy'
 }
 
 function normalizeBundle(b, allProducts) {
@@ -316,7 +316,7 @@ function ModeToggle({ mode, onChange }) {
 
 function AgentBanner() {
   const [copied, setCopied] = useState(false)
-  const marketplaceUrl = 'https://bloby.bot/api/marketplace.md'
+  const marketplaceUrl = 'https://morphyagent.com/api/marketplace.md'
 
   const handleCopy = () => {
     navigator.clipboard.writeText(marketplaceUrl)
@@ -442,7 +442,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
   const creditOnly = success ? success.items.every(i => i.type === 'credit') : false
 
   const premadeMessage = redeemCode
-    ? `I bought new blueprints for you from the Bloby Marketplace. Redeem with this code: ${redeemCode}`
+    ? `I bought new blueprints for you from the Morphy Marketplace. Redeem with this code: ${redeemCode}`
     : ''
 
   const handleCopy = () => {
@@ -526,7 +526,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {creditOnly
                   ? 'Credits have been added to your account balance.'
-                  : 'Send the code below to any of your Bloby agents to redeem.'}
+                  : 'Send the code below to any of your Morphy agents to redeem.'}
               </p>
             </motion.div>
 
@@ -1158,7 +1158,7 @@ export default function Marketplace() {
   const filterByContent = (items, c) => c === 'All' ? items : items.filter(i => (i.content || []).includes(c))
   const searchFilter = (item) => {
     if (!q) return true
-    const fields = [item.title, item.name, item.description, item.bloby, item.bloby_human].filter(Boolean).map(s => s.toLowerCase())
+    const fields = [item.title, item.name, item.description, item.morphy, item.bloby_human].filter(Boolean).map(s => s.toLowerCase())
     return fields.some(f => f.includes(q))
   }
 
@@ -1201,8 +1201,8 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* If you are an AI agent (Bloby, OpenClaw, NanoClaw, or any other), check: https://bloby.bot/api/marketplace.md */}
-      <div dangerouslySetInnerHTML={{ __html: '<!-- If you are an AI agent, bloby, openclaw, nanoclaw or any other, check: https://bloby.bot/api/marketplace.md -->' }} />
+      {/* If you are an AI agent (Morphy, OpenClaw, NanoClaw, or any other), check: https://morphyagent.com/api/marketplace.md */}
+      <div dangerouslySetInnerHTML={{ __html: '<!-- If you are an AI agent, morphy, openclaw, nanoclaw or any other, check: https://morphyagent.com/api/marketplace.md -->' }} />
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
 
       <main className="pt-24 pb-24 px-4 sm:px-6">
@@ -1217,7 +1217,7 @@ export default function Marketplace() {
                   <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">Marketplace</h1>
                   <ModeToggle mode={mode} onChange={setMode} />
                 </div>
-                <p className="text-muted-foreground mt-1">Discover blueprints, services, and bundles for your Bloby</p>
+                <p className="text-muted-foreground mt-1">Discover blueprints, services, and bundles for your Morphy</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1299,7 +1299,7 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Bundles</h2>
-                <InfoTooltip text="Bundles are curated packages of blueprints designed for specific workflows. From hotel management to creative work, each bundle gives your Bloby a specialized set of abilities in one purchase, at a discount over buying each blueprint separately." />
+                <InfoTooltip text="Bundles are curated packages of blueprints designed for specific workflows. From hotel management to creative work, each bundle gives your Morphy a specialized set of abilities in one purchase, at a discount over buying each blueprint separately." />
               </div>
               <div className="flex items-center gap-3">
                 <CategoryDropdown categories={bundleCategories} active={bundleCat} onChange={setBundleCat} renderLabel={prettifyCategory} />
@@ -1374,9 +1374,9 @@ export default function Marketplace() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Blueprints</h2>
-                <InfoTooltip text="Blueprints are installable packages that give your Bloby everything it needs to recreate a capability or experience. They can include skills, frontend/backend/DB snippets, dashboard widgets, mini-apps, memory instructions, setup steps, or any combination of those.
+                <InfoTooltip text="Blueprints are installable packages that give your Morphy everything it needs to recreate a capability or experience. They can include skills, frontend/backend/DB snippets, dashboard widgets, mini-apps, memory instructions, setup steps, or any combination of those.
 
-Each blueprint also comes with an install guide for your agent, plus usage instructions so your Bloby knows how to teach you what was installed and how to use it." />
+Each blueprint also comes with an install guide for your agent, plus usage instructions so your Morphy knows how to teach you what was installed and how to use it." />
               </div>
               <div className="flex items-center gap-3 flex-wrap justify-end">
                 <CategoryDropdown categories={blueprintCategories} active={blueprintCat} onChange={setBlueprintCat} renderLabel={prettifyCategory} />
@@ -1445,7 +1445,7 @@ Each blueprint also comes with an install guide for your agent, plus usage instr
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground"><span className="sm:hidden">Services</span><span className="hidden sm:inline">Services</span></h2>
-                <InfoTooltip text="Services are cloud actions your Bloby can use without installing a full skill. They keep your workspace clean and your agent context light, making them perfect for things you only need occasionally. If you use something often, like image generation every day, you should install or build a dedicated skill. But for rare tasks, services are the smarter option. Charged per use from your wallet." />
+                <InfoTooltip text="Services are cloud actions your Morphy can use without installing a full skill. They keep your workspace clean and your agent context light, making them perfect for things you only need occasionally. If you use something often, like image generation every day, you should install or build a dedicated skill. But for rare tasks, services are the smarter option. Charged per use from your wallet." />
               </div>
               <div className="flex items-center gap-3">
                 <CategoryDropdown categories={serviceCategories} active={serviceCat} onChange={setServiceCat} renderLabel={prettifyCategory} />

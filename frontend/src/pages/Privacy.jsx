@@ -38,7 +38,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">The Short Version</h2>
               <p>
-                Bloby runs on <strong className="text-foreground">your machine</strong>. Your conversations,
+                Morphy runs on <strong className="text-foreground">your machine</strong>. Your conversations,
                 data, and personal files stay local. We don't see them, store them, or have access to them.
               </p>
             </section>
@@ -46,13 +46,13 @@ export default function Privacy() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">What We Collect</h2>
 
-              <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">On bloby.bot (the website)</h3>
+              <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">On morphyagent.com (the website)</h3>
               <ul className="list-disc list-inside space-y-2">
                 <li>Basic, privacy-friendly analytics: page views and approximate country. No individual tracking.</li>
                 <li>Your email address, only if you sign up or reserve a handle. We won't share it.</li>
               </ul>
 
-              <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">In the Bloby app</h3>
+              <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">In the Morphy app</h3>
               <ul className="list-disc list-inside space-y-2">
                 <li>Nothing. The software is open source, runs locally, and collects zero data.</li>
                 <li>Messages you send through third-party AI providers (Anthropic, OpenAI, etc.) are governed by those providers' privacy policies, not ours.</li>
@@ -74,7 +74,7 @@ export default function Privacy() {
               <p>
                 Our hosted services run on Amazon Web Services (AWS).{' '}
                 <strong className="text-foreground">
-                  AWS is a third-party infrastructure provider. Bloby is not affiliated with,
+                  AWS is a third-party infrastructure provider. Morphy is not affiliated with,
                   endorsed by, or sponsored by Amazon or AWS.
                 </strong>{' '}
                 Data processed through our hosted version is subject to standard cloud security practices.
@@ -84,7 +84,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Third-Party Services</h2>
               <p className="mb-3">
-                Bloby can connect to external services like AI providers, messaging platforms, and
+                Morphy can connect to external services like AI providers, messaging platforms, and
                 productivity tools. Each has its own privacy policy. We recommend reviewing them before
                 connecting your agent.
               </p>
@@ -102,7 +102,7 @@ export default function Privacy() {
                   Agent Privacy Considerations
                 </h2>
                 <p className="mb-4">
-                  Because Bloby is a self-hosted AI agent with real system access, there are privacy
+                  Because Morphy is a self-hosted AI agent with real system access, there are privacy
                   implications beyond a typical web service. Please be aware of the following:
                 </p>
 
@@ -139,7 +139,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Alexa Skill (Morphy Agent)</h2>
               <p className="mb-3">
-                The Morphy Agent Alexa skill lets you talk to your Bloby agent through any Echo device. When
+                The Morphy Agent Alexa skill lets you talk to your Morphy agent through any Echo device. When
                 you use the skill, here is exactly what happens to your voice data:
               </p>
               <ul className="list-disc list-inside space-y-2 mb-3">
@@ -158,7 +158,7 @@ export default function Privacy() {
                 </li>
                 <li>
                   <strong className="text-foreground">Amazon sends us the text transcript</strong> along with
-                  your anonymous Alexa user ID. Our relay forwards it directly to your own Bloby instance
+                  your anonymous Alexa user ID. Our relay forwards it directly to your own Morphy instance
                   (the tunnel running on your machine). The transcript is held in memory only for the
                   duration of the request — we do not store it in any database or log file.
                 </li>
@@ -169,8 +169,8 @@ export default function Privacy() {
                 </li>
                 <li>
                   <strong className="text-foreground">The only thing we persist</strong> is the link between
-                  your anonymous Alexa user ID and your Bloby handle, plus a per-user shared secret used to
-                  authenticate the relay-to-tunnel forward. This link exists so we know which Bloby to
+                  your anonymous Alexa user ID and your Morphy handle, plus a per-user shared secret used to
+                  authenticate the relay-to-tunnel forward. This link exists so we know which Morphy to
                   forward your voice requests to. You can delete it at any time by disabling the skill in
                   the Alexa app or unlinking from your dashboard.
                 </li>

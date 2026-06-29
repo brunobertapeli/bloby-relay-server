@@ -17,7 +17,7 @@ The same logic applies to the backend: if Claude writes buggy Express code, only
     |  - Always alive                                  |
     |  - Chat WebSocket handler                        |
     |  - Tunnel management                             |
-    |  - File serving (dist-bloby/)                    |
+    |  - File serving (dist-chat/)                    |
     |                                                   |
     |    +----------------+  +---------------------+   |
     |    | WORKER (:3001) |  | BACKEND (:3004)     |   |
@@ -29,7 +29,7 @@ The same logic applies to the backend: if Claude writes buggy Express code, only
 
 ### Why pre-built chat (crash resilience)?
 
-The Bloby chat UI is built at publish time by `vite.bloby.config.ts` and shipped as static files in `dist-bloby/`. The supervisor serves these files directly from disk -- no Vite process, no build step, no dependency on the workspace.
+The Morphy chat UI is built at publish time by `vite.chat.config.ts` and shipped as static files in `dist-chat/`. The supervisor serves these files directly from disk -- no Vite process, no build step, no dependency on the workspace.
 
 **Rationale**: The chat is the user's lifeline. If Vite crashes, or the workspace frontend throws a runtime error, or the agent introduces a bug in the dashboard code, the chat SPA still loads because it is just static HTML/JS/CSS served by the supervisor.
 
@@ -49,7 +49,7 @@ The relay bug has since been fixed (body parser scoped to `/api` routes only), b
 
 ### Why bypassPermissions on the agent?
 
-The entire point of Bloby is that the user talks to Claude from their phone while the host machine runs unattended. There is no terminal session to confirm tool usage. Confirmation prompts would make the agent useless in this context.
+The entire point of Morphy is that the user talks to Claude from their phone while the host machine runs unattended. There is no terminal session to confirm tool usage. Confirmation prompts would make the agent useless in this context.
 
 Safety is enforced by two boundaries:
 
@@ -79,7 +79,7 @@ The project has two separate SPAs that must be built independently:
 | Config                 | Entry                         | Output                        | Serving                             |
 | ---------------------- | ----------------------------- | ----------------------------- | ----------------------------------- |
 | `vite.config.ts`       | `workspace/client/index.html` | (dev server, no build output) | Vite dev server on `:3002` with HMR |
-| `vite.bloby.config.ts` | `supervisor/chat/bloby.html`  | `dist-bloby/`                 | Static files served by supervisor   |
+| `vite.chat.config.ts` | `supervisor/chat/chat.html`  | `dist-chat/`                 | Static files served by supervisor   |
 
 The dashboard (workspace/client) is served via Vite dev server with HMR so the agent's edits show up instantly. The chat SPA (supervisor/chat) is pre-built and served as static files so it survives crashes.
 

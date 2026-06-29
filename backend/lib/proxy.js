@@ -7,7 +7,7 @@ import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 // ─────────────────────────────────────────────────────────────────────────────
 // Why this file is more than a one-liner:
 //
-// The relay reverse-proxies user.bloby.bot → https://<random>.trycloudflare.com (a Cloudflare
+// The relay reverse-proxies user.morphyagent.com → https://<random>.trycloudflare.com (a Cloudflare
 // "quick tunnel" running on the user's box). When that tunnel's connector dies but the relay DB
 // still thinks the bot is online, the trycloudflare hostname STILL resolves (Cloudflare anycast),
 // and the edge answers with a fully-formed HTTP response: status 530 + the raw "Error 1033 /
@@ -23,7 +23,7 @@ import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 // the CF edge) are recognised and passed through untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SNIFF_LIMIT = 4096; // enough to see the agent's <title> markers AND its "Powered by Bloby" badge
+const SNIFF_LIMIT = 4096; // enough to see the agent's <title> markers AND its "Powered by Morphy" badge
 const SNIFF_MS = 1500;    // cap how long we'll buffer an ambiguous error body before deciding
 const HOP_BY_HOP = [
   'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
@@ -96,7 +96,7 @@ const CLOUDFLARED_MARKERS = [
   'Unable to reach the origin service',
 ];
 // Positive AGENT proof inside the first prefix (early <title>s; badge if it lands in-window).
-const AGENT_MARKERS = ['Powered by Bloby', 'Reconnecting · Bloby', 'Backend down · Bloby', 'x-bloby'];
+const AGENT_MARKERS = ['Powered by Morphy', 'Reconnecting · Morphy', 'Backend down · Morphy', 'x-bloby'];
 
 function bodyLooksLikeCf(prefix) {
   for (const a of AGENT_MARKERS) if (prefix.includes(a)) return false; // agent bytes → pass

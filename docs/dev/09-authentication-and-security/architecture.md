@@ -4,7 +4,7 @@ title: "Architecture"
 
 ## 1. Authentication Architecture Overview
 
-Bloby implements a multi-layer authentication architecture spanning three processes:
+Morphy implements a multi-layer authentication architecture spanning three processes:
 
 | Layer | Process | Responsibility |
 |---|---|---|

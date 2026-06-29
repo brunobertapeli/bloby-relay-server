@@ -6,7 +6,7 @@ title: "Agent Autonomy"
 
 ### 7.1 The Self-Evolving Workspace
 
-Bloby's workspace is designed from the ground up for agent autonomy. The agent has unrestricted write access to the `workspace/` directory, which contains both the user-facing application (frontend in `client/`, backend in `backend/`) and the agent's own memory and configuration files.
+Morphy's workspace is designed from the ground up for agent autonomy. The agent has unrestricted write access to the `workspace/` directory, which contains both the user-facing application (frontend in `client/`, backend in `backend/`) and the agent's own memory and configuration files.
 
 The system prompt establishes this concept (line 248-249):
 
@@ -20,7 +20,7 @@ The agent can modify the React frontend in `workspace/client/src/`. Changes are 
 
 > "NEVER run `npm run build`, `vite build`, or any build commands. Vite HMR handles frontend changes automatically."
 
-The supervisor starts a Vite dev server via `startViteDevServers()` (line 105 of `supervisor/index.ts`) and proxies all non-API, non-Bloby requests to it (lines 340-354). This means the agent can add a new page, modify a component, or create an entirely new module, and the user sees it live in their browser without any explicit build step.
+The supervisor starts a Vite dev server via `startViteDevServers()` (line 105 of `supervisor/index.ts`) and proxies all non-API, non-Morphy requests to it (lines 340-354). This means the agent can add a new page, modify a component, or create an entirely new module, and the user sees it live in their browser without any explicit build step.
 
 ### 7.3 Backend Code Modification
 
@@ -80,7 +80,7 @@ The `triggerAgent()` function (line 120) creates a conversation in the database,
 The agent can trigger its own update by creating a `.update` file in the workspace (from the system prompt, lines 158-160):
 
 ```
-touch ~/.bloby/workspace/.update
+touch ~/.morphy/workspace/.update
 ```
 
 The workspace watcher detects this file (lines 768-777 of `supervisor/index.ts`), deletes it, and either defers the update (if an agent turn is active) or runs it immediately via `runDeferredUpdate()` (lines 683-711).

@@ -4,17 +4,17 @@ title: Tunnels & Remote Access
 
 # Tunnels & Remote Access
 
-Bloby runs on your machine, but you can access it from anywhere using tunnels.
+Morphy runs on your machine, but you can access it from anywhere using tunnels.
 
 ## Quick Tunnel (default)
 
-Zero configuration. Bloby spins up a Cloudflare tunnel automatically and gives you a public URL.
+Zero configuration. Morphy spins up a Cloudflare tunnel automatically and gives you a public URL.
 
 - **No account needed** — works out of the box
-- **Random URL** — changes every time Bloby restarts (e.g., `random-words.trycloudflare.com`)
-- **Pair with Bloby Relay** for a permanent, memorable URL
+- **Random URL** — changes every time Morphy restarts (e.g., `random-words.trycloudflare.com`)
+- **Pair with Morphy Relay** for a permanent, memorable URL
 
-This is set up during `bloby init`. Nothing to configure.
+This is set up during `morphy init`. Nothing to configure.
 
 ## Named Tunnel
 
@@ -25,7 +25,7 @@ Use your own domain for a permanent, branded URL.
 Run the tunnel setup:
 
 ```bash
-bloby tunnel setup
+morphy tunnel setup
 ```
 
 This walks you through:
@@ -33,7 +33,7 @@ This walks you through:
 2. Creating a tunnel
 3. Getting DNS instructions (add a CNAME record)
 
-Once DNS propagates, your domain points directly to your Bloby instance.
+Once DNS propagates, your domain points directly to your Morphy instance.
 
 ### Requirements
 
@@ -42,7 +42,7 @@ Once DNS propagates, your domain points directly to your Bloby instance.
 
 ## Private Network (no tunnel)
 
-If you don't want any public URL, choose "Private Network" during `bloby init`. Access Bloby only via:
+If you don't want any public URL, choose "Private Network" during `morphy init`. Access Morphy only via:
 
 - Your local network (`http://192.168.x.x:3000`)
 - A VPN like Tailscale or WireGuard
@@ -51,9 +51,9 @@ If you don't want any public URL, choose "Private Network" during `bloby init`. 
 
 | Command | What it does |
 |---------|-------------|
-| `bloby tunnel setup` | Interactive named tunnel setup |
-| `bloby tunnel status` | Show current tunnel mode and URL |
-| `bloby tunnel reset` | Switch back to quick tunnel mode |
+| `morphy tunnel setup` | Interactive named tunnel setup |
+| `morphy tunnel status` | Show current tunnel mode and URL |
+| `morphy tunnel reset` | Switch back to quick tunnel mode |
 
 ## Security
 
@@ -61,4 +61,4 @@ All tunnel traffic is encrypted through Cloudflare. Remote access is protected b
 
 ## Health monitoring
 
-Bloby checks tunnel health every 30 seconds. If the tunnel dies (laptop sleep, network change, etc.), it automatically restarts and reconnects. For quick tunnels, a new URL is generated and the relay is updated.
+Morphy checks tunnel health every 30 seconds. If the tunnel dies (laptop sleep, network change, etc.), it automatically restarts and reconnects. For quick tunnels, a new URL is generated and the relay is updated.

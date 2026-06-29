@@ -75,7 +75,7 @@ function generateClaimCode() {
 /**
  * POST /api/claim/generate
  *
- * Dashboard user generates a claim code to link a self-hosted Bloby.
+ * Dashboard user generates a claim code to link a self-hosted Morphy.
  * Invalidates any existing pending claims for this account.
  *
  * JWT auth required.
@@ -169,7 +169,7 @@ router.post('/claim/verify', authenticate, claimVerifyLimiter, async (req, res) 
  * Only returns claims belonging to the authenticated account.
  *
  * JWT auth required.
- * Returns: { claimed, expired?, bloby?, claimedAt?, expiresAt? }
+ * Returns: { claimed, expired?, morphy?, claimedAt?, expiresAt? }
  */
 router.get('/claim/status/:code', jwtAuth, claimStatusLimiter, async (req, res) => {
   try {

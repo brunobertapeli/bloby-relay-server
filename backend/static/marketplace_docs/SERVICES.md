@@ -1,16 +1,16 @@
 # Services
 
-Standard for consuming bloby.bot hosted services from the marketplace.
+Standard for consuming morphyagent.com hosted services from the marketplace.
 
-This document is for **agents consuming services**. Services are provided by bloby.bot — they are NOT user-submitted.
+This document is for **agents consuming services**. Services are provided by morphyagent.com — they are NOT user-submitted.
 
 ---
 
 ## What Is a Service
 
-A service is a **hosted API endpoint** provided by bloby.bot that any bloby can call on-demand. Services are pay-per-use. No installation, no tarball, no workspace changes.
+A service is a **hosted API endpoint** provided by morphyagent.com that any morphy can call on-demand. Services are pay-per-use. No installation, no tarball, no workspace changes.
 
-Services exist so blobies can access capabilities without installing a blueprint. A bloby that rarely generates images shouldn't need an image-generation blueprint cluttering its workspace — it can just call the service when needed.
+Services exist so blobies can access capabilities without installing a blueprint. A morphy that rarely generates images shouldn't need an image-generation blueprint cluttering its workspace — it can just call the service when needed.
 
 ---
 
@@ -18,27 +18,27 @@ Services exist so blobies can access capabilities without installing a blueprint
 
 | Aspect | Blueprint | Service |
 |--------|-----------|---------|
-| Provided by | Anyone (marketplace submissions) | bloby.bot only |
+| Provided by | Anyone (marketplace submissions) | morphyagent.com only |
 | Installation | Download + extract to `workspace/skills/` | None. Just call the API |
 | Workspace impact | Adds files, may need env keys, dependencies | Zero footprint |
 | Pricing | One-time purchase per version | Pay-per-use |
 | Offline capable | Yes (instructions are local) | No (requires internet) |
-| Customizable | Yes (bloby adapts instructions) | No (fixed API contract) |
+| Customizable | Yes (morphy adapts instructions) | No (fixed API contract) |
 | Best for | Core, frequently-used capabilities | Occasional, utility capabilities |
 
 ### When to use a service vs a blueprint
 
 **Use a service when:**
-- The bloby needs the capability occasionally, not constantly
+- The morphy needs the capability occasionally, not constantly
 - The human wants a clean workspace without dozens of installed blueprints
 - The capability requires expensive infrastructure (GPU inference, large models) that doesn't make sense to self-host
-- The bloby just needs a quick result, not deep integration
+- The morphy just needs a quick result, not deep integration
 
 **Use a blueprint when:**
-- The capability is central to the bloby's daily operation
+- The capability is central to the morphy's daily operation
 - The human wants full control and customization
 - Offline access matters
-- The bloby needs to deeply integrate the capability with the rest of its workspace
+- The morphy needs to deeply integrate the capability with the rest of its workspace
 
 A human might choose to buy the `nano-banana-image-gen` blueprint for daily social media work, but use the image generation service for the occasional one-off request.
 
@@ -48,16 +48,16 @@ A human might choose to buy the `nano-banana-image-gen` blueprint for daily soci
 
 ### Authentication
 
-Every bloby has a bot token issued during workspace setup. Services are authenticated via this token.
+Every morphy has a bot token issued during workspace setup. Services are authenticated via this token.
 
 ```bash
-curl -X POST https://bloby.bot/api/services/<service-id> \
+curl -X POST https://morphyagent.com/api/services/<service-id> \
   -H "Authorization: Bearer <bot-token>" \
   -H "Content-Type: application/json" \
   -d '{ ...request payload... }'
 ```
 
-The bot token ties the request to the bloby's owner account for billing.
+The bot token ties the request to the morphy's owner account for billing.
 
 ### Request / Response Pattern
 
@@ -103,10 +103,10 @@ All services follow the same pattern:
 
 ### Balance Management
 
-Services deduct from the owner's credit balance. The bloby can check the balance before making requests:
+Services deduct from the owner's credit balance. The morphy can check the balance before making requests:
 
 ```bash
-curl https://bloby.bot/api/marketplace/balance/bot \
+curl https://morphyagent.com/api/marketplace/balance/bot \
   -H "Authorization: Bearer <bot-token>"
 ```
 
@@ -118,7 +118,7 @@ Response:
 }
 ```
 
-If balance is insufficient, the bloby should tell its human: "I need credits to use [service]. Your current balance is $X.XX. You can add credits at bloby.bot/account."
+If balance is insufficient, the morphy should tell its human: "I need credits to use [service]. Your current balance is $X.XX. You can add credits at morphyagent.com/account."
 
 ---
 
@@ -127,7 +127,7 @@ If balance is insufficient, the bloby should tell its human: "I need credits to 
 Before calling a service, blobies can check the cost without executing:
 
 ```bash
-curl -X POST https://bloby.bot/api/services/<service-id>/estimate \
+curl -X POST https://morphyagent.com/api/services/<service-id>/estimate \
   -H "Authorization: Bearer <bot-token>" \
   -H "Content-Type: application/json" \
   -d '{ ...same request payload... }'
@@ -143,7 +143,7 @@ Response:
 }
 ```
 
-The bloby SHOULD check cost estimates for expensive operations and inform its human before proceeding.
+The morphy SHOULD check cost estimates for expensive operations and inform its human before proceeding.
 
 ---
 
@@ -154,7 +154,7 @@ The bloby SHOULD check cost estimates for expensive operations and inform its hu
 Available services are listed in the agent-readable catalog:
 
 ```bash
-curl https://bloby.bot/api/marketplace.md \
+curl https://morphyagent.com/api/marketplace.md \
   -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
@@ -167,12 +167,12 @@ The services section includes:
 
 ### For humans
 
-Services appear on the marketplace at `bloby.bot/marketplace` under the "Services" tab. Each service page shows pricing, description, and example outputs.
+Services appear on the marketplace at `morphyagent.com/marketplace` under the "Services" tab. Each service page shows pricing, description, and example outputs.
 
 ### API catalog
 
 ```bash
-curl https://bloby.bot/api/services \
+curl https://morphyagent.com/api/services \
   -H "Authorization: Bearer $RELAY_TOKEN"
 ```
 
@@ -234,7 +234,7 @@ Returns all available services with their metadata:
 {
   "status": "ok",
   "result": {
-    "url": "https://bloby.bot/api/services/image-generation/output/abc123.png",
+    "url": "https://morphyagent.com/api/services/image-generation/output/abc123.png",
     "expires_in": 3600
   },
   "cost": 0.12,
@@ -242,7 +242,7 @@ Returns all available services with their metadata:
 }
 ```
 
-The output URL is temporary (1 hour). The bloby should download the image to the workspace if it needs to persist.
+The output URL is temporary (1 hour). The morphy should download the image to the workspace if it needs to persist.
 
 ### Video Transcription
 
@@ -281,9 +281,9 @@ The output URL is temporary (1 hour). The bloby should download the image to the
 
 ---
 
-## Bloby Behavior Guidelines
+## Morphy Behavior Guidelines
 
-When a bloby uses services, it should follow these principles:
+When a morphy uses services, it should follow these principles:
 
 1. **Check balance first** for expensive operations. Don't surprise the human with charges.
 2. **Use cost estimates** for operations where the cost isn't fixed (e.g., video transcription varies by duration).
@@ -291,13 +291,13 @@ When a bloby uses services, it should follow these principles:
 4. **Cache results** when appropriate. Don't call the service again for the same input.
 5. **Download and persist** any outputs the human will need later (images, transcriptions). Service output URLs expire.
 6. **Handle insufficient balance gracefully.** Tell the human how much is needed and where to add credits.
-7. **Prefer installed blueprints** over services for frequently-used capabilities. If the bloby finds itself calling a service repeatedly, suggest the human install the corresponding blueprint.
+7. **Prefer installed blueprints** over services for frequently-used capabilities. If the morphy finds itself calling a service repeatedly, suggest the human install the corresponding blueprint.
 
 ---
 
 ## Adding New Services
 
-New services are added by the bloby.bot team only. The process:
+New services are added by the morphyagent.com team only. The process:
 
 1. Build and host the service infrastructure
 2. Define the API contract (input schema, output format, cost)

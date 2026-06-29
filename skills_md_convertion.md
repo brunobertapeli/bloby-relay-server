@@ -7,12 +7,12 @@
 > `supervisor/harnesses/skills.ts`). Revision versus the original plan:
 > `.claude-plugin/plugin.json` turned out to be read by **nothing** and has been
 > **removed from all skills — do not add it to new ones**. SKILL.md frontmatter is the
-> single canonical metadata; keep `skill.json` (Bloby marketplace) descriptions in sync
+> single canonical metadata; keep `skill.json` (Morphy marketplace) descriptions in sync
 > with it. Mentions of `.claude-plugin` below are historical context only.
 
 ## Goal
 
-Make every skill in the Bloby marketplace work with **both** the Claude harness and the new OpenAI/Codex harness, using a single canonical on-disk layout. Today's skills follow the Claude-only convention (a `.claude-plugin/plugin.json` next to a `SKILL.md` that has no YAML frontmatter). Codex rejects them with `"missing YAML frontmatter delimited by ---"`. The migration is small and additive — Claude continues to work; Codex starts working.
+Make every skill in the Morphy marketplace work with **both** the Claude harness and the new OpenAI/Codex harness, using a single canonical on-disk layout. Today's skills follow the Claude-only convention (a `.claude-plugin/plugin.json` next to a `SKILL.md` that has no YAML frontmatter). Codex rejects them with `"missing YAML frontmatter delimited by ---"`. The migration is small and additive — Claude continues to work; Codex starts working.
 
 ## Required change (every skill)
 
@@ -70,10 +70,10 @@ Skip `SKILL.json` entirely if you don't have icons/branding to add. The skill wo
 | File / directory | Why |
 |---|---|
 | ~~`.claude-plugin/plugin.json`~~ | **Removed 2026-06-10** — nothing reads it. Do not ship it in new skills. |
-| `skill.json` (lowercase) | Bloby's own marketplace metadata (`bloby_human`, `bloby`, `tags`, `size`, etc.). |
+| `skill.json` (lowercase) | Morphy's own marketplace metadata (`bloby_human`, `morphy`, `tags`, `size`, etc.). |
 | Body of `SKILL.md` (everything after the frontmatter) | Both Claude and Codex consume the same instructions. |
 | Folder name | Same value as `name` in the new frontmatter and as `name` in `.claude-plugin/plugin.json` / `skill.json`. |
-| `SCRIPT.md` (if present) | Used by Bloby's customer-facing channel mode. Untouched. |
+| `SCRIPT.md` (if present) | Used by Morphy's customer-facing channel mode. Untouched. |
 | Asset files | Untouched, except they may be referenced from `SKILL.json` iconSmall/iconLarge. |
 
 ## Step-by-step procedure (run for every skill)
@@ -137,7 +137,7 @@ For each migrated skill, confirm:
 - **Don't** put anything before the opening `---` (no comment, no BOM, no shebang). Codex reads only frontmatter from the very first line.
 - **Don't** rename `SKILL.md` to lowercase or anything else — both providers look for that exact filename.
 - **Don't** add a `.claude-plugin/` folder — it was removed 2026-06-10 and nothing reads it.
-- **Don't** rename or merge `skill.json` (lowercase Bloby file) and `SKILL.json` (uppercase Codex file). They are different files with different schemas.
+- **Don't** rename or merge `skill.json` (lowercase Morphy file) and `SKILL.json` (uppercase Codex file). They are different files with different schemas.
 - **Don't** move the description into the frontmatter and remove it from `skill.json`. Both (`SKILL.md` frontmatter, `skill.json`) must keep the description in sync.
 - **Don't** translate or summarize the existing description. Use the exact same string the skill already ships with.
 - **Don't** add fields beyond `name` and `description` to the frontmatter unless the codex schema documents them. Extra unknown fields are likely tolerated but may cause warnings — keep frontmatter minimal.

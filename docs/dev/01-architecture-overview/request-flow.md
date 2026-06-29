@@ -35,7 +35,7 @@ The supervisor is a raw `http.createServer` (no Express) that acts as a reverse 
                               v
                +-----------------------------+
                | /bloby or /bloby/* ?        |--YES--> Serve pre-built static files
-               +-----------------------------+         from dist-bloby/ directory
+               +-----------------------------+         from dist-chat/ directory
                               |                        HTML: no-cache
                              NO                        Hashed assets: immutable, 1yr
                               v
@@ -55,7 +55,7 @@ WebSocket upgrades are handled separately via the `server.on('upgrade')` event (
                +-----------------------------+
                | URL starts with /bloby/ws ? |--YES--> Auth check (token in query param)
                +-----------------------------+         Then blobyWss.handleUpgrade()
-                              |                        --> Bloby chat WebSocket handler
+                              |                        --> Morphy chat WebSocket handler
                              NO
                               v
                +-----------------------------+

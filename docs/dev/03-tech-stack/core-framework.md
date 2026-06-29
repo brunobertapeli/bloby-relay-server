@@ -2,7 +2,7 @@
 title: "Core Framework"
 ---
 
-Bloby is not a typical Express app. It uses a **tri-process architecture** orchestrated by a supervisor:
+Morphy is not a typical Express app. It uses a **tri-process architecture** orchestrated by a supervisor:
 
 ```
                  http.createServer (supervisor)
@@ -21,7 +21,7 @@ Bloby is not a typical Express app. It uses a **tri-process architecture** orche
 - Routes requests by URL prefix:
   - `/api/*` -- reverse-proxied to the **worker** (Express v5, port + 1).
   - `/app/api/*` -- reverse-proxied to the **user's backend** (port + 4).
-  - `/bloby/*` -- served as static files from `dist-bloby/` (pre-built chat UI).
+  - `/bloby/*` -- served as static files from `dist-chat/` (pre-built chat UI).
   - `/bloby/widget.js` -- served directly from `supervisor/widget.js`.
   - `/sw.js` -- service worker served from an embedded string constant.
   - Everything else -- proxied to the **Vite dev server** (dashboard, port + 2).

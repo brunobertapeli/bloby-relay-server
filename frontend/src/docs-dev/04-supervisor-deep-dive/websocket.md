@@ -6,7 +6,7 @@ title: "WebSocket Handling"
 
 The supervisor manages two distinct WebSocket protocols on the same port:
 
-1. **Bloby Chat WebSocket** -- Path: `/bloby/ws*`
+1. **Morphy Chat WebSocket** -- Path: `/bloby/ws*`
 2. **Vite HMR WebSocket** -- Any other upgrade path (handled by Vite)
 
 Dispatch happens in the `server.on('upgrade', ...)` handler (lines 634-657):
@@ -31,7 +31,7 @@ is called at line 105, before the `server.on('upgrade')` at line 634). By simply
 returning without consuming the socket for non-`/bloby/ws` paths, the upgrade event
 bubbles to Vite's listener.
 
-### 5.2 Bloby Chat WebSocket
+### 5.2 Morphy Chat WebSocket
 
 The `blobyWss` is a `WebSocketServer` created with `{ noServer: true }` (line 357),
 meaning it does not bind to any port -- it relies on manual `handleUpgrade()` calls.

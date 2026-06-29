@@ -93,7 +93,7 @@ Both the worker and backend use the same restart logic:
                               YES               NO
                                |                 |
                        Wait (restarts * 1s)    Log error:
-                       then respawn            "Use Bloby chat to debug"
+                       then respawn            "Use Morphy chat to debug"
 ```
 
 Key parameters (from `supervisor/worker.ts` and `supervisor/backend.ts`):

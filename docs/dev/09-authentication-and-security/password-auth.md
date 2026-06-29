@@ -38,7 +38,7 @@ if (portalPass) {
 
 ### 2.2 Login Flow
 
-Bloby supports two login methods to accommodate relay proxies that may not forward POST bodies:
+Morphy supports two login methods to accommodate relay proxies that may not forward POST bodies:
 
 **POST login** (`POST /api/portal/login`) -- credentials in JSON body (`worker/index.ts`, lines 389--392):
 

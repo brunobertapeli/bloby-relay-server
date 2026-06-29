@@ -2,7 +2,7 @@
 title: "Database Schema"
 ---
 
-The SQLite database lives at `~/.bloby/memory.db` and uses WAL journal mode
+The SQLite database lives at `~/.morphy/memory.db` and uses WAL journal mode
 with foreign keys enabled.
 
 ### Tables
