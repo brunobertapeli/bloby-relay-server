@@ -107,11 +107,14 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// The canonical install scripts are the website's static files (frontend/public/);
+// the relay (apex) just redirects so `morphyagent.com/install` keeps working without
+// a second drift-prone copy. curl -fsSL and PowerShell irm both follow 302s.
 app.get('/install', (_req, res) => {
-  res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.sh'));
+  res.redirect(302, `https://www.${process.env.RELAY_DOMAIN || 'morphyagent.com'}/install`);
 });
 app.get('/install.ps1', (_req, res) => {
-  res.type('text/plain').sendFile(path.join(__dirname, 'public', 'install.ps1'));
+  res.redirect(302, `https://www.${process.env.RELAY_DOMAIN || 'morphyagent.com'}/install.ps1`);
 });
 
 // ─── OAuth code-paste redirect landing page ──────────────────────────────────
