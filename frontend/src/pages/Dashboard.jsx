@@ -749,6 +749,14 @@ function MessengerRow({ summary }) {
   )
 }
 
+function ServerIcon({ className = '' }) {
+  return (
+    <svg className={`w-4 h-4 shrink-0 ${className}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m-15 0h.008v.008H6.75v-.008Zm0-6h.008v.008H6.75V8.25Z" />
+    </svg>
+  )
+}
+
 // Managed-instance controls, revealed under the card on hover of "Manage Instance".
 function InstancePanel({ instance, onRestart }) {
   const regionMap = { na: 'North America', eu: 'Europe', br: 'Brazil' }
@@ -824,7 +832,7 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
   const isManaged = !!instance
 
   return (
-    <div className="group rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-black/5 overflow-hidden">
+    <div className="group relative rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-black/5 overflow-hidden">
       {/* Header */}
       <div className="px-5 pt-5 pb-4 border-b border-border/30">
         <div className="flex items-center gap-3">
@@ -887,53 +895,40 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
         </div>
       </div>
 
-      {/* Hover-reveal footer — managed bots expand instance controls, self-hosted show details */}
-      <div
-        onMouseEnter={() => setPanelOpen(true)}
-        onMouseLeave={() => setPanelOpen(false)}
-        className="border-t border-border/30"
-      >
+      {/* Bottom-sheet reveal — the panel slides UP over the card on hover, like a mobile sheet.
+          It's absolutely positioned, so the card height never changes and sibling cards never shift. */}
+      <div onMouseEnter={() => setPanelOpen(true)} onMouseLeave={() => setPanelOpen(false)}>
+        {/* Trigger bar — the sheet rises from here */}
         <button
           onClick={() => setPanelOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-5 py-3 transition-colors duration-200 hover:bg-white/[0.02]"
+          className="w-full flex items-center gap-2.5 px-5 py-3.5 border-t border-border/30 bg-white/[0.015] transition-colors duration-200 hover:bg-white/[0.04]"
         >
-          <span className="flex items-center gap-2 text-[11px] font-display font-semibold">
-            {isManaged ? (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#0166FF] to-[#009AFE]" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE]">Manage Instance</span>
-              </>
-            ) : (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <span className="text-muted-foreground/70">Self Hosted</span>
-              </>
-            )}
+          <ServerIcon className={isManaged ? 'text-[#0069FE]' : 'text-muted-foreground/40'} />
+          <span className={`text-[12px] font-display font-semibold ${isManaged ? 'text-foreground' : 'text-muted-foreground/70'}`}>
+            {isManaged ? 'Manage Instance' : 'Self Hosted'}
           </span>
-          <motion.svg
-            animate={{ rotate: panelOpen ? 180 : 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="w-3.5 h-3.5 text-muted-foreground/40"
-            fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </motion.svg>
         </button>
-        <AnimatePresence initial={false}>
-          {panelOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 34, opacity: { duration: 0.18 } }}
-              className="overflow-hidden"
-            >
-              <div className="px-5 pb-5 pt-1">
-                {isManaged ? <InstancePanel instance={instance} onRestart={onRestart} /> : <SelfHostedPanel morphy={morphy} />}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+        {/* The sheet — covers the whole card, slides up from below */}
+        <motion.div
+          initial={false}
+          animate={{ y: panelOpen ? '0%' : '100%' }}
+          transition={{ type: 'spring', stiffness: 400, damping: 38 }}
+          className="absolute inset-0 z-10 flex flex-col bg-card"
+        >
+          <button
+            onClick={() => setPanelOpen(false)}
+            className="shrink-0 w-full flex items-center gap-2.5 px-5 py-3.5 border-b border-border/30 bg-white/[0.015] transition-colors duration-200 hover:bg-white/[0.04]"
+          >
+            <ServerIcon className={isManaged ? 'text-[#0069FE]' : 'text-muted-foreground/40'} />
+            <span className={`text-[12px] font-display font-semibold ${isManaged ? 'text-foreground' : 'text-muted-foreground/70'}`}>
+              {isManaged ? 'Manage Instance' : 'Self Hosted'}
+            </span>
+          </button>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {isManaged ? <InstancePanel instance={instance} onRestart={onRestart} /> : <SelfHostedPanel morphy={morphy} />}
+          </div>
+        </motion.div>
       </div>
     </div>
   )
@@ -1373,7 +1368,7 @@ export default function Dashboard() {
             )}
           </AnimatePresence>
           {blobies.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start">
               {blobies.map((morphy) => (
                 <BlobyCard
                   key={morphy.id}
