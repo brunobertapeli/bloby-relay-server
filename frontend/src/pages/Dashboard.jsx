@@ -690,26 +690,25 @@ function MessengerRow({ summary }) {
   const hasPending = pendingIncoming.length + pendingOutgoing.length > 0
 
   return (
-    <div className="px-5 py-3.5 border-b border-border/30">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Morphy Messenger</p>
-        {hasPending && (
-          <span className="text-[10px] text-amber-400/80 font-display">
-            {pendingIncoming.length > 0 ? `${pendingIncoming.length} incoming` : `${pendingOutgoing.length} pending`}
-          </span>
-        )}
-      </div>
-      <div className="mt-2">
-        {count === 0 && pendingIncoming.length === 0 && pendingOutgoing.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground/50 font-display">No connections</p>
-        ) : (
-          <span className="group/peers relative inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
-            <span className="text-[12px] text-foreground/80 font-display cursor-default">
-              {count} {count === 1 ? 'Connection' : 'Connections'}
+    <div className="px-5 py-3 border-b border-border/30">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display shrink-0">Morphy Messenger</p>
+        <div className="flex items-center gap-2 min-w-0">
+          {hasPending && (
+            <span className="text-[10px] text-amber-400/80 font-display shrink-0">
+              {pendingIncoming.length > 0 ? `${pendingIncoming.length} incoming` : `${pendingOutgoing.length} pending`}
             </span>
-            {(active.length > 0 || pendingIncoming.length > 0 || pendingOutgoing.length > 0) && (
-              <span className="pointer-events-none absolute left-0 top-full mt-2 z-30 w-60 max-h-64 overflow-auto opacity-0 group-hover/peers:opacity-100 transition-opacity duration-200 rounded-lg border border-border/60 bg-background/95 backdrop-blur-sm p-3 text-[11px] font-display shadow-lg space-y-2">
+          )}
+          {count === 0 && pendingIncoming.length === 0 && pendingOutgoing.length === 0 ? (
+            <span className="text-[11px] text-muted-foreground/40 font-display">No connections</span>
+          ) : (
+            <span className="group/peers relative inline-flex items-center gap-1.5 cursor-default">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+              <span className="text-[11px] text-foreground/80 font-display">
+                {count} {count === 1 ? 'Connection' : 'Connections'}
+              </span>
+              {(active.length > 0 || pendingIncoming.length > 0 || pendingOutgoing.length > 0) && (
+                <span className="pointer-events-none absolute right-0 top-full mt-2 z-30 w-60 max-h-64 overflow-auto opacity-0 group-hover/peers:opacity-100 transition-opacity duration-200 rounded-lg border border-border/60 bg-background/95 backdrop-blur-sm p-3 text-[11px] font-display shadow-lg space-y-2 text-left">
                 {active.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Connected</p>
@@ -743,7 +742,8 @@ function MessengerRow({ summary }) {
               </span>
             )}
           </span>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
@@ -892,11 +892,11 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
             <span className="text-[10px] text-muted-foreground/50 font-display">{hasWallet ? 'Linked' : (morphy.managed ? 'Pending' : 'Not linked')}</span>
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+        <div className="group/wallet mt-2 flex items-center gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
           <svg className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
           </svg>
-          <span className={`text-[11px] font-mono flex-1 ${hasWallet ? 'text-muted-foreground/60' : 'text-muted-foreground/30'}`}>
+          <span className={`text-[11px] font-mono flex-1 transition-colors duration-200 ${hasWallet ? 'text-muted-foreground/60 group-hover/wallet:text-primary' : 'text-muted-foreground/30'}`}>
             {truncatedWallet || (morphy.managed ? 'Generating…' : '0x0000...0000')}
           </span>
           {hasWallet && <CopyButton text={morphy.walletAddress} />}
@@ -1478,7 +1478,7 @@ export default function Dashboard() {
           )}
           {reservedHandles.some((rh) => !rh.used) && (
             <p className="text-xs text-muted-foreground/60 mt-3 font-display">
-              Use the activation code during <code className="text-foreground/50">morphy init</code> to claim your handle
+              You'll be able to use your reserved handle when you set up your Morphy.
             </p>
           )}
         </motion.section>

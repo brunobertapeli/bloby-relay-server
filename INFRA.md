@@ -1,130 +1,89 @@
-# Morphy Hosted Infrastructure
+# Morphy Hosted (Managed) Infrastructure
 
-Auto-provisioning system that spins EC2 instances with Morphy pre-installed from a golden AMI.
+Auto-provisioning system that spins up one EC2 instance per purchased bot from a golden AMI.
+Each box serves exactly **one** managed Morphy.
 
-> **NEW (direct mode):** managed bots are now reached **directly** through Cloudflare
-> (`mybot.morphyagent.com` A-record → EC2 public IP, orange-cloud → Caddy → morphy :7400),
-> dropping the cloudflared tunnel and the relay reverse-proxy hop. The flow below
-> still describes the legacy tunnel path; for the direct setup (CF token/cert, Caddy,
-> swap-on-install, AMI v5, the no-Stripe test loop) see **`infra/MANAGED-DIRECT-SETUP.md`**.
-> Self-hosted bots are unchanged (still cloudflared + relay).
+> **Architecture = "direct mode" (no tunnel).** A managed bot is reached **directly**
+> through Cloudflare — a proxied A-record `mybot.morphyagent.com → <EC2 public IP>`
+> (orange-cloud) → **Caddy :443** on the box (Cloudflare Origin cert, Full-strict) →
+> **morphy :7400**. There is **no cloudflared tunnel** and **no relay reverse-proxy hop**.
+> Self-hosted bots are unchanged (cloudflared quick-tunnel + the relay's `*.morphyagent.com`
+> wildcard). A more-specific A-record for a managed handle overrides that wildcard, so the
+> two tiers coexist.
+>
+> Full setup + the exact AMI re-bake runbook + gotchas: **`infra/MANAGED-DIRECT-SETUP.md`**.
 
 ---
 
 ## Architecture
 
 ```
-User on www.morphyagent.com
-      │
-      ├─ 1. Picks plan (Starter/Pro) + region (NA/EU/BR)
-      ├─ 2. Google login
-      ├─ 3. Clicks "Pay" (payment not yet implemented)
-      │
-      ▼
-Relay Backend (Railway)
-      │
-      ├─ 4. POST /api/instances → creates DB record (status: "launching")
-      ├─ 5. Calls ec2.RunInstances() with golden AMI + user-data JSON
-      ├─ 6. EC2 confirms → DB record updated (status: "booting")
-      │
-      ▼
-EC2 Instance boots (golden AMI)
-      │
-      ├─ 7. cloud-init runs /home/ec2-user/provision.sh
-      ├─ 8. provision.sh calls POST /api/instances/callback {status: "initializing"}
-      ├─ 9. Runs: morphy init --hosted
-      ├─ 10. Morphy starts, tunnel comes up
-      ├─ 11. provision.sh calls POST /api/instances/callback {status: "ready", tunnelUrl: "..."}
-      │
-      ▼
-Frontend polls GET /api/instances/:id/status
-      │
-      ├─ Shows progress: launching → booting → initializing → ready
-      └─ Shows tunnel URL → user clicks → opens Morphy onboarding wizard
+Buyer on www.morphyagent.com
+  ├─ picks an UNUSED reserved handle + plan (Starter/Pro) + region (NA/EU/BR), Google login, Pay
+  ▼
+Relay backend (Railway)
+  ├─ Stripe webhook checkout.session.completed (or POST /api/instances/dev-launch when testing)
+  ├─ provisionManagedInstance(): pre-registers the relay user (kind:'managed', tier:'premium',
+  │   accountId, token), mints a per-box provisionToken, creates the instance row (status:launching)
+  ├─ ec2.RunInstances() from the golden AMI with an identity user-data JSON
+  ▼
+EC2 box boots (golden AMI)
+  ├─ cloud-init runs /home/ec2-user/provision.sh (once per instance)
+  ├─ 4 GB swap, reads user-data (IMDSv2), callback {status:"initializing"}
+  ├─ npm pack morphyagent + refresh ~/.morphy (+ workspace deps), morphy init --hosted (tunnel OFF)
+  ├─ ensures Caddy is up, callback {status:"ready"}  (NO tunnelUrl — direct mode)
+  ▼
+Relay /api/instances/callback (provisionToken-authenticated)
+  ├─ describeInstance → public IP → upsertDnsRecord  mybot.morphyagent.com (proxied) → IP
+  ├─ link users.accountId, set isOnline:true (managed bots never heartbeat)
+  ▼
+Browser opens  mybot.morphyagent.com  → CF → Caddy → morphy onboarding wizard
+  (morphyagent.com/mybot → relay 302 → mybot.morphyagent.com)
 ```
+
+The frontend polls `GET /api/instances/:id/status` and maps `launching → booting →
+initializing → ready`. Instance management lives on the **Dashboard** (per-bot card →
+"Manage Instance"), not the landing page.
 
 ---
 
-## Golden AMI (v4)
+## Golden AMI — `morphy-golden-v2`
 
-Base: **Amazon Linux 2023** on **ARM64 (Graviton)**
-
-Pre-installed:
-- Node.js 22.22.0 (system-wide via nodesource)
-- Morphy v0.7.8 at `~/.morphy/` (via `curl -fsSL https://morphyagent.com/install | sh`)
-  - All npm dependencies (`node_modules/`)
-  - Pre-built chat UI (`dist-chat/`)
-  - cloudflared binary (`bin/cloudflared`)
-  - Bundled Node 22 at `tools/node/`
-  - Fresh workspace template (no user data)
-- Tailscale v1.94.2 (installed, daemon enabled, needs `tailscale up` with auth key)
-- jq v1.7.1
-
-NOT included (created at runtime by `morphy init`):
-- `~/.morphy/config.json`
-- `~/.morphy/memory.db`
-- `~/.claude/` (user authenticates via onboarding wizard)
-
-### AMI IDs
+Base: **Amazon Linux 2023, ARM64 (Graviton)**. Built from the prior v4 base via `infra/bake-setup.sh`.
 
 | Region | AMI ID | AWS Region |
 |--------|--------|------------|
-| North America | `ami-00e674ff92b7423f4` | us-east-1 |
-| Europe | `ami-025fb44094cc763c5` | eu-central-1 |
-| Brazil | `ami-0860d3b58ac5ef1ff` | sa-east-1 |
+| North America | `ami-0ce59f56351efd54a` | us-east-1 |
+| Europe | `ami-01eb42c7c21a53b5d` | eu-central-1 |
+| Brazil | `ami-0e78338c9d50be5ed` | sa-east-1 |
 
-### How to re-bake the AMI
+Baked in (see `infra/bake-setup.sh` for the exact build):
+- Node.js 22 (system, nodesource) + `jq`
+- **4 GB swap** (`/swapfile` + `/etc/fstab`) — fixes the t4g.small npm-install OOM
+- `morphyagent` installed globally → `/usr/local/bin/morphy`
+- Pre-baked `~/.morphy/` app dir **and `~/.morphy/workspace/node_modules`** (`express` +
+  `better-sqlite3`, the workspace backend deps — without these the backend crash-loops)
+- **Caddy v2.11.4** (static binary) + `/etc/systemd/system/caddy.service` (enabled) +
+  `/etc/caddy/Caddyfile` (the no-AOP v1 config) + `/etc/caddy/cf-origin.pem` + `cf-origin.key`
+  (the Cloudflare Origin cert, baked — same on every box)
+- `/home/ec2-user/provision.sh` + `/etc/cloud/cloud.cfg.d/99-bloby.cfg`
+- Tailscale is present from the v4 base but unused/inactive (harmless)
 
-1. SSH into the base instance: `ssh aws1`
-2. Make changes (update morphy, install packages, etc.)
-3. Clean user state:
-   ```bash
-   sudo systemctl stop morphy
-   sudo systemctl disable morphy
-   sudo rm -f /etc/systemd/system/bloby.service
-   sudo systemctl daemon-reload
-   rm -rf ~/.claude ~/.codex
-   rm -f ~/.morphy/config.json ~/.morphy/memory.db*  ~/.morphy/VERSION
-   rm -f ~/.morphy/workspace/app.db*
-   sudo cloud-init clean --logs
-   rm -f ~/.bash_history
-   ```
-4. Create new AMI:
-   ```bash
-   aws ec2 create-image \
-     --instance-id i-00747b6e362e3b7bc \
-     --name "bloby-golden-vX" \
-     --no-reboot --region us-east-1
-   ```
-5. Wait for it: `aws ec2 wait image-available --image-ids ami-xxx --region us-east-1`
-6. Copy to other regions:
-   ```bash
-   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region eu-central-1 --name "bloby-golden-vX"
-   aws ec2 copy-image --source-image-id ami-xxx --source-region us-east-1 --region sa-east-1 --name "bloby-golden-vX"
-   ```
-7. Update AMI IDs in `backend/.env` and `backend/lib/aws.js`
-8. Deregister old AMIs (AWS Console or `aws ec2 deregister-image`)
+NOT baked (created at boot / onboarding): `~/.morphy/config.json`, `memory.db`, `~/.claude/`.
+
+**Re-baking the AMI:** there is no longer a persistent base instance — each re-bake launches
+a fresh box from the current golden AMI, runs the bake, images it, copies to regions, and
+deregisters the old. The full step-by-step (the exact commands used to build v2) is in
+**`infra/MANAGED-DIRECT-SETUP.md` → "Re-bake the golden AMI"**.
 
 ---
 
-## EC2 Instance Details
-
-### Base instance (AMI source)
-
-- **Instance ID:** `i-00747b6e362e3b7bc`
-- **Type:** t4g.small
-- **Region:** us-east-1a
-- **OS:** Amazon Linux 2023 (aarch64)
-- **SSH:** `ssh aws1` (configured in ~/.ssh/config)
-
-### Plans
+## Plans & Regions
 
 | Plan | Instance Type | vCPU | RAM | Disk | Price |
 |------|--------------|------|-----|------|-------|
 | Starter | t4g.small | 2 | 2 GB | 20 GB gp3 | $29/mo |
 | Pro | t4g.medium | 2 | 4 GB | 40 GB gp3 | $49/mo |
-
-### Regions
 
 | ID | AWS Region | Location |
 |----|-----------|----------|
@@ -132,29 +91,33 @@ NOT included (created at runtime by `morphy init`):
 | eu | eu-central-1 | Frankfurt |
 | br | sa-east-1 | São Paulo |
 
+EC2 key pair for ops: **`fluxy-instances`** (`~/.ssh/fluxy-instances.pem`). Note: the relay
+launches *bots* **without** a KeyName — to shell into a running bot use **EC2 Instance Connect**
+(see the runbook's "Debugging a managed box").
+
 ---
 
 ## Security Groups
 
-All named `bloby-instances-SG`. Rules: outbound all, inbound SSH (port 22).
-**Direct mode also requires inbound 443 from Cloudflare IP ranges** (see
-`infra/MANAGED-DIRECT-SETUP.md`). Legacy tunnel mode needed no inbound HTTP.
+Named `bloby-instances-SG`. Required inbound: **443 from Cloudflare IP ranges** (the public
+data path) + **22** for ops/Instance-Connect. Outbound all.
 
-| Region | Security Group ID | VPC |
-|--------|-------------------|-----|
-| us-east-1 | `sg-023fa7964b46feb25` | `vpc-0e83d89dd9cdf3c44` |
-| eu-central-1 | `sg-0956278b8533089dc` | `vpc-05daa576963a8ec4b` |
-| sa-east-1 | `sg-0ab1b5fa370b4e673` | `vpc-09e4ff7e47c6adfc1` |
+| Region | Security Group ID | VPC | 443 from CF | 22 |
+|--------|-------------------|-----|-------------|----|
+| us-east-1 | `sg-023fa7964b46feb25` | `vpc-0e83d89dd9cdf3c44` | yes | yes |
+| eu-central-1 | `sg-0956278b8533089dc` | `vpc-05daa576963a8ec4b` | yes | (add when needed) |
+| sa-east-1 | `sg-0ab1b5fa370b4e673` | `vpc-09e4ff7e47c6adfc1` | yes | yes |
 
-No inbound HTTP needed — Cloudflare tunnel handles public access from inside the instance.
+Open/refresh 443 from Cloudflare's current ranges with **`infra/open-443-cloudflare.sh`**
+(idempotent). The relay IAM user can now run it directly (it has `AuthorizeSecurityGroupIngress`).
+Do **not** open 443 to `0.0.0.0/0`.
 
 ---
 
-## IAM
+## IAM — relay user `fluxy-bckend` (`arn:aws:iam::270613081471:user/fluxy-bckend`)
 
-**User:** `bloby-bckend` (`arn:aws:iam::270613081471:user/bloby-bckend`)
+The user is scoped to exactly what the relay + AMI ops need. Current policy:
 
-**Required permissions:**
 ```json
 {
   "Version": "2012-10-17",
@@ -173,131 +136,106 @@ No inbound HTTP needed — Cloudflare tunnel handles public access from inside t
       "ec2:DescribeImages",
       "ec2:DeregisterImage",
       "ec2:DescribeSecurityGroups",
-      "ec2:DescribeSubnets"
+      "ec2:DescribeSubnets",
+
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:DeleteSnapshot",
+      "ec2:DescribeSnapshots",
+      "ec2:DescribeKeyPairs",
+      "ec2:GetConsoleOutput",
+      "ec2-instance-connect:SendSSHPublicKey"
     ],
     "Resource": "*"
   }]
 }
 ```
 
+The second block was added (2026-06-30) so ops can open the 443 SG rule, delete old snapshots,
+read console output, and shell into bots via Instance Connect without separate admin creds. They
+are one-time/ops powers, not used in normal request handling — tighten later if desired.
+
 ---
 
-## Provisioning Script
+## provision.sh (on the AMI, `/home/ec2-user/provision.sh`)
 
-Located at `/home/ec2-user/provision.sh` on the AMI.
+Triggered by cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-bloby.cfg`). Reads its
+identity from EC2 user-data (JSON, set by `backend/lib/aws.js`):
 
-**Triggered by:** cloud-init on first boot (`/etc/cloud/cloud.cfg.d/99-morphy.cfg`)
-
-**Reads from EC2 user-data (JSON):**
 ```json
-{
-  "instanceId": "internal-db-id",
-  "callbackUrl": "https://api.morphyagent.com/api/instances/callback"
-}
+{ "instanceId":"<db id>", "callbackUrl":"https://api.morphyagent.com/api/instances/callback",
+  "username":"mybot", "tier":"premium", "relayToken":"...", "relayUrl":"https://morphyagent.com/mybot",
+  "provisionToken":"...", "aiProvider":"...", "aiModel":"...", "aiApiKey":"..." }
 ```
 
-**What it does:**
-1. Fetches user-data from IMDS (v2)
-2. POSTs `{status: "initializing"}` to callback
-3. Updates morphy to latest via `npm pack morphyagent` + extract over `~/.morphy/`
-4. Runs `morphy init --hosted`
-4. Parses `__HOSTED_READY__` JSON output
-5. POSTs `{status: "ready", tunnelUrl: "..."}` to callback
+What it does (direct / tunnel-OFF mode):
+1. Adds a 4 GB swapfile **before** any npm install (OOM fix)
+2. Callback `{status:"initializing"}`
+3. `npm pack morphyagent` → extract over `~/.morphy` → `npm install --omit=dev`
+4. **Explicitly installs the workspace backend deps** in `~/.morphy/workspace` (retried) — the
+   package postinstall does this too but can flake under first-boot load, which is what left
+   early test bots with a crash-looping backend
+5. Seeds `MORPHY_USERNAME / MORPHY_RELAY_TOKEN / MORPHY_RELAY_TIER / MORPHY_RELAY_URL /
+   MORPHY_TUNNEL_MODE=off / MORPHY_AI_*` and runs `morphy init --hosted` (daemon/systemd path)
+6. Ensures `caddy` is active, callback `{status:"ready"}` (no tunnelUrl)
 
-**Logs:** `/var/log/bloby-provision.log`
+Logs: `/var/log/bloby-provision.log`.
 
 ---
 
-## Backend Files
+## Backend files & API
 
 | File | Purpose |
 |------|---------|
-| `backend/lib/aws.js` | EC2 SDK wrapper — launchInstance, terminateInstance, restartInstance, describeInstance |
-| `backend/routes/instances.js` | API routes — CRUD + callback endpoint |
-
-### API Endpoints
+| `backend/lib/aws.js` | EC2 SDK wrapper — launchInstance (+ identity user-data), describe/terminate/restart; AMI/SG ids per region |
+| `backend/lib/provision.js` | `provisionManagedInstance()` — pre-register handle+token, mint provisionToken, create row, launch |
+| `backend/lib/cloudflare.js` | CF DNS client — `managedHostname`, `upsertDnsRecord`, delete; `cfConfigured()` gates all DNS work |
+| `backend/routes/instances.js` | instances CRUD + `dev-launch` + the provisionToken-authed `callback` (creates DNS, links account, isOnline) |
+| `backend/routes/stripe.js` | checkout (reserved-handle gated) + webhook (managed branch) + `BILLING_DISABLED` bypass + portal |
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/instances` | JWT | List user's instances |
-| POST | `/api/instances` | JWT | Launch new instance (calls EC2) |
-| GET | `/api/instances/:id/status` | JWT | Poll single instance status |
-| POST | `/api/instances/:id/restart` | JWT | Restart EC2 instance |
-| DELETE | `/api/instances/:id` | JWT | Terminate EC2 + remove from DB |
-| POST | `/api/instances/callback` | None | Called by provision.sh on the EC2 instance |
+| GET | `/api/instances` | JWT | List the account's instances |
+| GET | `/api/instances/:id/status` | JWT | Poll one instance |
+| POST | `/api/instances/:id/restart` | JWT | Stop/start the box (refreshes DNS, new IP) |
+| DELETE | `/api/instances/:id` | JWT | Terminate EC2 + delete DNS + free the relay handle |
+| POST | `/api/instances/dev-launch` | `x-dev-secret` | Provision with no Stripe (testing) |
+| POST | `/api/instances/callback` | provisionToken | Called by the box's provision.sh |
+| POST | `/api/wallet` | bot token | Box reports its agent wallet (managed bots don't heartbeat) |
 
-### Instance Status Flow
-
-```
-launching → booting → initializing → ready
-                                   → failed
-                        ready → restarting → ready
-                                           → failed
-```
-
-- **launching** — DB record created, EC2 API call in progress
-- **booting** — EC2 instance launched, waiting for cloud-init
-- **initializing** — provision.sh running, morphy init in progress
-- **ready** — Morphy is up, tunnel URL available
-- **restarting** — EC2 stop+start in progress (polls until running, waits 15s for services, then → ready)
-- **failed** — Something went wrong
+Status flow: `launching → booting → initializing → ready` (`→ failed`);
+`ready → restarting → ready`.
 
 ---
 
-## Environment Variables (backend/.env)
+## Environment variables (backend/.env and Railway)
 
 ```
-# AWS credentials
-AWS_ACCESS_KEY_ID=xxx
-AWS_SECRET_ACCESS_KEY=xxx
-
-# AMI IDs per region
-AMI_US_EAST_1=ami-00e674ff92b7423f4
-AMI_EU_CENTRAL_1=ami-025fb44094cc763c5
-AMI_SA_EAST_1=ami-0860d3b58ac5ef1ff
-
-# Security groups per region
+# AWS
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AMI_US_EAST_1=ami-0ce59f56351efd54a
+AMI_EU_CENTRAL_1=ami-01eb42c7c21a53b5d
+AMI_SA_EAST_1=ami-0e78338c9d50be5ed
 SG_US_EAST_1=sg-023fa7964b46feb25
 SG_EU_CENTRAL_1=sg-0956278b8533089dc
 SG_SA_EAST_1=sg-0ab1b5fa370b4e673
+
+# Relay / Cloudflare (direct mode)
+RELAY_DOMAIN=morphyagent.com
+CALLBACK_BASE_URL=https://api.morphyagent.com
+CF_API_TOKEN=cfut_...          # a USER API token (prefix cfut_), Zone:DNS:Edit on morphyagent.com
+CF_ZONE_ID=...                 # the morphyagent.com ZONE id (NOT the Account id)
+DEV_PROVISION_SECRET=...       # enables /api/instances/dev-launch
+BILLING_DISABLED=1             # testing only: skip Stripe (checkout + handle reservation provision/reserve free)
 ```
 
-These must also be set in Railway for production.
+`aws.js` falls back to the v2 AMI ids if the env vars are unset, but Railway should set them
+explicitly (and they must be the v2 ids).
 
 ---
 
-## Frontend Flow
+## Old AMIs
 
-Located in `frontend/src/App.jsx` inside the `Terminal` component, under the "Hosted" tab.
-
-Steps: **plan → region → login → payment → provisioning → ready → dashboard**
-
-The provisioning screen polls `GET /api/instances/:id/status` every 3 seconds and maps the status to a visual step indicator:
-- Step 0: Spinning up your instance... (`launching`)
-- Step 1: Installing Morphy... (`booting`)
-- Step 2: Initializing Morphy... (`initializing`)
-- Step 3: Your Morphy is ready! (`ready`)
-
-On `ready`, displays the tunnel URL with a copy button and link.
-
-Dashboard actions:
-- **Restart** — stops + starts EC2 instance, card shows "Restarting..." with amber pulse, polls every 5s until back to ready
-- **Manage Subscription** — placeholder (links to Stripe customer portal when payment is implemented)
-- **+ Add new** — launches the plan selection flow for a new instance
-- Terminate is handled via backend `DELETE /api/instances/:id` (no UI button — will be triggered by subscription webhook when payment is implemented)
-
----
-
-## Old AMIs (deregistered / to deregister)
-
-| Version | Region | AMI ID | Notes |
-|---------|--------|--------|-------|
-| v1 | us-east-1 | `ami-0a8b4c566efde948b` | Had cached Claude credentials |
-| v1 | eu-central-1 | `ami-0e06958e8c301cc1a` | Had cached Claude credentials |
-| v1 | sa-east-1 | `ami-0252392573b0961b1` | Had cached Claude credentials |
-| v2 | us-east-1 | `ami-0679c75fea158d7ba` | Replaced by v4 |
-| v2 | eu-central-1 | `ami-03f9f91d9d4261649` | Replaced by v4 |
-| v2 | sa-east-1 | `ami-0f48ddb974fb8b780` | Replaced by v4 |
-| v3 | us-east-1 | `ami-0df38917f2d42847d` | Broken provision.sh (curl install) |
-| v3 | eu-central-1 | `ami-03a1edc96928beffa` | Broken provision.sh (curl install) |
-| v3 | sa-east-1 | `ami-0530e4d5310c4220d` | Broken provision.sh (curl install) |
+All historical images (`fluxy-golden` v1/v2/v3/v4 and `morphy-golden-v1`) have been
+**deregistered and their snapshots deleted**. Only `morphy-golden-v2` (×3 regions) exists.

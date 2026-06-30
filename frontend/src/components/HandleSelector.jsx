@@ -97,7 +97,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
               Your handles:
             </h3>
             <p className="text-xs text-muted-foreground/60 text-center mb-3 font-display">
-              Handles are activated during <code className="text-foreground/50">morphy init</code>
+              You'll be able to use your reserved handle when you set up your Morphy
             </p>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               {reservedHandles.map((rh) => (
@@ -273,7 +273,7 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
 
         {reservedHandles.length === 0 && (
           <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
-            Handles are activated during <code className="text-foreground/50">morphy init</code>
+            You'll be able to use your reserved handle when you set up your Morphy
           </p>
         )}
       </div>
