@@ -382,17 +382,14 @@ function Create-Wrapper {
     $wrapperPath = Join-Path $BIN_DIR "morphy.cmd"
     Remove-Item $wrapperPath -Force -ErrorAction SilentlyContinue
 
-    if ($USE_SYSTEM_NODE) {
-        $wrapper = @"
+    # Prefer the bundled Node (absolute path); fall back to a PATH node only if the
+    # bundle is ever missing. Never a bare `node` as the primary — service PATHs vary.
+    $wrapper = @"
 @echo off
-node "%USERPROFILE%\.morphy\bin\cli.js" %*
+set "MN=%USERPROFILE%\.morphy\tools\node\node.exe"
+if not exist "%MN%" set "MN=node"
+"%MN%" "%USERPROFILE%\.morphy\bin\cli.js" %*
 "@
-    } else {
-        $wrapper = @"
-@echo off
-"%USERPROFILE%\.morphy\tools\node\node.exe" "%USERPROFILE%\.morphy\bin\cli.js" %*
-"@
-    }
 
     Set-Content -Path $wrapperPath -Value $wrapper -Encoding ASCII
     Write-Check "Created ~/.morphy/bin/morphy.cmd"
@@ -416,7 +413,10 @@ function Setup-Path {
 New-Item -ItemType Directory -Path $MORPHY_HOME -Force | Out-Null
 
 Detect-Platform
-if (-not (Check-SystemNode)) { Install-Node }
+# Always bundle a private Node so the launcher never depends on a system PATH — the
+# old "use system node" path shipped a bare `node` wrapper that broke wherever node
+# isn't on the service/daemon PATH.
+Install-Node
 Install-Morphy
 Create-Wrapper
 Setup-Path

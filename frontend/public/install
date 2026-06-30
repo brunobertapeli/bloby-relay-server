@@ -157,6 +157,7 @@ check_system_node() {
       MAJOR=$(echo "$SYS_NODE_VERSION" | sed 's/^v//' | cut -d. -f1)
       if [ "$MAJOR" -ge "$MIN_NODE_MAJOR" ] 2>/dev/null; then
         USE_SYSTEM_NODE=true
+        SYS_NODE_PATH=$(command -v node 2>/dev/null)
         printf "  ${BLUE}✔${RESET}  Node.js ${SYS_NODE_VERSION} (system)\n"
         return 0
       fi
@@ -371,21 +372,33 @@ create_wrapper() {
   # Remove any existing wrapper/symlink
   rm -f "$BIN_DIR/morphy"
 
-  if [ "$USE_SYSTEM_NODE" = true ]; then
-    cat > "$BIN_DIR/morphy" << 'WRAPPER'
-#!/bin/sh
-CLI="$HOME/.morphy/bin/cli.js"
-exec node "$CLI" "$@"
-WRAPPER
-  else
-    cat > "$BIN_DIR/morphy" << 'WRAPPER'
-#!/bin/sh
-MORPHY_HOME="$HOME/.morphy"
-NODE="$MORPHY_HOME/tools/node/bin/node"
-CLI="$MORPHY_HOME/bin/cli.js"
-exec "$NODE" "$CLI" "$@"
-WRAPPER
+  # One launcher for every case. Resolve Node by ABSOLUTE path — never a bare `node`,
+  # which launchd/systemd's minimal PATH usually lacks (nvm, /usr/local/bin, …). Prefer
+  # the bundled toolchain; SYS_NODE is the system node's absolute path captured at install.
+  {
+    printf '#!/bin/sh\n'
+    printf 'SYS_NODE="%s"\n' "$SYS_NODE_PATH"
+    cat << 'WRAPPER'
+H="$HOME/.morphy"
+if [ -x "$H/tools/node/bin/node" ]; then
+  NODE="$H/tools/node/bin/node"
+elif [ -n "$SYS_NODE" ] && [ -x "$SYS_NODE" ]; then
+  NODE="$SYS_NODE"
+else
+  NODE="$(command -v node 2>/dev/null)"
+  if [ -z "$NODE" ]; then
+    for c in /usr/local/bin/node /usr/bin/node /opt/homebrew/bin/node /snap/bin/node "$HOME/.nvm/versions/node"/*/bin/node; do
+      [ -x "$c" ] && NODE="$c" && break
+    done
   fi
+fi
+if [ -z "$NODE" ] || [ ! -x "$NODE" ]; then
+  echo "morphy: Node.js not found. Reinstall: curl -fsSL https://morphyagent.com/install | sh" >&2
+  exit 1
+fi
+exec "$NODE" "$H/bin/cli.js" "$@"
+WRAPPER
+  } > "$BIN_DIR/morphy"
 
   chmod +x "$BIN_DIR/morphy"
   printf "  ${BLUE}✔${RESET}  Created ${DIM}~/.morphy/bin/morphy${RESET}\n"
@@ -443,7 +456,18 @@ setup_path() {
 mkdir -p "$MORPHY_HOME"
 
 detect_platform
-check_system_node || install_node
+check_system_node || true   # records SYS_NODE_PATH if a usable system node exists (launcher fallback)
+if [ "$LIBC" = "musl" ]; then
+  # Alpine/musl: nodejs.org ships glibc builds only, so we cannot bundle — require a system Node.
+  if [ "$USE_SYSTEM_NODE" != true ]; then
+    printf "  ${RED}✗${RESET}  Alpine/musl detected — install Node.js >= ${MIN_NODE_MAJOR} (e.g. ${BOLD}apk add nodejs npm${RESET}${RESET}) and re-run.\n"
+    exit 1
+  fi
+else
+  # Always bundle a private Node on glibc so the daemon launcher never depends on a
+  # system PATH (the old "use system node" path broke on clean Linux/Pi + nvm boxes).
+  install_node
+fi
 install_morphy
 create_wrapper
 setup_path
