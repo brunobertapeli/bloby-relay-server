@@ -1,0 +1,37 @@
+# Morphy managed-instance Caddyfile (golden AMI v1, "direct" mode) — /etc/caddy/Caddyfile.
+#
+# Cloudflare (orange-cloud) terminates public TLS for mybot.morphyagent.com and proxies
+# to this origin over HTTPS using a Cloudflare Origin certificate. Caddy here:
+#   - terminates that origin TLS with the *.morphyagent.com Origin cert (baked into the AMI),
+#   - reverse-proxies everything (HTTP + WebSocket upgrades) to the supervisor on 127.0.0.1:7400.
+#
+# Access control for v1 is the security group (inbound 443 only from Cloudflare IP ranges).
+# Authenticated Origin Pulls (mTLS) is intentionally OFF here; add the client_auth block +
+# /etc/caddy/cloudflare-aop.pem later to harden. CF SSL/TLS mode must be "Full (strict)".
+
+{
+	# Long-lived Cloudflare Origin cert, not ACME — disable auto-HTTPS.
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+# Match all hostnames on :443 — Cloudflare already routed the correct
+# mybot.morphyagent.com A-record to this box.
+https:// {
+	tls /etc/caddy/cf-origin.pem /etc/caddy/cf-origin.key
+
+	# Generous body size for image/audio chat attachments.
+	request_body {
+		max_size 100MB
+	}
+
+	# WebSocket upgrades (chat WS + /app/ws) pass through transparently.
+	reverse_proxy 127.0.0.1:7400 {
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}

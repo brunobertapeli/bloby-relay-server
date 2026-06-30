@@ -1,0 +1,5 @@
+
+# Cloudflare origin cert/key (baked into AMI, never commit)
+cf-origin.pem
+cf-origin.key
+cloudflare-aop.pem

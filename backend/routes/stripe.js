@@ -22,6 +22,14 @@ export function getStripeFrontendUrl() {
 
 const router = Router();
 
+// When set (BILLING_DISABLED=1|true|yes), the managed checkout + handle reservation
+// skip Stripe and provision/reserve directly — lets us exercise the whole
+// purchase→provision→DNS→use loop with no payment. Reversible: unset to restore Stripe.
+function billingDisabled() {
+  const v = (process.env.BILLING_DISABLED || '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
 function getConfig() {
   return {
     CALLBACK_BASE: process.env.CALLBACK_BASE_URL || `https://api.${process.env.RELAY_DOMAIN}`,
@@ -178,6 +186,10 @@ router.post('/stripe/onramp-session', jwtAuth, async (req, res) => {
 });
 
 // ─── Create Checkout Session ────────────────────────────────────────────────
+// A managed instance is ALWAYS backed by one of the buyer's reserved handles
+// (it becomes mybot.morphyagent.com). We validate ownership + that the handle is
+// unused BEFORE charging, then either provision directly (billing disabled) or
+// hand off to Stripe.
 router.post('/stripe/checkout', jwtAuth, async (req, res) => {
   try {
     const { plan, region, username } = req.body;
@@ -190,15 +202,44 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
     if (!['na', 'eu', 'br'].includes(region)) {
       return res.status(400).json({ error: 'Invalid region' });
     }
-    // Managed mode assigns the bot's subdomain (mybot.morphyagent.com) up front. Validate
-    // + ensure it's free now so the buyer doesn't pay for a taken name.
-    let chosenHandle = '';
-    if (username) {
-      const uv = validateUsername(username);
-      if (!uv.valid) return res.status(400).json({ error: uv.error });
-      const taken = await getUsers().findOne({ username: uv.username, tier: 'premium' });
-      if (taken) return res.status(409).json({ error: 'This handle is already taken' });
-      chosenHandle = uv.username;
+
+    // ── Reserved-handle gate ──────────────────────────────────────────────
+    if (!username) {
+      return res.status(400).json({ error: 'A reserved handle is required to start an instance' });
+    }
+    const uv = validateUsername(username);
+    if (!uv.valid) return res.status(400).json({ error: uv.error });
+
+    const db = getDb();
+    const account = await db.collection('accounts').findOne(
+      { _id: new ObjectId(req.account.id) },
+    );
+    if (!account) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    // Must be one of the caller's reserved handles…
+    const owns = (account.reservedHandles || []).some((h) => h.handle === uv.username);
+    if (!owns) {
+      return res.status(403).json({ error: 'You must reserve this handle before starting an instance' });
+    }
+    // …and not already in use (registered relay user or an active instance).
+    const registered = await getUsers().findOne({ username: uv.username, tier: 'premium' });
+    const activeInstance = (account.instances || []).some(
+      (i) => i.username === uv.username && i.status !== 'terminated',
+    );
+    if (registered || activeInstance) {
+      return res.status(409).json({ error: 'This handle already has a running instance' });
+    }
+    const chosenHandle = uv.username;
+
+    // ── Stripe disconnected (testing): provision directly, no payment ──────
+    if (billingDisabled()) {
+      const { instanceId } = await provisionManagedInstance({
+        accountId: req.account.id, username: chosenHandle, plan, region, tier: 'premium',
+      });
+      console.log(`[stripe/checkout] BILLING_DISABLED → direct provision ${instanceId} (${chosenHandle})`);
+      return res.json({ bypass: true, instanceId });
     }
 
     const { PRICE_IDS, FRONTEND_URL } = getConfig();
@@ -207,14 +248,6 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
     const priceId = PRICE_IDS[plan];
     if (!priceId) {
       return res.status(500).json({ error: 'Price not configured for this plan' });
-    }
-
-    const db = getDb();
-    const account = await db.collection('accounts').findOne(
-      { _id: new ObjectId(req.account.id) },
-    );
-    if (!account) {
-      return res.status(404).json({ error: 'Account not found' });
     }
 
     // Find or create Stripe customer
@@ -337,6 +370,17 @@ router.post('/stripe/handle-checkout', jwtAuth, async (req, res) => {
       return res.status(409).json({ error: 'Handle already reserved' });
     }
 
+    // ── Stripe disconnected (testing): reserve the handle free, no payment ──
+    if (billingDisabled()) {
+      const hash = crypto.randomBytes(4).toString('base64url').slice(0, 5);
+      await db.collection('accounts').updateOne(
+        { _id: new ObjectId(req.account.id) },
+        { $push: { reservedHandles: { handle: uv.username, hash, purchasedAt: new Date() } } },
+      );
+      console.log(`[stripe/handle-checkout] BILLING_DISABLED → reserved "${uv.username}" free`);
+      return res.json({ bypass: true, reserved: true, handle: uv.username });
+    }
+
     const stripe = getStripe();
     const { FRONTEND_URL } = getConfig();
 
@@ -379,14 +423,37 @@ router.post('/stripe/handle-checkout', jwtAuth, async (req, res) => {
 });
 
 // ─── Get Reserved Handles ───────────────────────────────────────────────────
+// Each handle is annotated with `used` so the instance-purchase flow can offer
+// only the handles that aren't already backing a bot. A handle is "used" once it
+// has a live relay user (claimed self-hosted OR a managed instance pre-registered
+// it) or sits on a non-terminated instance.
 router.get('/stripe/handles', jwtAuth, async (req, res) => {
   try {
     const db = getDb();
     const account = await db.collection('accounts').findOne(
       { _id: new ObjectId(req.account.id) },
-      { projection: { reservedHandles: 1 } },
+      { projection: { reservedHandles: 1, instances: 1 } },
     );
-    res.json({ reservedHandles: account?.reservedHandles || [] });
+    const handles = account?.reservedHandles || [];
+    const instances = account?.instances || [];
+    const names = handles.map((h) => h.handle);
+    const registered = names.length
+      ? await getUsers()
+          .find({ username: { $in: names }, tier: 'premium' }, { projection: { username: 1 } })
+          .toArray()
+      : [];
+    const regSet = new Set(registered.map((u) => u.username));
+    const annotated = handles.map((h) => {
+      const onInstance = instances.find(
+        (i) => i.username === h.handle && i.status !== 'terminated',
+      );
+      return {
+        ...h,
+        used: regSet.has(h.handle) || !!onInstance,
+        usedByInstanceId: onInstance?.id || null,
+      };
+    });
+    res.json({ reservedHandles: annotated });
   } catch (error) {
     console.error('[stripe/handles] error:', error.message);
     res.status(500).json({ error: 'Failed to get reserved handles' });
@@ -565,6 +632,13 @@ export async function stripeWebhookHandler(req, res) {
         if (instance?.dnsRecordId) {
           deleteDnsRecord(instance.dnsRecordId).catch(err => {
             console.error(`[stripe/webhook] delete DNS record failed:`, err.message);
+          });
+        }
+
+        // Free the relay registry entry so the reserved handle can back a new bot.
+        if (instance?.username) {
+          getUsers().deleteOne({ username: instance.username, tier: instance.tier || 'premium' }).catch(err => {
+            console.error(`[stripe/webhook] free handle failed:`, err.message);
           });
         }
 

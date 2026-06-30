@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
-import { getDb } from '../db.js';
+import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
 import { terminateInstance, restartInstance, describeInstance } from '../lib/aws.js';
 import { buildRelayUrl } from '../lib/validate.js';
@@ -277,6 +277,13 @@ router.delete('/instances/:id', jwtAuth, async (req, res) => {
     if (instance?.dnsRecordId) {
       deleteDnsRecord(instance.dnsRecordId).catch(err => {
         console.error(`[instances] delete DNS record failed:`, err.message);
+      });
+    }
+
+    // Free the relay registry entry so the reserved handle can back a new bot.
+    if (instance?.username) {
+      getUsers().deleteOne({ username: instance.username, tier: instance.tier || 'premium' }).catch(err => {
+        console.error(`[instances] free handle failed:`, err.message);
       });
     }
 

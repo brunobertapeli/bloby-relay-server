@@ -223,7 +223,46 @@ function Hero({ user, onLogin, onLogout }) {
   )
 }
 
-function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunnelUrl, instances, onSelectPlan, onSelectRegion, onLogin, onPay, onBack, onCloseReady, onAddNew, onRestart, onManageSubscription }) {
+// Inline "reserve a new handle" control used inside the hosted purchase flow.
+// Reserving is free when the server runs with BILLING_DISABLED, otherwise it
+// redirects to a Stripe one-time payment.
+function HandleReserveInline({ onReserve, error }) {
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    const v = name.trim().toLowerCase()
+    if (v.length < 3) return
+    setBusy(true)
+    await onReserve(v)
+    setBusy(false)
+    setName('')
+  }
+  const disabled = busy || name.trim().length < 3
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
+          placeholder="reserve a new handle"
+          maxLength={30}
+          className="flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-border text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 font-mono"
+        />
+        <button
+          onClick={submit}
+          disabled={disabled}
+          className={`px-4 py-2 rounded-lg text-sm font-display font-medium transition-all duration-200 ${disabled ? 'opacity-40 cursor-not-allowed bg-white/5 text-muted-foreground' : 'bg-gradient-brand text-white hover:opacity-90'}`}
+        >
+          {busy ? '...' : 'Reserve'}
+        </button>
+      </div>
+      {error && <p className="text-[10px] text-red-400 mt-1.5 font-display">{error}</p>}
+    </div>
+  )
+}
+
+function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, reservedHandles = [], handleError, provisionStep, tunnelUrl, instances, onSelectPlan, onSelectRegion, onSelectHandle, onReserveHandle, onLogin, onPay, onBack, onCloseReady, onAddNew, onRestart, onManageSubscription }) {
   const plans = [
     {
       id: 'starter',
@@ -352,6 +391,50 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
     )
   }
 
+  if (step === 'handle') {
+    const available = reservedHandles.filter(h => !h.used)
+    const used = reservedHandles.filter(h => h.used)
+    return (
+      <div className="font-sans">
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <HiArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-xs text-muted-foreground font-display">Choose your bot handle</p>
+        </div>
+
+        {available.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+            {available.map(h => (
+              <button
+                key={h.handle}
+                onClick={() => onSelectHandle(h)}
+                className="text-left p-3 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300"
+              >
+                <div className="text-sm font-display font-medium text-foreground">{h.handle}</div>
+                <div className="text-[10px] text-muted-foreground font-mono">{h.handle}.morphyagent.com</div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl border border-dashed border-border bg-white/[0.02] mb-4 text-center">
+            <p className="text-xs text-muted-foreground font-display">
+              You need a reserved handle to start an instance. Reserve one below.
+            </p>
+          </div>
+        )}
+
+        <HandleReserveInline onReserve={onReserveHandle} error={handleError} />
+
+        {used.length > 0 && (
+          <p className="text-[10px] text-muted-foreground/50 mt-3 font-display">
+            Already in use: {used.map(h => h.handle).join(', ')}
+          </p>
+        )}
+      </div>
+    )
+  }
+
   if (step === 'payment') {
     const plan = plans.find(p => p.id === selectedPlan)
     const region = regions.find(r => r.id === selectedRegion)
@@ -378,6 +461,12 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
               <span key={spec} className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{spec}</span>
             ))}
           </div>
+          {selectedHandle && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <div className="text-[10px] text-muted-foreground font-display mb-0.5">Your bot will live at</div>
+              <div className="text-sm font-mono text-[#0069FE]">{selectedHandle.handle}.morphyagent.com</div>
+            </div>
+          )}
         </div>
         <button
           onClick={onPay}
@@ -385,6 +474,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, provisionStep, tunn
         >
           Pay ${plan.price}/mo
         </button>
+        {handleError && <p className="text-[11px] text-red-400 mt-2 text-center font-display">{handleError}</p>}
       </div>
     )
   }
@@ -558,6 +648,9 @@ function Terminal({ user, onLogin, onLogout }) {
   const [tunnelUrl, setTunnelUrl] = useState('')
   const [instances, setInstances] = useState([])
   const [provisioningId, setProvisioningId] = useState(null)
+  const [reservedHandles, setReservedHandles] = useState([])
+  const [selectedHandle, setSelectedHandle] = useState(null)
+  const [handleError, setHandleError] = useState('')
   const stripeSessionActive = useRef(false)
 
   const fetchInstances = async () => {
@@ -574,6 +667,24 @@ function Terminal({ user, onLogin, onLogout }) {
       }
     } catch (err) {
       console.error('[instances] fetch failed:', err)
+    }
+    return []
+  }
+
+  const fetchReservedHandles = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return []
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/handles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReservedHandles(data.reservedHandles || [])
+        return data.reservedHandles || []
+      }
+    } catch (err) {
+      console.error('[handles] fetch failed:', err)
     }
     return []
   }
@@ -651,7 +762,8 @@ function Terminal({ user, onLogin, onLogout }) {
           const step = statusMap[instance.status] ?? 0
           setProvisionStep(step)
 
-          if (instance.status === 'ready' && instance.tunnelUrl) {
+          // Direct mode has no tunnelUrl — the box is reached via relayUrl.
+          if (instance.status === 'ready' && (instance.relayUrl || instance.tunnelUrl)) {
             setTunnelUrl(instance.relayUrl || instance.tunnelUrl)
             setHostedStep('ready')
             stripeSessionActive.current = false
@@ -692,6 +804,15 @@ function Terminal({ user, onLogin, onLogout }) {
     }
   }, [mode, user])
 
+  // Load the buyer's reserved handles whenever they reach the handle-select step.
+  useEffect(() => {
+    if (hostedStep === 'handle') {
+      setSelectedHandle(null)
+      setHandleError('')
+      fetchReservedHandles()
+    }
+  }, [hostedStep])
+
   useEffect(() => {
     if (hostedStep !== 'provisioning' || !provisioningId) return
 
@@ -714,8 +835,9 @@ function Terminal({ user, onLogin, onLogout }) {
         const step = statusMap[instance.status] ?? 0
         setProvisionStep(step)
 
-        if (instance.status === 'ready' && instance.tunnelUrl) {
-          setTunnelUrl(instance.tunnelUrl)
+        // Direct mode has no tunnelUrl — the box is reached via relayUrl.
+        if (instance.status === 'ready' && (instance.relayUrl || instance.tunnelUrl)) {
+          setTunnelUrl(instance.relayUrl || instance.tunnelUrl)
           setHostedStep('ready')
           return
         }
@@ -743,31 +865,67 @@ function Terminal({ user, onLogin, onLogout }) {
 
   const handleRegionSelect = (regionId) => {
     setSelectedRegion(regionId)
-    setHostedStep(user ? 'payment' : 'login')
+    setHostedStep(user ? 'handle' : 'login')
   }
 
   const handleLoginAndContinue = async () => {
     const success = await onLogin()
-    if (success) setHostedStep('payment')
+    if (success) setHostedStep('handle')
+  }
+
+  // Picking which reserved handle backs this instance, then on to payment.
+  const handleSelectHandle = (h) => {
+    setSelectedHandle(h)
+    setHandleError('')
+    setHostedStep('payment')
+  }
+
+  // Reserve a NEW handle (free when BILLING_DISABLED, else Stripe one-time).
+  const handleReserveHandle = async (name) => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    setHandleError('')
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/handle-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ handle: name }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setHandleError(data.error || 'Could not reserve that handle'); return }
+      if (data.bypass) { await fetchReservedHandles(); return }   // reserved free — stay on step
+      if (data.url) window.location.href = data.url               // Stripe one-time payment
+    } catch (err) {
+      console.error('[stripe] handle reserve failed:', err)
+      setHandleError('Could not reserve that handle')
+    }
   }
 
   const handlePay = async () => {
     const token = localStorage.getItem('bloby_token')
-    if (!token) return
+    if (!token || !selectedHandle) return
+    setHandleError('')
 
     try {
       const res = await fetch(`${API_URL}/api/stripe/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: selectedPlan, region: selectedRegion }),
+        body: JSON.stringify({ plan: selectedPlan, region: selectedRegion, username: selectedHandle.handle }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         console.error('[stripe] checkout failed:', data.error)
+        setHandleError(data.error || 'Checkout failed')
         return
       }
-      const { url } = await res.json()
-      window.location.href = url
+      // Stripe disconnected: the server provisioned directly — jump to provisioning.
+      if (data.bypass) {
+        setProvisioningId(data.instanceId)
+        setProvisionStep(0)
+        setHostedStep('provisioning')
+        return
+      }
+      window.location.href = data.url
     } catch (err) {
       console.error('[stripe] checkout failed:', err)
     }
@@ -777,8 +935,10 @@ function Terminal({ user, onLogin, onLogout }) {
     if (hostedStep === 'region') {
       if (instances.length > 0) setHostedStep('dashboard')
       else setHostedStep('plan')
-    } else if (hostedStep === 'login' || hostedStep === 'payment') {
+    } else if (hostedStep === 'login' || hostedStep === 'handle') {
       setHostedStep('region')
+    } else if (hostedStep === 'payment') {
+      setHostedStep('handle')
     } else if (hostedStep === 'plan' && instances.length > 0) {
       setHostedStep('dashboard')
     }
@@ -922,11 +1082,16 @@ function Terminal({ user, onLogin, onLogout }) {
                   step={hostedStep}
                   selectedPlan={selectedPlan}
                   selectedRegion={selectedRegion}
+                  selectedHandle={selectedHandle}
+                  reservedHandles={reservedHandles}
+                  handleError={handleError}
                   provisionStep={provisionStep}
                   tunnelUrl={tunnelUrl}
                   instances={instances}
                   onSelectPlan={handlePlanSelect}
                   onSelectRegion={handleRegionSelect}
+                  onSelectHandle={handleSelectHandle}
+                  onReserveHandle={handleReserveHandle}
                   onLogin={handleLoginAndContinue}
                   onPay={handlePay}
                   onBack={handleBack}
@@ -1565,13 +1730,13 @@ function Home() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ handle }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         console.error('[stripe] handle checkout failed:', data.error)
         return
       }
-      const { url } = await res.json()
-      window.location.href = url
+      if (data.bypass) { await fetchReservedHandles(); return }  // reserved free under BILLING_DISABLED
+      if (data.url) window.location.href = data.url
     } catch (err) {
       console.error('[stripe] handle checkout failed:', err)
     }

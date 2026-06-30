@@ -75,6 +75,9 @@ RELAY_TOKEN=$(jq_get '.relayToken')
 RELAY_URL=$(jq_get '.relayUrl')
 RELAY_TIER=$(jq_get '.tier')
 PROVISION_TOKEN=$(jq_get '.provisionToken')
+AI_PROVIDER=$(jq_get '.aiProvider')
+AI_MODEL=$(jq_get '.aiModel')
+AI_API_KEY=$(jq_get '.aiApiKey')
 
 echo "[provision] instanceId=$INSTANCE_ID username=$USERNAME tier=$RELAY_TIER"
 if [ -z "$INSTANCE_ID" ] || [ -z "$CALLBACK_URL" ]; then
@@ -124,6 +127,9 @@ sudo -u "$RUN_USER" -H \
       MORPHY_RELAY_TIER="$RELAY_TIER" \
       MORPHY_RELAY_URL="$RELAY_URL" \
       MORPHY_TUNNEL_MODE=off \
+      MORPHY_AI_PROVIDER="$AI_PROVIDER" \
+      MORPHY_AI_MODEL="$AI_MODEL" \
+      MORPHY_AI_API_KEY="$AI_API_KEY" \
       morphy init --hosted | tee /tmp/bloby-init.out
 
 # (Optional) sanity: pull the machine-readable readiness marker out of the log.
