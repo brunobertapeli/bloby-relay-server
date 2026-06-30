@@ -769,33 +769,33 @@ function InstancePanel({ instance, onRestart }) {
   const statusLabel = isRestarting ? 'Restarting' : isCanceling ? 'Canceling' : isTerminated ? 'Terminated' : isReady ? 'Running' : (instance.status || 'Provisioning')
   const liveUrl = instance.relayUrl || instance.tunnelUrl
   return (
-    <div className="rounded-xl border border-primary/15 bg-gradient-to-b from-primary/[0.05] to-transparent p-4 space-y-3">
+    <div className="space-y-3 text-[#171717]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isRestarting || isCanceling ? 'bg-amber-400 animate-pulse' : isReady ? 'bg-emerald-400' : isTerminated ? 'bg-red-400' : 'bg-muted-foreground/40'}`} />
-          <span className="text-xs font-display font-semibold text-foreground truncate">{plan.name}</span>
-          <span className="text-[10px] text-muted-foreground/50 font-mono shrink-0">{plan.instance}</span>
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isRestarting || isCanceling ? 'bg-amber-500 animate-pulse' : isReady ? 'bg-emerald-500' : isTerminated ? 'bg-red-500' : 'bg-black/40'}`} />
+          <span className="text-xs font-display font-semibold text-[#171717] truncate">{plan.name}</span>
+          <span className="text-[10px] text-[#171717]/50 font-mono shrink-0">{plan.instance}</span>
         </div>
-        <span className={`text-[10px] font-display shrink-0 ${isReady ? 'text-emerald-400/80' : isCanceling || isRestarting ? 'text-amber-400/80' : isTerminated ? 'text-red-400/80' : 'text-muted-foreground/60'}`}>{statusLabel}</span>
+        <span className={`text-[10px] font-display shrink-0 ${isReady ? 'text-emerald-600' : isCanceling || isRestarting ? 'text-amber-600' : isTerminated ? 'text-red-600' : 'text-[#171717]/60'}`}>{statusLabel}</span>
       </div>
       <div className="flex items-center justify-between text-[10px]">
-        <span className="text-muted-foreground/40 font-display uppercase tracking-wider">Region</span>
-        <span className="text-muted-foreground/80 font-display">{regionMap[instance.region] || instance.region}</span>
+        <span className="text-[#171717]/40 font-display uppercase tracking-wider">Region</span>
+        <span className="text-[#171717]/70 font-display">{regionMap[instance.region] || instance.region}</span>
       </div>
       {isCanceling && instance.cancelAt && (
-        <div className="text-[10px] text-amber-400/80 font-display">Cancels on {new Date(instance.cancelAt).toLocaleDateString()}</div>
+        <div className="text-[10px] text-amber-600 font-display">Cancels on {new Date(instance.cancelAt).toLocaleDateString()}</div>
       )}
       {liveUrl && !isTerminated && (
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
-          <span className="text-[10px] font-mono text-[#0069FE] truncate">{liveUrl}</span>
-          <CopyButton text={liveUrl} />
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-black/[0.06] border border-black/10 px-3 py-2">
+          <span className="text-[10px] font-mono text-[#0166FF] truncate">{liveUrl}</span>
+          <CopyButton text={liveUrl} className="!text-[#171717]/60 hover:!text-[#171717]" />
         </div>
       )}
       {!isTerminated && (
         <button
           onClick={() => onRestart(instance.id)}
           disabled={isRestarting}
-          className={`w-full text-[11px] font-display font-medium py-2 rounded-lg transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed bg-white/5 text-muted-foreground' : 'bg-gradient-brand text-white hover:opacity-90'}`}
+          className={`w-full text-[11px] font-display font-medium py-2 rounded-lg transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed bg-black/10 text-[#171717]/50' : 'bg-[#171717] text-white hover:bg-[#171717]/90'}`}
         >
           {isRestarting ? 'Restarting…' : 'Restart instance'}
         </button>
@@ -812,11 +812,11 @@ function SelfHostedPanel({ morphy }) {
     ['Tier', morphy.tier === 'at' ? 'Open' : (morphy.tier || 'premium'), false],
   ]
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/20 p-4 space-y-2.5">
+    <div className="space-y-2.5 text-[#171717]">
       {rows.map(([label, value, mono]) => (
         <div key={label} className="flex items-center justify-between gap-2 text-[10px]">
-          <span className="text-muted-foreground/40 font-display uppercase tracking-wider shrink-0">{label}</span>
-          <span className={`text-muted-foreground/80 truncate ${mono ? 'font-mono' : 'font-display'}`}>{value}</span>
+          <span className="text-[#171717]/40 font-display uppercase tracking-wider shrink-0">{label}</span>
+          <span className={`text-[#171717]/70 truncate ${mono ? 'font-mono' : 'font-display'}`}>{value}</span>
         </div>
       ))}
     </div>
@@ -835,8 +835,8 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
     <div className="group relative rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-black/5 overflow-hidden">
       {/* Header */}
       <div className="px-5 pt-5 pb-4 border-b border-border/30">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex items-center gap-3 mb-2.5">
+          <div className="relative shrink-0">
             <img
               src="/assets/images/morphy.png"
               alt={morphy.name}
@@ -845,11 +845,19 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
             />
             <span className={`absolute bottom-1.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${morphy.isOnline ? 'bg-emerald-400' : 'bg-muted-foreground/30'}`} />
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold font-display text-foreground text-sm leading-tight">{morphy.name}</h3>
-            <p className="text-[11px] text-muted-foreground/60 font-mono truncate mt-0.5">{morphy.url}</p>
-          </div>
+          <h3 className="min-w-0 flex-1 font-semibold font-display text-foreground text-sm leading-tight truncate">{morphy.name}</h3>
         </div>
+        <a
+          href={morphy.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group/url flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-primary font-mono transition-colors duration-200"
+        >
+          <span className="truncate">{morphy.url}</span>
+          <svg className="w-3 h-3 shrink-0 opacity-0 group-hover/url:opacity-100 transition-opacity duration-200" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </a>
       </div>
 
       {/* Agent wallet balances */}
@@ -895,40 +903,34 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }
         </div>
       </div>
 
-      {/* Bottom-sheet reveal — the panel slides UP over the card on hover, like a mobile sheet.
-          It's absolutely positioned, so the card height never changes and sibling cards never shift. */}
-      <div onMouseEnter={() => setPanelOpen(true)} onMouseLeave={() => setPanelOpen(false)}>
-        {/* Trigger bar — the sheet rises from here */}
+      {/* Bottom sheet — the panel slides UP from the trigger bar, covering only the BOTTOM of the
+          card and sized to its own content (no blank space). It's absolutely positioned, so the
+          card never changes height and sibling cards never shift. */}
+      <div className="relative" onMouseEnter={() => setPanelOpen(true)} onMouseLeave={() => setPanelOpen(false)}>
+        {/* Trigger bar — stays at the card bottom; the sheet rises from behind it */}
         <button
           onClick={() => setPanelOpen((o) => !o)}
-          className="w-full flex items-center gap-2.5 px-5 py-3.5 border-t border-border/30 bg-white/[0.015] transition-colors duration-200 hover:bg-white/[0.04]"
+          className="relative z-10 w-full flex items-center gap-2.5 px-5 py-3.5 bg-[#D1D1D1] hover:bg-[#c7c7c7] transition-colors duration-200"
         >
-          <ServerIcon className={isManaged ? 'text-[#0069FE]' : 'text-muted-foreground/40'} />
-          <span className={`text-[12px] font-display font-semibold ${isManaged ? 'text-foreground' : 'text-muted-foreground/70'}`}>
+          <ServerIcon className={isManaged ? 'text-[#0069FE]' : 'text-[#171717]/60'} />
+          <span className="text-[12px] font-display font-semibold text-[#171717]">
             {isManaged ? 'Manage Instance' : 'Self Hosted'}
           </span>
         </button>
 
-        {/* The sheet — covers the whole card, slides up from below */}
-        <motion.div
-          initial={false}
-          animate={{ y: panelOpen ? '0%' : '100%' }}
-          transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-          className="absolute inset-0 z-10 flex flex-col bg-card"
-        >
-          <button
-            onClick={() => setPanelOpen(false)}
-            className="shrink-0 w-full flex items-center gap-2.5 px-5 py-3.5 border-b border-border/30 bg-white/[0.015] transition-colors duration-200 hover:bg-white/[0.04]"
-          >
-            <ServerIcon className={isManaged ? 'text-[#0069FE]' : 'text-muted-foreground/40'} />
-            <span className={`text-[12px] font-display font-semibold ${isManaged ? 'text-foreground' : 'text-muted-foreground/70'}`}>
-              {isManaged ? 'Manage Instance' : 'Self Hosted'}
-            </span>
-          </button>
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {isManaged ? <InstancePanel instance={instance} onRestart={onRestart} /> : <SelfHostedPanel morphy={morphy} />}
-          </div>
-        </motion.div>
+        <AnimatePresence>
+          {panelOpen && (
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: '0%' }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 440, damping: 40 }}
+              className="absolute inset-x-0 bottom-full z-0 bg-[#D1D1D1] px-5 py-4"
+            >
+              {isManaged ? <InstancePanel instance={instance} onRestart={onRestart} /> : <SelfHostedPanel morphy={morphy} />}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -1112,6 +1114,7 @@ export default function Dashboard() {
   const [instances, setInstances] = useState([])
   const [messengerSummary, setMessengerSummary] = useState({})
   const [transactions, setTransactions] = useState([])
+  const [showAllTx, setShowAllTx] = useState(false)
   const [visibleHashes, setVisibleHashes] = useState({})
   const [showClaim, setShowClaim] = useState(false)
   const [fundingBloby, setFundingBloby] = useState(null)
@@ -1486,13 +1489,21 @@ export default function Dashboard() {
           </div>
           {transactions.length > 0 ? (
             <div className="space-y-3">
-              {transactions.map((tx) => (
+              {(showAllTx ? transactions : transactions.slice(0, 10)).map((tx) => (
                 tx.productType === 'credit'
                   ? <BotTransactionCard key={`credit-${tx.productId}`} tx={{ ...tx, botUsername: null }} />
                   : tx.source === 'purchase'
                     ? <PurchaseCard key={`purchase-${tx.redeemCode}`} tx={tx} />
                     : <BotTransactionCard key={`bot-${tx.botUsername}-${tx.productId}`} tx={tx} />
               ))}
+              {transactions.length > 10 && !showAllTx && (
+                <button
+                  onClick={() => setShowAllTx(true)}
+                  className="w-full text-center text-sm text-primary hover:text-primary/80 font-medium font-display py-2 transition-colors duration-200"
+                >
+                  See more...
+                </button>
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-8 text-center">
