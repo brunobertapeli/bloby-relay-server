@@ -219,7 +219,7 @@ router.get('/claim/blobies', jwtAuth, claimBlobiesLimiter, async (req, res) => {
 
     const blobies = await getUsers()
       .find({ accountId })
-      .project({ username: 1, tier: 1, isOnline: 1, lastHeartbeat: 1, walletAddress: 1 })
+      .project({ username: 1, tier: 1, isOnline: 1, lastHeartbeat: 1, walletAddress: 1, kind: 1, tunnelUrl: 1 })
       .toArray();
 
     const results = await Promise.all(
@@ -232,6 +232,9 @@ router.get('/claim/blobies', jwtAuth, claimBlobiesLimiter, async (req, res) => {
           name: b.username,
           url: buildRelayUrl(b.username, b.tier),
           tier: b.tier,
+          kind: b.kind || 'selfhosted',
+          managed: b.kind === 'managed',
+          tunnelUrl: b.tunnelUrl || null,
           isOnline: b.isOnline,
           lastSeen: b.lastHeartbeat?.toISOString() || null,
           walletAddress: b.walletAddress || null,

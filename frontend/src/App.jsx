@@ -539,7 +539,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
             onClick={onCloseReady}
             className="text-xs text-muted-foreground hover:text-foreground font-display underline underline-offset-2 transition-colors duration-200"
           >
-            Go to my instances
+            Go to my dashboard
           </button>
         </div>
       </div>
@@ -791,10 +791,9 @@ function Terminal({ user, onLogin, onLogout }) {
     if (stripeSessionActive.current) return
 
     if (mode === 'hosted' && user) {
-      fetchInstances().then(list => {
-        if (list && list.length > 0) setHostedStep('dashboard')
-        else setHostedStep('plan')
-      })
+      // Instance management now lives on the Dashboard; the landing widget is the
+      // subscribe funnel only, so it always starts at plan selection.
+      setHostedStep('plan')
     } else if (mode !== 'hosted') {
       setHostedStep('plan')
       setSelectedPlan(null)
@@ -933,25 +932,17 @@ function Terminal({ user, onLogin, onLogout }) {
 
   const handleBack = () => {
     if (hostedStep === 'region') {
-      if (instances.length > 0) setHostedStep('dashboard')
-      else setHostedStep('plan')
+      setHostedStep('plan')
     } else if (hostedStep === 'login' || hostedStep === 'handle') {
       setHostedStep('region')
     } else if (hostedStep === 'payment') {
       setHostedStep('handle')
-    } else if (hostedStep === 'plan' && instances.length > 0) {
-      setHostedStep('dashboard')
     }
   }
 
   const handleCloseReady = async () => {
-    await fetchInstances()
-    setSelectedPlan(null)
-    setSelectedRegion(null)
-    setTunnelUrl('')
-    setProvisionStep(-1)
-    setProvisioningId(null)
-    setHostedStep('dashboard')
+    // Instance management now lives on the Dashboard — send the buyer there.
+    window.location.href = '/dashboard'
   }
 
   const handleAddNew = () => {

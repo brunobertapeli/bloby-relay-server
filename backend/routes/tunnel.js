@@ -78,6 +78,34 @@ router.put('/tunnel', authenticate, tunnelLimiter, async (req, res) => {
 });
 
 /**
+ * POST /api/wallet
+ *
+ * The bot reports its agent wallet address once it holds a relay token. Managed
+ * (tunnel-off) bots never heartbeat or call register, so this is how their wallet
+ * reaches the relay for the dashboard. Fill-only: it won't overwrite a wallet the
+ * user has already set/rotated to a different address.
+ *
+ * Headers:  Authorization: Bearer <token>
+ * Body:     { walletAddress: string }
+ */
+router.post('/wallet', authenticate, async (req, res) => {
+  try {
+    const addr = (req.body.walletAddress || '').trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+      return res.status(400).json({ error: 'Invalid wallet address' });
+    }
+    await getUsers().updateOne(
+      { _id: req.user._id, $or: [{ walletAddress: null }, { walletAddress: { $exists: false } }, { walletAddress: addr }] },
+      { $set: { walletAddress: addr, updatedAt: new Date() } },
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[wallet]', error.message);
+    res.status(500).json({ error: 'Failed to set wallet' });
+  }
+});
+
+/**
  * POST /api/heartbeat
  *
  * Keep the bot marked as online.  Optionally update the tunnel URL.

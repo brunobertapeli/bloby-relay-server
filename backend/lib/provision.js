@@ -53,6 +53,10 @@ export async function provisionManagedInstance({
       username: uv.username,
       tier: tv.tier,
       tokenHash,
+      // Link to the buyer's account at provision time so the managed bot shows up
+      // as an already-claimed Bloby in "My Blobies" immediately — no activation-code
+      // "claim" dance needed (the ready callback re-asserts this idempotently).
+      accountId: new ObjectId(accountId),
       walletAddress: null,
       tunnelUrl: null,
       isOnline: false,

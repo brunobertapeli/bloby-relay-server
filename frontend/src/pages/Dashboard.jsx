@@ -749,11 +749,79 @@ function MessengerRow({ summary }) {
   )
 }
 
-function BlobyCard({ morphy, onAddFunds, messengerSummary }) {
+// Managed-instance controls, revealed under the card on hover of "Manage Instance".
+function InstancePanel({ instance, onRestart }) {
+  const regionMap = { na: 'North America', eu: 'Europe', br: 'Brazil' }
+  const planMap = { starter: { name: 'Starter', instance: 't4g.small' }, pro: { name: 'Pro', instance: 't4g.medium' } }
+  const plan = planMap[instance.plan] || { name: instance.plan || 'Instance', instance: '' }
+  const isRestarting = instance.status === 'restarting'
+  const isCanceling = instance.status === 'canceling'
+  const isReady = instance.status === 'ready'
+  const isTerminated = instance.status === 'terminated'
+  const statusLabel = isRestarting ? 'Restarting' : isCanceling ? 'Canceling' : isTerminated ? 'Terminated' : isReady ? 'Running' : (instance.status || 'Provisioning')
+  const liveUrl = instance.relayUrl || instance.tunnelUrl
+  return (
+    <div className="rounded-xl border border-primary/15 bg-gradient-to-b from-primary/[0.05] to-transparent p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isRestarting || isCanceling ? 'bg-amber-400 animate-pulse' : isReady ? 'bg-emerald-400' : isTerminated ? 'bg-red-400' : 'bg-muted-foreground/40'}`} />
+          <span className="text-xs font-display font-semibold text-foreground truncate">{plan.name}</span>
+          <span className="text-[10px] text-muted-foreground/50 font-mono shrink-0">{plan.instance}</span>
+        </div>
+        <span className={`text-[10px] font-display shrink-0 ${isReady ? 'text-emerald-400/80' : isCanceling || isRestarting ? 'text-amber-400/80' : isTerminated ? 'text-red-400/80' : 'text-muted-foreground/60'}`}>{statusLabel}</span>
+      </div>
+      <div className="flex items-center justify-between text-[10px]">
+        <span className="text-muted-foreground/40 font-display uppercase tracking-wider">Region</span>
+        <span className="text-muted-foreground/80 font-display">{regionMap[instance.region] || instance.region}</span>
+      </div>
+      {isCanceling && instance.cancelAt && (
+        <div className="text-[10px] text-amber-400/80 font-display">Cancels on {new Date(instance.cancelAt).toLocaleDateString()}</div>
+      )}
+      {liveUrl && !isTerminated && (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+          <span className="text-[10px] font-mono text-[#0069FE] truncate">{liveUrl}</span>
+          <CopyButton text={liveUrl} />
+        </div>
+      )}
+      {!isTerminated && (
+        <button
+          onClick={() => onRestart(instance.id)}
+          disabled={isRestarting}
+          className={`w-full text-[11px] font-display font-medium py-2 rounded-lg transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed bg-white/5 text-muted-foreground' : 'bg-gradient-brand text-white hover:opacity-90'}`}
+        >
+          {isRestarting ? 'Restarting…' : 'Restart instance'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Self-hosted details, revealed under the card on hover of "Self Hosted".
+function SelfHostedPanel({ morphy }) {
+  const rows = [
+    ['Last tunnel', morphy.tunnelUrl || '—', true],
+    ['Last update', morphy.lastSeen ? formatDate(morphy.lastSeen) : '—', false],
+    ['Tier', morphy.tier === 'at' ? 'Open' : (morphy.tier || 'premium'), false],
+  ]
+  return (
+    <div className="rounded-xl border border-border/40 bg-muted/20 p-4 space-y-2.5">
+      {rows.map(([label, value, mono]) => (
+        <div key={label} className="flex items-center justify-between gap-2 text-[10px]">
+          <span className="text-muted-foreground/40 font-display uppercase tracking-wider shrink-0">{label}</span>
+          <span className={`text-muted-foreground/80 truncate ${mono ? 'font-mono' : 'font-display'}`}>{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function BlobyCard({ morphy, onAddFunds, messengerSummary, instance, onRestart }) {
   const hasWallet = !!morphy.walletAddress
   const truncatedWallet = hasWallet
     ? `${morphy.walletAddress.slice(0, 6)}...${morphy.walletAddress.slice(-4)}`
     : null
+  const [panelOpen, setPanelOpen] = useState(false)
+  const isManaged = !!instance
 
   return (
     <div className="group rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-black/5 overflow-hidden">
@@ -805,7 +873,7 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary }) {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-display">Wallet Address</p>
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${hasWallet ? 'bg-emerald-400/60' : 'bg-amber-400/60'}`} />
-            <span className="text-[10px] text-muted-foreground/50 font-display">{hasWallet ? 'Linked' : 'Not linked'}</span>
+            <span className="text-[10px] text-muted-foreground/50 font-display">{hasWallet ? 'Linked' : (morphy.managed ? 'Pending' : 'Not linked')}</span>
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
@@ -813,10 +881,59 @@ function BlobyCard({ morphy, onAddFunds, messengerSummary }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
           </svg>
           <span className={`text-[11px] font-mono flex-1 ${hasWallet ? 'text-muted-foreground/60' : 'text-muted-foreground/30'}`}>
-            {truncatedWallet || '0x0000...0000'}
+            {truncatedWallet || (morphy.managed ? 'Generating…' : '0x0000...0000')}
           </span>
           {hasWallet && <CopyButton text={morphy.walletAddress} />}
         </div>
+      </div>
+
+      {/* Hover-reveal footer — managed bots expand instance controls, self-hosted show details */}
+      <div
+        onMouseEnter={() => setPanelOpen(true)}
+        onMouseLeave={() => setPanelOpen(false)}
+        className="border-t border-border/30"
+      >
+        <button
+          onClick={() => setPanelOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-3 transition-colors duration-200 hover:bg-white/[0.02]"
+        >
+          <span className="flex items-center gap-2 text-[11px] font-display font-semibold">
+            {isManaged ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#0166FF] to-[#009AFE]" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE]">Manage Instance</span>
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                <span className="text-muted-foreground/70">Self Hosted</span>
+              </>
+            )}
+          </span>
+          <motion.svg
+            animate={{ rotate: panelOpen ? 180 : 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="w-3.5 h-3.5 text-muted-foreground/40"
+            fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </motion.svg>
+        </button>
+        <AnimatePresence initial={false}>
+          {panelOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 34, opacity: { duration: 0.18 } }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 pt-1">
+                {isManaged ? <InstancePanel instance={instance} onRestart={onRestart} /> : <SelfHostedPanel morphy={morphy} />}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -828,19 +945,26 @@ function HandleCard({ handle, visibleHash, onToggleHash }) {
       <span className="font-mono text-sm text-foreground">
         morphyagent.com/<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0166FF] to-[#009AFE] font-semibold">{handle.handle}</span>
       </span>
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
-        <code className="font-mono text-xs text-muted-foreground select-all">
-          {visibleHash ? handle.hash : '\u2022\u2022\u2022\u2022\u2022'}
-        </code>
-        {visibleHash && <CopyButton text={handle.hash} />}
-        <button
-          onClick={onToggleHash}
-          className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
-        >
-          {visibleHash ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
-        </button>
-      </div>
+      {handle.used ? (
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-display font-medium text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          In Use
+        </span>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground/60 font-display shrink-0">Activation code:</span>
+          <code className="font-mono text-xs text-muted-foreground select-all">
+            {visibleHash ? handle.hash : '\u2022\u2022\u2022\u2022\u2022'}
+          </code>
+          {visibleHash && <CopyButton text={handle.hash} />}
+          <button
+            onClick={onToggleHash}
+            className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
+          >
+            {visibleHash ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -990,6 +1114,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [reservedHandles, setReservedHandles] = useState([])
   const [blobies, setBlobies] = useState([])
+  const [instances, setInstances] = useState([])
   const [messengerSummary, setMessengerSummary] = useState({})
   const [transactions, setTransactions] = useState([])
   const [visibleHashes, setVisibleHashes] = useState({})
@@ -1048,6 +1173,23 @@ export default function Dashboard() {
     }
   }
 
+  // Hosted instances (managed bots) — joined to their Bloby card by username.
+  const fetchInstances = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/instances`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setInstances(data.instances || [])
+      }
+    } catch (err) {
+      console.error('[instances] fetch failed:', err)
+    }
+  }
+
   const fetchMessengerSummary = async () => {
     const token = localStorage.getItem('bloby_token')
     if (!token) return
@@ -1096,6 +1238,7 @@ export default function Dashboard() {
           setUser(data.user)
           fetchReservedHandles()
           fetchBlobies()
+          fetchInstances()
           fetchMessengerSummary()
           fetchTransactions()
           fetchBalance()
@@ -1121,6 +1264,52 @@ export default function Dashboard() {
     navigate('/')
   }
 
+  const handleRestart = async (instanceId) => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      setInstances(prev => prev.map(i => i.id === instanceId ? { ...i, status: 'restarting' } : i))
+      await fetch(`${API_URL}/api/instances/${instanceId}/restart`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch (err) {
+      console.error('[instances] restart failed:', err)
+      await fetchInstances()
+    }
+  }
+
+  // Account-level Stripe billing portal (manages the hosted subscription).
+  const handleManageSubscription = async () => {
+    const token = localStorage.getItem('bloby_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/stripe/portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const { url } = await res.json()
+      window.location.href = url
+    } catch (err) {
+      console.error('[stripe] portal failed:', err)
+    }
+  }
+
+  // Poll instances while any is restarting, so the panel reflects the downtime.
+  useEffect(() => {
+    const hasRestarting = instances.some(i => i.status === 'restarting')
+    if (!hasRestarting) return
+    let cancelled = false
+    const poll = async () => {
+      if (cancelled) return
+      await fetchInstances()
+      if (!cancelled) setTimeout(poll, 5000)
+    }
+    const t = setTimeout(poll, 5000)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [instances.some(i => i.status === 'restarting')])
+
   const toggleHash = (handle) => {
     setVisibleHashes(prev => ({ ...prev, [handle]: !prev[handle] }))
   }
@@ -1139,6 +1328,8 @@ export default function Dashboard() {
 
   if (!user) return null
 
+  const instByUser = Object.fromEntries(instances.filter(i => i.username).map(i => [i.username, i]))
+
   return (
     <div className="min-h-screen bg-background">
       <DashNavbar user={user} onLogout={handleLogout} />
@@ -1147,13 +1338,23 @@ export default function Dashboard() {
         <motion.section initial="hidden" animate="visible" variants={fadeUp} custom={0}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">My Blobies</h2>
-            <button
-              onClick={() => setShowClaim(!showClaim)}
-              className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
-            >
-              <HiPlus className="w-4 h-4" />
-              Claim your Morphy
-            </button>
+            <div className="flex items-center gap-3">
+              {instances.length > 0 && (
+                <button
+                  onClick={handleManageSubscription}
+                  className="text-sm font-medium font-display text-muted-foreground/70 hover:text-foreground transition-colors duration-200"
+                >
+                  Manage Subscription
+                </button>
+              )}
+              <button
+                onClick={() => setShowClaim(!showClaim)}
+                className="flex items-center gap-1.5 text-sm font-medium font-display text-primary hover:text-primary/80 transition-colors duration-200"
+              >
+                <HiPlus className="w-4 h-4" />
+                Claim your Morphy
+              </button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground/70 font-display mb-5">
             Each agent has its own USDC wallet. Top up via Stripe (Coinbase soon) — funds stay scoped to that agent.
@@ -1177,6 +1378,8 @@ export default function Dashboard() {
                 <BlobyCard
                   key={morphy.id}
                   morphy={morphy}
+                  instance={instByUser[morphy.name]}
+                  onRestart={handleRestart}
                   onAddFunds={setFundingBloby}
                   messengerSummary={messengerSummary[morphy.name]}
                 />
@@ -1275,9 +1478,11 @@ export default function Dashboard() {
               </Link>
             </div>
           )}
-          <p className="text-xs text-muted-foreground/60 mt-3 font-display">
-            Use the activation code during <code className="text-foreground/50">morphy init</code> to claim your handle
-          </p>
+          {reservedHandles.some((rh) => !rh.used) && (
+            <p className="text-xs text-muted-foreground/60 mt-3 font-display">
+              Use the activation code during <code className="text-foreground/50">morphy init</code> to claim your handle
+            </p>
+          )}
         </motion.section>
 
         <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2}>

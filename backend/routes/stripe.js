@@ -439,10 +439,11 @@ router.get('/stripe/handles', jwtAuth, async (req, res) => {
     const names = handles.map((h) => h.handle);
     const registered = names.length
       ? await getUsers()
-          .find({ username: { $in: names }, tier: 'premium' }, { projection: { username: 1 } })
+          .find({ username: { $in: names }, tier: 'premium' }, { projection: { username: 1, kind: 1 } })
           .toArray()
       : [];
     const regSet = new Set(registered.map((u) => u.username));
+    const managedSet = new Set(registered.filter((u) => u.kind === 'managed').map((u) => u.username));
     const annotated = handles.map((h) => {
       const onInstance = instances.find(
         (i) => i.username === h.handle && i.status !== 'terminated',
@@ -450,6 +451,9 @@ router.get('/stripe/handles', jwtAuth, async (req, res) => {
       return {
         ...h,
         used: regSet.has(h.handle) || !!onInstance,
+        // A handle backing a managed instance is auto-claimed — the dashboard hides the
+        // activation-code UI for these (managed bots never use the morphy-init claim flow).
+        managed: managedSet.has(h.handle) || !!onInstance,
         usedByInstanceId: onInstance?.id || null,
       };
     });

@@ -147,10 +147,13 @@ router.post('/instances/callback', instanceCallbackLimiter, async (req, res) => 
                 'instances.$.relayUrl': relayUrl,
               }},
             );
-            // Link the pre-registered relay handle to this account.
+            // Link the pre-registered relay handle to this account + mark it online.
+            // Managed (tunnel-off) bots never send the relay heartbeat, so this is the
+            // only place isOnline gets set true. Keep lastHeartbeat null so no staleness
+            // check ever flips it back to offline (all staleness paths guard on lastHeartbeat).
             await db.collection('users').updateOne(
               { username: inst.username, tier },
-              { $set: { accountId: owner._id } },
+              { $set: { accountId: owner._id, isOnline: true } },
             );
             console.log(`[instances] managed ${inst.username} → ${hostname} → ${publicIp} (dns ${dnsRecordId})`);
           } else {
