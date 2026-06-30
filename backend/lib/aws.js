@@ -5,19 +5,19 @@ import { EC2Client, RunInstancesCommand, DescribeInstancesCommand, TerminateInst
 const REGION_CONFIG = {
   na: {
     awsRegion: 'us-east-1',
-    amiId: process.env.AMI_US_EAST_1 || 'ami-0cf7cc3ff1dc22b57',
+    amiId: process.env.AMI_US_EAST_1 || 'ami-0ce59f56351efd54a',
     securityGroup: process.env.SG_US_EAST_1 || 'sg-023fa7964b46feb25',
     label: 'North America (Virginia)',
   },
   eu: {
     awsRegion: 'eu-central-1',
-    amiId: process.env.AMI_EU_CENTRAL_1 || 'ami-0a609af0c4c6db866',
+    amiId: process.env.AMI_EU_CENTRAL_1 || 'ami-01eb42c7c21a53b5d',
     securityGroup: process.env.SG_EU_CENTRAL_1 || 'sg-0956278b8533089dc',
     label: 'Europe (Frankfurt)',
   },
   br: {
     awsRegion: 'sa-east-1',
-    amiId: process.env.AMI_SA_EAST_1 || 'ami-063fb1add732ae589',
+    amiId: process.env.AMI_SA_EAST_1 || 'ami-0e78338c9d50be5ed',
     securityGroup: process.env.SG_SA_EAST_1 || 'sg-0ab1b5fa370b4e673',
     label: 'Brazil (São Paulo)',
   },

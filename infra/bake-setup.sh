@@ -50,6 +50,9 @@ sudo -u ec2-user -H bash -lc '
   rm -f "$TARBALL"
   cd .morphy
   env -u npm_config_global -u npm_config_prefix npm install --omit=dev --no-audit --no-fund
+  # workspace backend deps (express + better-sqlite3) — bake them so the image ships ready
+  cd workspace
+  env -u npm_config_global -u npm_config_prefix npm install --omit=dev --no-audit --no-fund
 ' || die "~/.morphy pre-bake failed"
 # golden image carries NO user/config state
 rm -f /home/ec2-user/.morphy/config.json /home/ec2-user/.morphy/memory.db* /home/ec2-user/.morphy/VERSION

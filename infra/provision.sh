@@ -119,6 +119,27 @@ else
 fi
 UPDATE
 
+# ─── 4b. Ensure workspace backend deps (express + better-sqlite3) ─────────────
+# The package postinstall installs these into ~/.morphy/workspace, but it does a
+# NESTED npm install that can flake under first-boot load — leaving the workspace
+# without node_modules, so the isolated backend crash-loops ("express resolved
+# outside workspace"). Install them here explicitly (clean env, retried) so the
+# backend always has its deps regardless of the postinstall.
+echo "[provision] ensuring workspace backend deps..."
+sudo -u "$RUN_USER" -H bash -s <<'WSDEPS'
+set -uo pipefail
+cd /home/ec2-user/.morphy/workspace 2>/dev/null || { echo "[provision] no workspace dir"; exit 0; }
+for try in 1 2 3; do
+  env -u npm_config_global -u npm_config_prefix npm install --omit=dev --no-audit --no-fund && break
+  echo "[provision] workspace install attempt $try failed; retrying..."
+done
+if [ -d node_modules/express ] && [ -d node_modules/better-sqlite3 ]; then
+  echo "[provision] workspace deps OK"
+else
+  echo "[provision] WARN workspace deps still missing after retries"
+fi
+WSDEPS
+
 # ─── 5 + 6. Seed identity + tunnel-OFF, then init (daemon path) ───────────────
 echo "[provision] running morphy init --hosted (tunnel off)..."
 sudo -u "$RUN_USER" -H \
