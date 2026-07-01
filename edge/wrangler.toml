@@ -1,0 +1,36 @@
+name = "morphy-edge"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+# Deployed with NO zone routes by default: the worker is reachable only on its
+# workers.dev URL (admin/debug) and is a complete no-op for production traffic.
+# Rollout is per-handle first, wildcard last — see README.md.
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "BOT_DO"
+class_name = "BotDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BotDO"]
+
+[vars]
+RELAY_DOMAIN = "morphyagent.com"
+# Secrets (set with `wrangler secret put <NAME>`):
+#   EDGE_ADMIN_SECRET — shared secret for /__edge/* admin calls from the Railway relay
+
+# ── Rollout routes ───────────────────────────────────────────────────────────
+# Step 1 canary (per-handle, zero blast radius — everything else stays on Railway):
+# routes = [
+#   { pattern = "somebot.morphyagent.com/*", zone_name = "morphyagent.com" },
+# ]
+#
+# Full cutover (only after canary soak; requires the *.open Advanced Certificate):
+# routes = [
+#   { pattern = "*.morphyagent.com/*", zone_name = "morphyagent.com" },
+#   { pattern = "*.open.morphyagent.com/*", zone_name = "morphyagent.com" },
+# ]
+# NOTE: with the wildcard enabled, unmatched/unrouted hosts (api, www, unknown
+# handles, managed-tier bots, offline bots) are passed through to origin
+# unchanged — the worker is additive, never a replacement for Railway's pages.

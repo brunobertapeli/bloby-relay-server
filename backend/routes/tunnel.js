@@ -5,6 +5,7 @@ import { validateTunnelUrl } from '../lib/validate.js';
 import { authenticate } from '../middleware/auth.js';
 import { tunnelLimiter, heartbeatLimiter } from '../middleware/rateLimiter.js';
 import { invalidateUserCache } from './resolve.js';
+import { edgeSyncTunnel, edgeTouch, edgeClear } from '../lib/edge.js';
 
 const router = Router();
 
@@ -59,6 +60,7 @@ router.put('/tunnel', authenticate, tunnelLimiter, async (req, res) => {
       },
     );
     invalidateUserCache(req.user.username); // resolve.js micro-cache must see the new URL now
+    edgeSyncTunnel(req.user.username, req.user.tier, validation.url); // mirror to the CF edge (no-op if unconfigured)
 
     // Warm Railway's DNS cache before responding — prevents ENOTFOUND 502s
     // The supervisor awaits this response, so the URL won't be shown until
@@ -146,6 +148,10 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
     await getUsers().updateOne({ _id: req.user._id }, { $set: update });
     if (rotatedTunnel) invalidateUserCache(req.user.username); // routing changed mid-TTL
 
+    // Mirror liveness/rotation to the CF edge worker (no-op if unconfigured).
+    if (rotatedTunnel) edgeSyncTunnel(req.user.username, req.user.tier, rotatedTunnel);
+    else edgeTouch(req.user.username, req.user.tier);
+
     // If the heartbeat carried a rotated tunnel URL, warm Railway's DNS in the background so the
     // next proxy hit doesn't ENOTFOUND. Fire-and-forget — never delay the heartbeat cadence.
     if (rotatedTunnel) warmDns(rotatedTunnel).catch(() => {});
@@ -178,6 +184,7 @@ router.post('/disconnect', authenticate, async (req, res) => {
       },
     );
     invalidateUserCache(req.user.username); // go offline immediately, not after the TTL
+    edgeClear(req.user.username, req.user.tier); // edge falls through to Railway's offline page
 
     res.json({ success: true });
   } catch (error) {
@@ -198,6 +205,7 @@ router.delete('/handle', authenticate, async (req, res) => {
   try {
     await getUsers().deleteOne({ _id: req.user._id });
     invalidateUserCache(req.user.username);
+    edgeClear(req.user.username, req.user.tier); // freed handle must stop routing at the edge too
     res.json({ success: true, username: req.user.username });
   } catch (error) {
     console.error('[handle:delete]', error.message);
