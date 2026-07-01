@@ -91,43 +91,6 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
           </p>
         </div>
 
-        {reservedHandles.length > 0 && (
-          <div className="mb-10 sm:mb-12">
-            <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground tracking-tight text-center mb-2">
-              Your handles:
-            </h3>
-            <p className="text-xs text-muted-foreground/60 text-center mb-3 font-display">
-              You'll be able to use your reserved handle when you set up your Morphy
-            </p>
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              {reservedHandles.map((rh) => (
-                <div
-                  key={rh.handle}
-                  className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border last:border-b-0"
-                >
-                  <span className="font-mono text-sm text-foreground">
-                    morphyagent.com/<span className="text-gradient font-semibold">{rh.handle}</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground select-all">
-                      {visibleHashes[rh.handle] ? rh.hash : '\u2022\u2022\u2022\u2022\u2022'}
-                    </span>
-                    <button
-                      onClick={() => toggleHash(rh.handle)}
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
-                    >
-                      {visibleHashes[rh.handle]
-                        ? <HiEyeSlash className="w-4 h-4" />
-                        : <HiEye className="w-4 h-4" />
-                      }
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div
           className="relative mb-8 sm:mb-10 cursor-text"
           onClick={() => inputRef.current?.focus()}
@@ -271,10 +234,47 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
           </AnimatePresence>
         </div>
 
-        {reservedHandles.length === 0 && (
+        {reservedHandles.length === 0 ? (
           <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
             You'll be able to use your reserved handle when you set up your Morphy
           </p>
+        ) : (
+          <div className="mt-14 sm:mt-16 pt-10 sm:pt-12 border-t border-border/60">
+            <h3 className="text-[11px] font-display font-semibold uppercase tracking-widest text-muted-foreground/50 mb-4 text-center">
+              Your handles
+            </h3>
+            <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm overflow-hidden divide-y divide-border/40">
+              {reservedHandles.map((rh) => (
+                <div key={rh.handle} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
+                  <span className="font-mono text-sm text-foreground truncate">
+                    morphyagent.com/<span className="text-gradient font-semibold">{rh.handle}</span>
+                  </span>
+                  {rh.used ? (
+                    <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-display font-medium text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      In Use
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-muted-foreground/40 font-display">Activation code</span>
+                      <span className="font-mono text-sm text-muted-foreground select-all">
+                        {visibleHashes[rh.handle] ? rh.hash : '•••••'}
+                      </span>
+                      <button
+                        onClick={() => toggleHash(rh.handle)}
+                        className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
+                      >
+                        {visibleHashes[rh.handle] ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground/50 text-center mt-4 font-display">
+              You'll be able to use your reserved handle when you set up your Morphy
+            </p>
+          </div>
         )}
       </div>
     </section>

@@ -809,7 +809,6 @@ function SelfHostedPanel({ morphy }) {
   const rows = [
     ['Last tunnel', morphy.tunnelUrl || '—', true],
     ['Last update', morphy.lastSeen ? formatDate(morphy.lastSeen) : '—', false],
-    ['Tier', morphy.tier === 'at' ? 'Open' : (morphy.tier || 'premium'), false],
   ]
   return (
     <div className="space-y-2.5 text-[#171717]">
