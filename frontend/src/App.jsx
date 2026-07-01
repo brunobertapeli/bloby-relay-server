@@ -4,7 +4,7 @@ import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresen
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
 import {
-  FaGithub, FaArrowRight, FaCopy, FaCheck, FaDiscord, FaGoogle
+  FaGithub, FaArrowRight, FaCopy, FaCheck, FaTelegramPlane, FaGoogle
 } from 'react-icons/fa'
 import {
   HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
@@ -1512,8 +1512,8 @@ function Footer() {
               AI agent platform under BSL. Your agent, your rules.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
-                <FaDiscord className="w-4 h-4" />
+              <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
+                <FaTelegramPlane className="w-4 h-4" />
               </a>
               <a href="#" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
                 <FaGithub className="w-4 h-4" />
@@ -1545,7 +1545,7 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold font-display text-foreground mb-4">Community</h4>
             <ul className="space-y-2.5">
-              <li><a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Discord</a></li>
+              <li><a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Telegram</a></li>
               <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">GitHub</a></li>
             </ul>
           </div>

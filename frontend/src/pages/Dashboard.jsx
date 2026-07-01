@@ -7,7 +7,7 @@ import {
   HiEye, HiEyeSlash, HiCheckCircle, HiChevronDown,
   HiBars3, HiInformationCircle
 } from 'react-icons/hi2'
-import { FaDiscord } from 'react-icons/fa'
+import { FaTelegramPlane } from 'react-icons/fa'
 import { API_URL } from '../api'
 
 const fadeUp = {
@@ -89,8 +89,8 @@ function DashNavbar({ user, onLogout }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
-              <FaDiscord className="w-[18px] h-[18px]" />
+            <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
+              <FaTelegramPlane className="w-[18px] h-[18px]" />
             </a>
             <div className="hidden sm:flex items-center gap-3">
               {user && (
@@ -192,8 +192,8 @@ function DashNavbar({ user, onLogout }) {
               </div>
 
               <div className="mt-auto">
-                <a href="https://discord.gg/QERDj3CBFj" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
-                  <FaDiscord className="w-4 h-4" /> Discord
+                <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                  <FaTelegramPlane className="w-4 h-4" /> Telegram
                 </a>
               </div>
             </motion.div>

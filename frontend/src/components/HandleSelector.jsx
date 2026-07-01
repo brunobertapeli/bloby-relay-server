@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { HiEye, HiEyeSlash } from 'react-icons/hi2'
 import { API_URL } from '../api'
 
-export default function HandleSelector({ user, onLogin, reservedHandles = [], onReserve }) {
+export default function HandleSelector({ user, onLogin, onReserve }) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
   const [available, setAvailable] = useState(null)
   const [inputFocused, setInputFocused] = useState(false)
   const [reserving, setReserving] = useState(false)
-  const [visibleHashes, setVisibleHashes] = useState({})
   const inputRef = useRef(null)
   const debounce = useRef(null)
 
@@ -68,10 +66,6 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
       await onReserve(name.trim())
       setReserving(false)
     }
-  }
-
-  const toggleHash = (handle) => {
-    setVisibleHashes(prev => ({ ...prev, [handle]: !prev[handle] }))
   }
 
   const isEmpty = name.length === 0
@@ -234,48 +228,9 @@ export default function HandleSelector({ user, onLogin, reservedHandles = [], on
           </AnimatePresence>
         </div>
 
-        {reservedHandles.length === 0 ? (
-          <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
-            You'll be able to use your reserved handle when you set up your Morphy
-          </p>
-        ) : (
-          <div className="mt-14 sm:mt-16 pt-10 sm:pt-12 border-t border-border/60">
-            <h3 className="text-[11px] font-display font-semibold uppercase tracking-widest text-muted-foreground/50 mb-4 text-center">
-              Your handles
-            </h3>
-            <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm overflow-hidden divide-y divide-border/40">
-              {reservedHandles.map((rh) => (
-                <div key={rh.handle} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
-                  <span className="font-mono text-sm text-foreground truncate">
-                    morphyagent.com/<span className="text-gradient font-semibold">{rh.handle}</span>
-                  </span>
-                  {rh.used ? (
-                    <span className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-display font-medium text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      In Use
-                    </span>
-                  ) : (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-muted-foreground/40 font-display">Activation code</span>
-                      <span className="font-mono text-sm text-muted-foreground select-all">
-                        {visibleHashes[rh.handle] ? rh.hash : '•••••'}
-                      </span>
-                      <button
-                        onClick={() => toggleHash(rh.handle)}
-                        className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-1"
-                      >
-                        {visibleHashes[rh.handle] ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground/50 text-center mt-4 font-display">
-              You'll be able to use your reserved handle when you set up your Morphy
-            </p>
-          </div>
-        )}
+        <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
+          You'll be able to use your reserved handle when you set up your Morphy
+        </p>
       </div>
     </section>
   )
