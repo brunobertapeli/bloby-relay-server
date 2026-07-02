@@ -148,9 +148,10 @@ router.post('/heartbeat', authenticate, heartbeatLimiter, async (req, res) => {
     await getUsers().updateOne({ _id: req.user._id }, { $set: update });
     if (rotatedTunnel) invalidateUserCache(req.user.username); // routing changed mid-TTL
 
-    // Mirror liveness/rotation to the CF edge worker (no-op if unconfigured).
+    // Mirror liveness/rotation to the CF edge worker (no-op if unconfigured). The stored
+    // tunnelUrl rides along so a touch can self-heal a missing route (see lib/edge.js).
     if (rotatedTunnel) edgeSyncTunnel(req.user.username, req.user.tier, rotatedTunnel);
-    else edgeTouch(req.user.username, req.user.tier);
+    else edgeTouch(req.user.username, req.user.tier, req.user.tunnelUrl || null);
 
     // If the heartbeat carried a rotated tunnel URL, warm Railway's DNS in the background so the
     // next proxy hit doesn't ENOTFOUND. Fire-and-forget — never delay the heartbeat cadence.

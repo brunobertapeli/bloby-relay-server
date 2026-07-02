@@ -19,7 +19,7 @@ function configured() {
 }
 
 async function call(method, path, body) {
-  if (!configured()) return;
+  if (!configured()) return null;
   const url = `${process.env.EDGE_ADMIN_URL.replace(/\/$/, '')}${path}`;
   try {
     const res = await fetch(url, {
@@ -31,9 +31,14 @@ async function call(method, path, body) {
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) console.warn(`[edge] ${method} ${path} → ${res.status}`);
+    if (!res.ok) {
+      console.warn(`[edge] ${method} ${path} → ${res.status}`);
+      return null;
+    }
+    return await res.json().catch(() => null);
   } catch (err) {
     console.warn(`[edge] ${method} ${path} failed:`, err.message);
+    return null;
   }
 }
 
@@ -42,9 +47,20 @@ export function edgeSyncTunnel(username, tier, tunnelUrl) {
   call('PUT', '/__edge/route', { username, tier, tunnelUrl }).catch(() => {});
 }
 
-/** Heartbeat without rotation — refresh the route's liveness window. */
-export function edgeTouch(username, tier) {
-  call('POST', '/__edge/touch', { username, tier }).catch(() => {});
+/**
+ * Heartbeat without rotation — refresh the route's liveness window.
+ * Self-heals: if the DO has no route yet (bot was already running before the edge
+ * existed, or the DO lost state), the touch response says so and we follow up with
+ * a full sync using the tunnelUrl the relay already has. Steady state stays a
+ * cheap touch; route creation converges within one heartbeat with no agent change.
+ */
+export function edgeTouch(username, tier, tunnelUrl = null) {
+  (async () => {
+    const res = await call('POST', '/__edge/touch', { username, tier });
+    if (res && res.hadRoute === false && tunnelUrl) {
+      await call('PUT', '/__edge/route', { username, tier, tunnelUrl });
+    }
+  })().catch(() => {});
 }
 
 /** Graceful disconnect / handle release — next request falls through to Railway. */
