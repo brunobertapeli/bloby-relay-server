@@ -1191,6 +1191,26 @@ const upload = multer({
   limits: { fileSize: MAX_TARBALL_SIZE },
 });
 
+// multer runs as middleware BEFORE the route body, so its errors bypass the handler's
+// try/catch and surface as a generic 500 from the global error handler ("Internal server
+// error") — undiagnosable. Wrap it to return the real reason (size / unexpected field /
+// truncated multipart "Unexpected end of form") and log it.
+function uploadTarball(req, res, next) {
+  upload.single('tarball')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: `File too large. Maximum is ${MAX_TARBALL_SIZE / (1024 * 1024)}MB.` });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      // The #1 agent mistake: sending the archive under the wrong field name (e.g. -F file=@).
+      // Name the bad field + the expected one so the caller self-corrects instead of looping.
+      return res.status(400).json({ error: `Unexpected file field${err.field ? ` "${err.field}"` : ''}. Send the archive as multipart field "tarball" — e.g. -F "tarball=@your-blueprint.tar.gz".` });
+    }
+    console.error('[marketplace/submit] upload error:', err.code || '(no code)', err.message);
+    return res.status(400).json({ error: `Upload failed (${err.code || 'parse error'}): ${err.message}` });
+  });
+}
+
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 // Multipart list fields (tags, categories) may arrive as a JSON array string,
@@ -1221,7 +1241,7 @@ router.post(
   '/marketplace/submit',
   authenticate,
   marketplaceSubmitLimiter,
-  upload.single('tarball'),
+  uploadTarball,
   async (req, res) => {
     try {
       // ── Auth checks ──────────────────────────────────────────────────
