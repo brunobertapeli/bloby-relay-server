@@ -24,6 +24,7 @@ import crypto from 'node:crypto';
 import { getDb, getUsers } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { verifyAlexaRequest } from '../lib/alexa-verify.js';
+import { buildSubdomainUrl } from '../lib/validate.js';
 
 const router = Router();
 
@@ -141,9 +142,12 @@ async function sendImmediateProgressive(envelope, speech, t0) {
   }
 }
 
-/** Forward an utterance to a user's tunnel and return the Pi's reply text. */
+/** Forward an utterance to a user's bot (via its stable public origin) and return the reply. */
 async function forwardToTunnel(user, payload) {
-  const url = `${user.tunnelUrl.replace(/\/$/, '')}/api/channels/alexa/handle`;
+  // Public origin routes through Cloudflare for every transport: quick tunnel, relay carrier,
+  // AND managed-tier direct EC2 — so this no longer depends on a (relay-mode-null) tunnelUrl.
+  const origin = buildSubdomainUrl(user.username, user.tier);
+  const url = `${origin.replace(/\/$/, '')}/api/channels/alexa/handle`;
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), PI_FORWARD_TIMEOUT_MS);
   try {
@@ -375,9 +379,9 @@ export async function handleAlexaRequest(req, res) {
 
       const user = await getUsers().findOne(
         { username: link.username },
-        { projection: { username: 1, tunnelUrl: 1, isOnline: 1, alexaSharedSecret: 1 } },
+        { projection: { username: 1, tier: 1, isOnline: 1, alexaSharedSecret: 1 } },
       );
-      if (!user || !user.tunnelUrl || !user.alexaSharedSecret) {
+      if (!user || !user.alexaSharedSecret) {
         return res.json(alexaResponse(
           "I can't reach your Morphy right now. Make sure it's online and the Alexa channel is enabled.",
           { endSession: true },

@@ -108,6 +108,35 @@ router.post('/edge/ticket', authenticate, tunnelLimiter, async (req, res) => {
 });
 
 /**
+ * POST /api/edge/presence
+ *
+ * Called by the bot's Durable Object when its carrier connects (online:true) or its last
+ * carrier drops (online:false). This is how relay-mode bots keep users.isOnline accurate —
+ * they have no heartbeat. Authenticated by the shared EDGE_ADMIN_SECRET (same secret the
+ * relay uses to call the edge worker).
+ *
+ * Body: { username, tier, online }
+ */
+router.post('/edge/presence', async (req, res) => {
+  try {
+    const secret = req.headers['x-edge-secret'];
+    if (!process.env.EDGE_ADMIN_SECRET || secret !== process.env.EDGE_ADMIN_SECRET) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    const { username, tier, online } = req.body || {};
+    if (!username || !tier) return res.status(400).json({ error: 'username and tier required' });
+    const set = { isOnline: !!online, updatedAt: new Date() };
+    if (online) set.lastHeartbeat = new Date();
+    await getUsers().updateOne({ username, tier }, { $set: set });
+    invalidateUserCache(username);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[edge/presence]', error.message);
+    res.status(500).json({ error: 'Failed to set presence' });
+  }
+});
+
+/**
  * POST /api/wallet
  *
  * The bot reports its agent wallet address once it holds a relay token. Managed

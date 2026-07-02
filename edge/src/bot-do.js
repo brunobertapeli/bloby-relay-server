@@ -115,6 +115,7 @@ export class BotDO {
       }
       await this.ctx.storage.put('session', sessionId);
       await this.ctx.storage.put('route', { kind: 'carrier', username: claims.u, tier: claims.t, lastCarrierAt: Date.now() });
+      this.notifyPresence(claims.u, claims.t, true); // dashboard isOnline = live carrier
     } else {
       sessionId = (await this.ctx.storage.get('session')) || crypto.randomUUID();
     }
@@ -230,7 +231,11 @@ export class BotDO {
       // "reconnecting" page before falling through to offline.
       if (this.ctx.getWebSockets('carrier').length === 0) {
         this.ctx.storage.get('route').then((r) => {
-          if (r && r.kind === 'carrier') { r.lastCarrierAt = Date.now(); this.ctx.storage.put('route', r); }
+          if (r && r.kind === 'carrier') {
+            r.lastCarrierAt = Date.now();
+            this.ctx.storage.put('route', r);
+            this.notifyPresence(r.username, r.tier, false); // best-effort offline signal
+          }
         }).catch(() => {});
       }
       return;
@@ -326,6 +331,19 @@ export class BotDO {
     // The route said carrier, but no carrier is attached right now. 503 so the worker
     // can substitute its branded reconnecting/offline page (it owns the pages).
     return new Response('carrier offline', { status: 503, headers: { 'x-morphy-carrier': 'down' } });
+  }
+
+  // Best-effort presence signal → Railway flips users.isOnline (relay mode has no heartbeat).
+  // Fire-and-forget: a carrier is connected (connect) or was just closing (disconnect), so the
+  // DO stays alive long enough for this sub-second POST. Reuses EDGE_ADMIN_SECRET.
+  notifyPresence(username, tier, online) {
+    try {
+      fetch(`https://api.${this.env.RELAY_DOMAIN}/api/edge/presence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-edge-secret': this.env.EDGE_ADMIN_SECRET || '' },
+        body: JSON.stringify({ username, tier, online }),
+      }).catch(() => {});
+    } catch {}
   }
 
   async getPubKey() {
