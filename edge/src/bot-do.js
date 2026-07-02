@@ -106,13 +106,18 @@ export class BotDO {
     if (!claims) return new Response('invalid ticket', { status: 401 });
 
     let sessionId;
+    // Evict only SAME-ROLE carriers. A new control replaces stale controls, a new bulk replaces
+    // stale bulks — but a control must NEVER evict its own sibling bulk (both open on the same
+    // dial), which was closing the bulk → agent onFail → reconnect → supersede storm. Duplicate
+    // machines still evict each other (their control evicts our control, their bulk our bulk).
+    for (const old of this.ctx.getWebSockets('carrier')) {
+      const a = old.deserializeAttachment() || {};
+      if (a.carrier !== role) continue;
+      try { old.send(encodeJson(T.GOAWAY, 0, { reason: 'superseded' })); } catch {}
+      try { old.close(1012, 'superseded'); } catch {}
+    }
     if (role === 'control') {
-      // Last-writer-wins: a fresh control carrier evicts any existing session (duplicate machine).
       sessionId = crypto.randomUUID();
-      for (const old of this.ctx.getWebSockets('carrier')) {
-        try { old.send(encodeJson(T.GOAWAY, 0, { reason: 'superseded' })); } catch {}
-        try { old.close(1012, 'superseded'); } catch {}
-      }
       await this.ctx.storage.put('session', sessionId);
       await this.ctx.storage.put('route', { kind: 'carrier', username: claims.u, tier: claims.t, lastCarrierAt: Date.now() });
       this.notifyPresence(claims.u, claims.t, true); // dashboard isOnline = live carrier
@@ -123,7 +128,7 @@ export class BotDO {
     const pair = new WebSocketPair();
     const client = pair[0], server = pair[1];
     this.ctx.acceptWebSocket(server, ['carrier']);
-    server.serializeAttachment({ carrier: role, sessionId, user: claims.u });
+    server.serializeAttachment({ carrier: role, sessionId, user: claims.u, at: Date.now() });
     try {
       server.send(encodeJson(T.HELLO_ACK, 0, { role, sessionId, window: DEFAULT_WINDOW }));
     } catch {}
@@ -232,7 +237,7 @@ export class BotDO {
   // ───────────────────────── hibernation handlers ─────────────────────────
   async webSocketMessage(ws, message) {
     const att = ws.deserializeAttachment() || {};
-    if (att.carrier) return this.onCarrierFrame(message);
+    if (att.carrier) return this.onCarrierFrame(message, ws);
     if (att.sid !== undefined) return this.onBrowserWsMessage(att.sid, message);
   }
 
@@ -268,11 +273,14 @@ export class BotDO {
     send(control, encodeFrame(T.DATA, binary ? F.WS_BINARY : 0, sid, payload));
   }
 
-  onCarrierFrame(message) {
+  onCarrierFrame(message, ws) {
     const f = decodeFrame(message);
     const { type, flags, streamId: sid, payload } = f;
 
-    if (type === T.PING) { const c = this.carrier('control'); if (c) send(c, encodeFrame(T.PONG, 0, 0, payload)); return; }
+    // Reply to PING on the EXACT socket it arrived on — never via a carrier('control') lookup,
+    // which during reconnect churn can return a stale/closing socket so the live agent never
+    // gets its PONG → 30s PONG-timeout → forced reconnect loop.
+    if (type === T.PING) { if (ws) send(ws, encodeFrame(T.PONG, 0, 0, payload)); return; }
     if (type === T.PONG) return;
 
     if (type === T.RESP) {
@@ -318,12 +326,18 @@ export class BotDO {
   }
 
   // ───────────────────────── helpers ─────────────────────────
+  // Return the NEWEST carrier of a role. If a stale/closing socket of the same role briefly
+  // lingers in getWebSockets() after a supersede, routing to it would send OPEN/PONG into a
+  // dead socket (request hang / PONG loss). Newest-by-`at` is always the live one.
   carrier(role) {
+    let best = null, bestAt = -1;
     for (const ws of this.ctx.getWebSockets('carrier')) {
       const a = ws.deserializeAttachment() || {};
-      if (a.carrier === role) return ws;
+      if (a.carrier !== role) continue;
+      const at = a.at || 0;
+      if (at >= bestAt) { bestAt = at; best = ws; }
     }
-    return null;
+    return best;
   }
   browserWs(sid) {
     for (const ws of this.ctx.getWebSockets('ws')) {
