@@ -10,18 +10,18 @@ workers_dev = true
 # ── Rollout routes ───────────────────────────────────────────────────────────
 # ⚠️ Keep this ABOVE [vars] — top-level TOML keys placed after a table header get
 # swallowed into that table (routes-as-a-var creates NO zone route, silently).
-# Step 1 canary (per-handle, zero blast radius — everything else stays on Railway):
+#
+# Self-hosted bots live ONLY under *.open.morphyagent.com (quick tunnel). Managed
+# bots are first-level <handle>.morphyagent.com (direct EC2 A-records) and are
+# deliberately NOT routed here — the worker never touches that namespace, so the
+# managed tier's direct path is untouched. Requires the *.open Advanced Cert
+# (ordered) and the *.open.morphyagent.com wildcard record set to Proxied.
 routes = [
-  { pattern = "bloby.open.morphyagent.com/*", zone_name = "morphyagent.com" },
+  { pattern = "*.open.morphyagent.com/*", zone_name = "morphyagent.com" },
 ]
-# Full cutover (only after canary soak; requires the *.open Advanced Certificate):
-# routes = [
-#   { pattern = "*.morphyagent.com/*", zone_name = "morphyagent.com" },
-#   { pattern = "*.open.morphyagent.com/*", zone_name = "morphyagent.com" },
-# ]
-# NOTE: with the wildcard enabled, unmatched/unrouted hosts (api, www, unknown
-# handles, managed-tier bots, offline bots) are passed through to origin
-# unchanged — the worker is additive, never a replacement for Railway's pages.
+# NOTE: additive — an .open host with no quick route in its DO (offline / never
+# connected / unknown handle) is passed through to origin (Railway) unchanged,
+# which serves its own offline/404 pages. The worker never replaces Railway.
 
 [[durable_objects.bindings]]
 name = "BOT_DO"
