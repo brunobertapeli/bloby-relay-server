@@ -7,9 +7,10 @@
 // NO_CACHE so a CDN can never pin an error page after the agent recovers.
 
 const RELAY_DOMAIN = process.env.RELAY_DOMAIN || 'morphyagent.com';
-// Assets come from the website (www.<domain>), never the dead bot subdomain. webm keeps the
-// transparent alpha (incl. iPhone Safari); mp4 is the no-alpha fallback. Both confirmed present.
-const videoBase = `https://www.${RELAY_DOMAIN}/assets/videos/what-happened`;
+// Assets come from the website (www.<domain>), never the dead bot subdomain. Transparent-alpha
+// mascot pair: .mov (HEVC/hvc1) for iOS/Safari, .webm (VP9) elsewhere — same pattern the
+// frontend uses. morphy-idle = the calm "waiting to come back" loop for the status pages.
+const videoBase = `https://www.${RELAY_DOMAIN}/assets/videos/morphy-idle`;
 
 export const NO_CACHE = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -29,8 +30,8 @@ export function esc(str) {
 function videoBlock(extraStyle = '') {
   return `<div class="video-wrap" style="${extraStyle}">
        <video autoplay loop muted playsinline onerror="var w=this.closest('.video-wrap'); if(w) w.style.display='none'">
+         <source src="${videoBase}.mov" type='video/mp4; codecs="hvc1"'>
          <source src="${videoBase}.webm" type="video/webm">
-         <source src="${videoBase}.mp4" type="video/mp4">
        </video></div>`;
 }
 
@@ -264,8 +265,8 @@ export function oauthConnectPage() {
   <div class="c">
     <div class="video-wrap">
       <video autoplay loop muted playsinline onerror="var w=this.closest('.video-wrap'); if(w) w.style.display='none'">
-        <source src="${videoBase.replace('what-happened', 'bloby_happy')}.webm" type="video/webm">
-        <source src="https://www.${RELAY_DOMAIN}/assets/videos/happy.mp4" type="video/mp4">
+        <source src="https://www.${RELAY_DOMAIN}/assets/videos/morphy_hi.mov" type='video/mp4; codecs="hvc1"'>
+        <source src="https://www.${RELAY_DOMAIN}/assets/videos/morphy_hi.webm" type="video/webm">
       </video>
     </div>
     <h1 id="title" class="gradient">You're authorized</h1>

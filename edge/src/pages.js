@@ -27,12 +27,15 @@ export function esc(str) {
 }
 
 // A missing/404 video hides its wrapper instead of rendering a broken-media icon.
+// Transparent-alpha mascot: .mov (HEVC/hvc1) for iOS/Safari, .webm (VP9) for the rest —
+// same source pattern the frontend uses (frontend/src/App.jsx). morphy-idle = the calm
+// "waiting to come back" animation, fitting for the restarting/offline states.
 function videoBlock(domain, extraStyle = '') {
-  const videoBase = `https://www.${domain}/assets/videos/what-happened`;
+  const videoBase = `https://www.${domain}/assets/videos/morphy-idle`;
   return `<div class="video-wrap" style="${extraStyle}">
        <video autoplay loop muted playsinline onerror="var w=this.closest('.video-wrap'); if(w) w.style.display='none'">
+         <source src="${videoBase}.mov" type='video/mp4; codecs="hvc1"'>
          <source src="${videoBase}.webm" type="video/webm">
-         <source src="${videoBase}.mp4" type="video/mp4">
        </video></div>`;
 }
 
