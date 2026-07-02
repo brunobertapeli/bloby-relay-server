@@ -18,13 +18,12 @@
 // Wire protocol: see ./protocol.js (mirrored by the agent in Bloby/supervisor/relay-tunnel.ts).
 
 import {
-  T, F, CLASS, encodeFrame, encodeJson, decodeFrame, payloadJson, u32, readU32,
+  T, F, encodeFrame, encodeJson, decodeFrame, payloadJson,
 } from './protocol.js';
 
 const STALE_MS = 360_000;         // quick-mode route liveness (mirrors relay HEARTBEAT_TIMEOUT)
 export const RESTART_GRACE_MS = 25_000;
 const CARRIER_GRACE_MS = 10_000;  // after last carrier drops, show "reconnecting" this long
-const DEFAULT_WINDOW = 256 * 1024;
 const CHUNK = 64 * 1024;
 const RESP_TIMEOUT_MS = 30_000;
 
@@ -36,7 +35,7 @@ export class BotDO {
     // In-memory, per-activation. HTTP streams live only during an active fetch (never span
     // hibernation — that needs 10s idle). WS-stream identity survives hibernation via the
     // browser socket's serializeAttachment, so it is NOT kept here.
-    this.http = new Map();       // sid -> { respResolve, respReject, bodyController, agentWindow, sendWaiter, ended }
+    this.http = new Map();       // sid -> { respResolve, respReject, bodyController, pending, endReceived }
     this.pubKeyPromise = null;
   }
 
@@ -143,23 +142,19 @@ export class BotDO {
     const url = new URL(request.url);
     const headers = headersToObject(request.headers);
     const remoteIp = request.headers.get('cf-connecting-ip') || '';
-    const cls = this.classForRequest(request, headers);
-    const dataCarrier = cls === CLASS.BULK ? (this.carrier('bulk') || control) : control;
 
     let respResolve, respReject;
     const respP = new Promise((res, rej) => { respResolve = res; respReject = rej; });
     // pending/endReceived buffer response DATA that arrives before the ReadableStream's controller
-    // exists — which happens routinely: the controller is only created after `await respP`
-    // resolves (a microtask hop), and body DATA (esp. on the bulk carrier, racing RESP on control)
-    // can land in that gap. Without buffering those frames were dropped → truncated bodies under
-    // concurrency; an END landing there deleted the stream → RESP timed out → 503.
-    const st = { respResolve, respReject, bodyController: null, pending: [], endReceived: false, agentWindow: DEFAULT_WINDOW, sendWaiter: null };
+    // exists — the controller is only created after `await respP` resolves (a microtask hop), and
+    // body DATA can land in that gap. Without buffering those frames were dropped → truncation.
+    const st = { respResolve, respReject, bodyController: null, pending: [], endReceived: false };
     this.http.set(sid, st);
 
     send(control, encodeJson(T.OPEN, sid, {
-      kind: 'http', method: request.method, url: url.pathname + url.search, headers, remoteIp, class: cls,
+      kind: 'http', method: request.method, url: url.pathname + url.search, headers, remoteIp,
     }));
-    this.pumpRequestBody(request, sid, dataCarrier).catch(() => this.resetStream(sid, 1));
+    this.pumpRequestBody(request, sid).catch(() => this.resetStream(sid, 1));
 
     const timer = setTimeout(() => respReject(new Error('resp timeout')), RESP_TIMEOUT_MS);
     let head;
@@ -170,44 +165,32 @@ export class BotDO {
     if (noBody) { this.http.delete(sid); return new Response(null, { status: head.status, statusText: head.statusText || '', headers: respHeaders(head.headers) }); }
 
     const self = this;
+    // No credit windows — the agent streams the whole body (paced by its own socket bufferedAmount)
+    // and we enqueue everything. Simple and correct; a stream's body is bounded by the response size.
     const body = new ReadableStream({
       start(c) {
-        // Runs synchronously at construction — no frame can interleave the flush below.
         st.bodyController = c;
         for (const chunk of st.pending) { try { c.enqueue(chunk); } catch {} }
         st.pending = [];
         if (st.endReceived) { try { c.close(); } catch {} self.http.delete(sid); }
-        else send(control, encodeFrame(T.WINDOW_UPDATE, 0, sid, u32(DEFAULT_WINDOW)));
       },
-      pull() { send(control, encodeFrame(T.WINDOW_UPDATE, 0, sid, u32(CHUNK))); },
       cancel() { self.resetStream(sid, 2); },
     });
     return new Response(body, { status: head.status, statusText: head.statusText || '', headers: respHeaders(head.headers) });
   }
 
-  async pumpRequestBody(request, sid, carrier) {
-    const st = this.http.get(sid);
-    if (!request.body || !st) { send(carrier, endFrame(sid)); return; }
+  async pumpRequestBody(request, sid) {
+    const control = this.carrier('control');
+    if (!request.body || !control) { if (control) send(control, endFrame(sid)); return; }
     const reader = request.body.getReader();
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) { send(carrier, endFrame(sid)); break; }
-      let off = 0;
-      while (off < value.length) {
-        await this.awaitSendWindow(sid);
-        const cur = this.http.get(sid); if (!cur) return; // reset/gone
-        const n = Math.min(CHUNK, value.length - off, cur.agentWindow);
-        cur.agentWindow -= n;
-        send(carrier, encodeFrame(T.DATA, 0, sid, value.subarray(off, off + n)));
-        off += n;
+      const c = this.carrier('control'); if (!c) return; // carrier gone mid-body
+      if (done) { send(c, endFrame(sid)); break; }
+      for (let off = 0; off < value.length; off += CHUNK) {
+        send(c, encodeFrame(T.DATA, 0, sid, value.subarray(off, Math.min(off + CHUNK, value.length))));
       }
     }
-  }
-
-  awaitSendWindow(sid) {
-    const st = this.http.get(sid);
-    if (!st || st.agentWindow > 0) return Promise.resolve();
-    return new Promise((resolve) => { st.sendWaiter = resolve; });
   }
 
   // ───────────────────────── browser WS over carrier ─────────────────────────
@@ -226,7 +209,7 @@ export class BotDO {
     server.serializeAttachment({ sid, proto });
 
     send(control, encodeJson(T.OPEN, sid, {
-      kind: 'ws', method: 'GET', url: url.pathname + url.search, headers, remoteIp, class: CLASS.INTERACTIVE, proto,
+      kind: 'ws', method: 'GET', url: url.pathname + url.search, headers, remoteIp, proto,
     }));
 
     const h = {};
@@ -286,11 +269,6 @@ export class BotDO {
     if (type === T.RESP) {
       const st = this.http.get(sid);
       if (st) st.respResolve(payloadJson(payload));
-      return;
-    }
-    if (type === T.WINDOW_UPDATE) {
-      const st = this.http.get(sid);
-      if (st) { st.agentWindow += readU32(payload); const w = st.sendWaiter; st.sendWaiter = null; if (w) w(); }
       return;
     }
     if (type === T.DATA) {
@@ -358,11 +336,6 @@ export class BotDO {
     if (st) { try { st.respReject(new Error('reset')); } catch {} try { st.bodyController && st.bodyController.error(new Error('reset')); } catch {} this.http.delete(sid); }
     const c = this.carrier('control');
     if (c) send(c, encodeFrame(T.RESET, 0, sid, new Uint8Array([code & 0xff])));
-  }
-  classForRequest(request, headers) {
-    const len = parseInt(headers['content-length'] || '0', 10);
-    if ((request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') && len > CHUNK) return CLASS.BULK;
-    return CLASS.INTERACTIVE;
   }
   carrierDownResponse(request) {
     // The route said carrier, but no carrier is attached right now. 503 so the worker
