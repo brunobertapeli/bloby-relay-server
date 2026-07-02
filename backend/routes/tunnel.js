@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { tunnelLimiter, heartbeatLimiter } from '../middleware/rateLimiter.js';
 import { invalidateUserCache } from './resolve.js';
 import { edgeSyncTunnel, edgeTouch, edgeClear } from '../lib/edge.js';
+import { mintTicket, ticketConfigured } from '../lib/ticket.js';
 
 const router = Router();
 
@@ -76,6 +77,33 @@ router.put('/tunnel', authenticate, tunnelLimiter, async (req, res) => {
   } catch (error) {
     console.error('[tunnel]', error.message);
     res.status(500).json({ error: 'Failed to update tunnel URL' });
+  }
+});
+
+/**
+ * POST /api/edge/ticket
+ *
+ * Mint a short-lived Ed25519-signed carrier ticket for the authenticated bot.
+ * The agent presents this when dialing its Durable Object carrier (tunnel.mode:'relay').
+ * username/tier are taken from the verified relay user — never from the request body —
+ * so a ticket can only ever address the caller's own bot.
+ *
+ * Headers:  Authorization: Bearer <relay token>
+ * Returns:  { ticket, expiresIn }
+ */
+router.post('/edge/ticket', authenticate, tunnelLimiter, async (req, res) => {
+  try {
+    if (!ticketConfigured()) {
+      return res.status(503).json({ error: 'Edge carrier not enabled' });
+    }
+    const { ticket, expiresIn } = mintTicket({
+      username: req.user.username,
+      tier: req.user.tier,
+    });
+    res.json({ ticket, expiresIn });
+  } catch (error) {
+    console.error('[edge/ticket]', error.message);
+    res.status(500).json({ error: 'Failed to mint ticket' });
   }
 });
 

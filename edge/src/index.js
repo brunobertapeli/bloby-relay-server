@@ -29,6 +29,10 @@ import { NO_CACHE, restartingPage, offlinePage, brandedJson } from './pages.js';
 
 export { BotDO };
 
+// After the agent's last carrier drops, show the "reconnecting" page this long before
+// falling through to "offline" (mirrors the DO's own CARRIER_GRACE_MS).
+const CARRIER_GRACE_MS = 10_000;
+
 // ─── Host parsing (mirror of lib/validate.js parseTierFromSubdomain) ─────────
 const FREE_PREFIXES = new Set(['open']);
 // Relay-owned hosts that are never bots (subset of RESERVED that appears as a bare
@@ -65,11 +69,18 @@ async function getRoute(env, key) {
   const hit = routeCache.get(key);
   if (hit && Date.now() - hit.at < ROUTE_CACHE_MS) return hit.data;
   const stub = env.BOT_DO.get(env.BOT_DO.idFromName(key));
-  const resp = await stub.fetch('https://do/route');
+  const resp = await stub.fetch('https://do/route', { headers: { 'x-morphy-internal': '1' } });
   const data = await resp.json();
   if (routeCache.size > 5000) routeCache.clear(); // bound memory under a scan
   routeCache.set(key, { data, at: Date.now() });
   return data;
+}
+
+// carrierUp changes are NOT cached (a carrier can drop between reads) — always re-read
+// the route when the cached entry says carrier so a dropped carrier is seen promptly.
+async function getRouteFresh(env, key) {
+  routeCache.delete(key);
+  return getRoute(env, key);
 }
 
 function doStub(env, key) {
@@ -349,23 +360,25 @@ async function handleAdmin(request, env) {
   const stub = doStub(env, key);
   routeCache.delete(key); // this isolate sees the change immediately
 
+  const INT = { 'x-morphy-internal': '1' };
   if (url.pathname === '/__edge/route' && request.method === 'PUT') {
     if (!/^https:\/\//.test(String(body.tunnelUrl || ''))) {
       return new Response(JSON.stringify({ error: 'tunnelUrl must be https' }), { status: 400 });
     }
     return stub.fetch('https://do/route', {
       method: 'PUT',
+      headers: { ...INT, 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, tier, tunnelUrl: body.tunnelUrl }),
     });
   }
   if (url.pathname === '/__edge/touch' && request.method === 'POST') {
-    return stub.fetch('https://do/touch', { method: 'POST' });
+    return stub.fetch('https://do/touch', { method: 'POST', headers: INT });
   }
   if (url.pathname === '/__edge/route' && request.method === 'DELETE') {
-    return stub.fetch('https://do/route', { method: 'DELETE' });
+    return stub.fetch('https://do/route', { method: 'DELETE', headers: INT });
   }
   if (url.pathname === '/__edge/route' && request.method === 'GET') {
-    return stub.fetch('https://do/route'); // debug: inspect a bot's route state
+    return stub.fetch('https://do/route', { headers: INT }); // debug: inspect a bot's route state
   }
   return new Response(JSON.stringify({ error: 'not found' }), { status: 404 });
 }
@@ -389,6 +402,24 @@ export default {
     if (!parsed) return fetch(request); // relay-owned / unparseable host → origin untouched
 
     const key = `${parsed.tier}:${parsed.username}`;
+    const isUpgrade = (request.headers.get('upgrade') || '').toLowerCase() === 'websocket';
+
+    // The agent's carrier dial — a WS upgrade to /__morphy/carrier. Route it INTO the DO
+    // (which verifies the Ed25519 ticket and holds the hibernatable carrier socket). We
+    // strip any inbound x-morphy-internal and stamp the trusted handle so a ticket can only
+    // ever bind to the bot named by this hostname.
+    if (isUpgrade && url.pathname === '/__morphy/carrier') {
+      const stub = doStub(env, key);
+      const h = new Headers(request.headers);
+      h.delete('x-morphy-internal');
+      h.set('x-morphy-internal', '1');
+      h.set('x-morphy-user', parsed.username);
+      h.set('x-morphy-tier', parsed.tier);
+      const doUrl = new URL(request.url);
+      doUrl.pathname = '/carrier';
+      return stub.fetch(new Request(doUrl, new Request(request, { headers: h })));
+    }
+
     let data;
     try {
       data = await getRoute(env, key);
@@ -396,12 +427,31 @@ export default {
       return fetch(request); // DO hiccup → behave exactly like today (Railway path)
     }
 
-    const { route, stale, cfErrorSince } = data || {};
-    const isUpgrade = (request.headers.get('upgrade') || '').toLowerCase() === 'websocket';
+    const { route, stale, carrierUp, cfErrorSince } = data || {};
 
-    // No fresh route → pass through to origin (Railway serves its offline/404/proxy
-    // exactly as today; managed bots resolve via their own A records).
-    // WS parity with lookupBotForWs: upgrades stay optimistic on a stale route.
+    // ── Carrier route (Step 2): forward browser traffic INTO the DO, which muxes it down
+    //    the agent's persistent carrier. Strip any client-supplied internal marker first.
+    if (route && route.kind === 'carrier') {
+      if (carrierUp) {
+        const stub = doStub(env, key);
+        const clean = stripInternal(request);
+        // A dropped carrier surfaces as the DO's 503 (x-morphy-carrier:down) → branded page.
+        const resp = await stub.fetch(clean);
+        if (resp.status === 503 && resp.headers.get('x-morphy-carrier') === 'down') {
+          if (isUpgrade) return resp;
+          return brandedResponse(request, env.RELAY_DOMAIN, parsed.username, 'restarting', 503);
+        }
+        return resp;
+      }
+      // Carrier down: brief reconnect grace → branded reconnecting page, else offline.
+      const within = route.lastCarrierAt && Date.now() - route.lastCarrierAt < CARRIER_GRACE_MS;
+      if (isUpgrade) return new Response('carrier offline', { status: 503 });
+      return brandedResponse(request, env.RELAY_DOMAIN, parsed.username, within ? 'restarting' : 'offline', 503);
+    }
+
+    // ── Quick route (Step 1): proxy to the trycloudflare tunnel.
+    // No fresh route → pass through to origin (Railway serves offline/404; managed bots
+    // resolve via their own A records). WS upgrades stay optimistic on a stale route.
     if (!route || route.kind !== 'quick' || !route.tunnelUrl || (stale && !isUpgrade)) {
       return fetch(request);
     }
@@ -411,3 +461,12 @@ export default {
     return proxyHttp(request, route, meta, ctx, env);
   },
 };
+
+// Forward a browser request to the DO with any client-supplied internal marker removed,
+// so a browser can never impersonate a trusted worker→DO call.
+function stripInternal(request) {
+  if (!request.headers.has('x-morphy-internal')) return request;
+  const h = new Headers(request.headers);
+  h.delete('x-morphy-internal');
+  return new Request(request, { headers: h });
+}
