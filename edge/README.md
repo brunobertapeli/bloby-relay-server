@@ -8,6 +8,35 @@ origin for every host and handle this worker doesn't actively route.
 Full architecture + rationale: `Bloby/SELFHOSTED-DIRECT-2026-07-01.md` (the DO-carrier
 variant decided 2026-07-01).
 
+## Status (2026-07-02) — carrier live on the dogfood bot, soaking before cloudflared removal
+
+- **Step 1 (quick routes): DONE.** All self-hosted bots (`*.open.morphyagent.com`, orange-cloud
+  wildcard) go browser → CF Worker → quick tunnel; the Railway data-plane hop is gone. Managed
+  first-level bots untouched (direct EC2).
+- **Step 2 (persistent carrier): BUILT + DEPLOYED, in soak.** The DO terminates the agent's two
+  hibernatable WSS carriers (control + bulk), verifies an Ed25519 ticket (public key only), and
+  muxes browser HTTP + WebSockets down them. Verified end-to-end on the `bloby` bot: page load,
+  chat WS, **Vite HMR live-reload**, uploads, mid-session restart, Mac native app — all working,
+  and noticeably faster. Agent ships in `morphyagent` **v0.3.2** (`tunnel.mode:'relay'`, opt-in;
+  default stays `quick`).
+  - Ed25519 keys: `EDGE_TICKET_SK` (base64 PKCS8) on Railway; `EDGE_TICKET_PK` worker secret.
+    Regenerate with `scripts/gen-edge-keys.mjs` (must re-set BOTH sides).
+  - **Auto-fallback:** if the carrier can't connect within 15s the agent falls back to a quick
+    tunnel, so a bot is never left dark. Next restart retries the carrier.
+  - **Presence:** the DO POSTs `/api/edge/presence` (EDGE_ADMIN_SECRET) on connect/drop → keeps
+    `users.isOnline` accurate (relay mode has no heartbeat).
+  - **Alexa** relay→bot forwarding now uses the bot's public origin (works on any transport).
+- **REMAINING before "drop cloudflared fully":**
+  1. Soak `relay` on the dogfood bot + a few beta testers for several days (incl. sleep/wake,
+     network changes, corporate/captive-portal networks).
+  2. Add a **runtime** fallback (carrier connected then drops permanently > ~60s → start quick).
+     Today fallback is boot-time only; transient drops self-heal via reconnect.
+  3. **Flip onboarding default** quick→relay for new installs (Bloby `OnboardWizard` + config
+     default), migrate existing users' `tunnel.mode`.
+  4. **Delete cloudflared** (Bloby `supervisor/tunnel.ts` downloader/spawn, trycloudflare regex,
+     quick-rotation watchdog branch — KEEP the wake hook) + retire `PUT /api/tunnel` + heartbeat
+     for relay bots. Only after 2–3 prove out in the field.
+
 ## The two steps
 
 **Step 1 — "quick routes" (this code, shippable now).** Agents keep running cloudflared
