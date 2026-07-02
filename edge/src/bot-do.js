@@ -143,7 +143,12 @@ export class BotDO {
 
     let respResolve, respReject;
     const respP = new Promise((res, rej) => { respResolve = res; respReject = rej; });
-    const st = { respResolve, respReject, bodyController: null, agentWindow: DEFAULT_WINDOW, sendWaiter: null, ended: false };
+    // pending/endReceived buffer response DATA that arrives before the ReadableStream's controller
+    // exists — which happens routinely: the controller is only created after `await respP`
+    // resolves (a microtask hop), and body DATA (esp. on the bulk carrier, racing RESP on control)
+    // can land in that gap. Without buffering those frames were dropped → truncated bodies under
+    // concurrency; an END landing there deleted the stream → RESP timed out → 503.
+    const st = { respResolve, respReject, bodyController: null, pending: [], endReceived: false, agentWindow: DEFAULT_WINDOW, sendWaiter: null };
     this.http.set(sid, st);
 
     send(control, encodeJson(T.OPEN, sid, {
@@ -161,7 +166,14 @@ export class BotDO {
 
     const self = this;
     const body = new ReadableStream({
-      start(c) { st.bodyController = c; send(control, encodeFrame(T.WINDOW_UPDATE, 0, sid, u32(DEFAULT_WINDOW))); },
+      start(c) {
+        // Runs synchronously at construction — no frame can interleave the flush below.
+        st.bodyController = c;
+        for (const chunk of st.pending) { try { c.enqueue(chunk); } catch {} }
+        st.pending = [];
+        if (st.endReceived) { try { c.close(); } catch {} self.http.delete(sid); }
+        else send(control, encodeFrame(T.WINDOW_UPDATE, 0, sid, u32(DEFAULT_WINDOW)));
+      },
       pull() { send(control, encodeFrame(T.WINDOW_UPDATE, 0, sid, u32(CHUNK))); },
       cancel() { self.resetStream(sid, 2); },
     });
@@ -276,8 +288,14 @@ export class BotDO {
     if (type === T.DATA) {
       const st = this.http.get(sid);
       if (st) { // HTTP response body
-        if (payload.length && st.bodyController) { try { st.bodyController.enqueue(payload.slice()); } catch {} }
-        if (flags & F.END) { try { st.bodyController && st.bodyController.close(); } catch {} this.http.delete(sid); }
+        if (st.bodyController) {
+          if (payload.length) { try { st.bodyController.enqueue(payload.slice()); } catch {} }
+          if (flags & F.END) { try { st.bodyController.close(); } catch {} this.http.delete(sid); }
+        } else {
+          // Controller not ready yet — buffer in arrival order; start() flushes + closes.
+          if (payload.length) st.pending.push(payload.slice());
+          if (flags & F.END) st.endReceived = true;
+        }
         return;
       }
       // WS message → browser
@@ -287,7 +305,12 @@ export class BotDO {
     }
     if (type === T.CLOSE || type === T.RESET) {
       const st = this.http.get(sid);
-      if (st) { try { st.bodyController && st.bodyController.close(); } catch {} try { st.respReject(new Error('closed')); } catch {} this.http.delete(sid); return; }
+      if (st) {
+        try { st.respReject(new Error('closed')); } catch {} // no-op if RESP already resolved
+        if (st.bodyController) { try { st.bodyController.close(); } catch {} this.http.delete(sid); }
+        else st.endReceived = true; // controller pending → start() closes after flushing pending
+        return;
+      }
       const bws = this.browserWs(sid);
       if (bws) { try { bws.close(1011, 'agent closed'); } catch {} }
       return;
