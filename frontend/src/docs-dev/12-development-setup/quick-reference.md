@@ -5,8 +5,7 @@ title: "Quick Reference"
 ## Quick Reference
 
 ```bash
-# Clone and install
-cd <your-local-copy-of-the-codebase>
+# Install dependencies (from the project root)
 npm install
 
 # Create config (if it does not exist)
@@ -17,8 +16,8 @@ mkdir -p ~/.morphy
 npm run dev
 
 # Open in browser
-# Dashboard:  http://localhost:3000
-# Chat UI:    http://localhost:3000/bloby
+# Dashboard:  http://localhost:7400
+# Chat UI:    http://localhost:7400/bloby
 
 # Build all
 npm run build

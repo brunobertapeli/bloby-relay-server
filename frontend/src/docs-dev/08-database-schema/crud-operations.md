@@ -2,9 +2,11 @@
 title: "CRUD Operations"
 ---
 
-Every database function is exported from `worker/db.ts` and imported by
-`worker/index.ts` for use in Express route handlers. The module uses a
-singleton `db` connection (module-level variable).
+Every database function is exported from `worker/db.ts`. Most are imported by
+`worker/index.ts` for use in Express route handlers; the supervisor
+(`supervisor/index.ts`) also imports a few directly (`closeDb`, `getSession`,
+`getSetting`). The module uses a singleton `db` connection (module-level
+variable).
 
 ### 4.1 Connection Lifecycle
 
@@ -15,7 +17,8 @@ migrations.
 
 - **Parameters:** None
 - **Return type:** `void`
-- **Called by:** `worker/index.ts` at startup (line 74)
+- **Called by:** `createWorkerApp()` in `worker/index.ts` (first statement),
+  which runs when the supervisor mounts the worker app in-process
 - **SQL executed:**
   1. `PRAGMA journal_mode = WAL`
   2. `PRAGMA foreign_keys = ON`
@@ -24,11 +27,12 @@ migrations.
 
 #### `closeDb(): void`
 
-Closes the database connection. Called on `SIGTERM`.
+Closes the database connection during process shutdown.
 
 - **Parameters:** None
 - **Return type:** `void`
-- **Called by:** `SIGTERM` handler in `worker/index.ts` (line 810)
+- **Called by:** The supervisor's `shutdown()` handler in
+  `supervisor/index.ts`, which runs on both `SIGINT` and `SIGTERM`
 
 ---
 
@@ -71,7 +75,7 @@ Deletes a conversation and all its messages (via CASCADE).
 
 - **Parameters:**
   - `id` -- Conversation ID
-- **Return type:** `void` (result of `.run()`)
+- **Return type:** `void`
 - **SQL:**
 
   ```sql
@@ -88,7 +92,8 @@ Deletes a conversation and all its messages (via CASCADE).
 
 #### `addMessage(convId, role, content, meta?): any`
 
-Inserts a message and updates the parent conversation's `updated_at` timestamp.
+Inserts a message, self-healing a missing parent conversation row, and updates
+the parent conversation's `updated_at` timestamp.
 
 - **Parameters:**
   - `convId: string` -- Parent conversation ID
@@ -101,7 +106,11 @@ Inserts a message and updates the parent conversation's `updated_at` timestamp.
     - `audio_data?: string`
     - `attachments?: string`
 - **Return type:** The inserted row via `RETURNING *`
-- **SQL (two statements, executed sequentially):**
+- **SQL (three statements, one explicit transaction):**
+
+  ```sql
+  INSERT OR IGNORE INTO conversations (id, title, model) VALUES (?, ?, ?)
+  ```
 
   ```sql
   INSERT INTO messages (conversation_id, role, content, tokens_in,
@@ -114,8 +123,12 @@ Inserts a message and updates the parent conversation's `updated_at` timestamp.
   ```
 
 - **Called by:** `POST /api/conversations/:id/messages`
-- **Note:** These two statements are not wrapped in an explicit transaction.
-  Each runs as an implicit auto-commit transaction.
+- **Note:** All three statements run inside a single explicit transaction
+  (`db.transaction()`), so they commit or roll back together. The leading
+  `INSERT OR IGNORE` self-heals an orphan `convId` (deleted parent, harness
+  session drift): if the conversation row is missing, it is recreated using
+  the first user message as the title, so the foreign-key constraint on
+  `messages.conversation_id` never fires.
 
 #### `getMessages(convId: string): any[]`
 
@@ -134,9 +147,12 @@ Returns all messages for a conversation in chronological order.
 
 #### `getRecentMessages(convId: string, limit = 20): any[]`
 
-Returns the N most recent messages for a conversation, ordered chronologically.
-Uses a subquery pattern to select the last N rows by descending order, then
-re-sorts ascending.
+Returns the N most recent messages for a conversation, in insertion order.
+Uses a subquery to select the last N rows by descending `rowid`, then re-sorts
+ascending. Ordering uses `rowid` (monotonic insertion order) rather than
+`created_at`, whose 1-second resolution lets rapid-fire messages collide. The
+hidden `rowid` column is aliased as `_rid` inside the subquery because
+`SELECT *` omits it and the outer `ORDER BY` needs it.
 
 - **Parameters:**
   - `convId` -- Conversation ID
@@ -146,10 +162,9 @@ re-sorts ascending.
 
   ```sql
   SELECT * FROM (
-    SELECT * FROM messages
-    WHERE conversation_id = ?
-    ORDER BY created_at DESC LIMIT ?
-  ) sub ORDER BY created_at ASC
+    SELECT messages.*, messages.rowid AS _rid FROM messages
+    WHERE conversation_id = ? ORDER BY messages.rowid DESC LIMIT ?
+  ) sub ORDER BY _rid ASC
   ```
 
 - **Called by:** `GET /api/conversations/:id/messages/recent`,
@@ -157,8 +172,8 @@ re-sorts ascending.
 
 #### `getMessagesBefore(convId: string, beforeId: string, limit = 20): any[]`
 
-Cursor-based backward pagination. Returns messages with `id < beforeId`,
-ordered ascending.
+Cursor-based backward pagination. Returns the page of messages inserted before
+the cursor message, ordered ascending.
 
 - **Parameters:**
   - `convId` -- Conversation ID
@@ -169,17 +184,18 @@ ordered ascending.
 
   ```sql
   SELECT * FROM (
-    SELECT * FROM messages
-    WHERE conversation_id = ? AND id < ?
-    ORDER BY id DESC LIMIT ?
-  ) sub ORDER BY id ASC
+    SELECT messages.*, messages.rowid AS _rid FROM messages
+    WHERE conversation_id = ?
+      AND messages.rowid < (SELECT rowid FROM messages WHERE id = ?)
+    ORDER BY messages.rowid DESC LIMIT ?
+  ) sub ORDER BY _rid ASC
   ```
 
 - **Called by:** `GET /api/conversations/:id/messages` (when `before` query
   param is present)
-- **Note:** This uses `id`-based ordering rather than `created_at`-based
-  ordering, which means pagination is based on the lexicographic order of the
-  hex IDs, not timestamps.
+- **Note:** The cursor comparison uses `rowid` (insertion order), resolved
+  from the cursor message's `id` by a subquery. Message `id` values are
+  random hex, so a direct `id < ?` comparison would be meaningless.
 
 ---
 
@@ -272,7 +288,9 @@ Validates a session token. Returns the session only if it has not expired.
   ```
 
 - **Called by:** `POST /api/portal/validate-token`,
-  `GET /api/portal/validate-token`, TOTP setup authorization checks.
+  `GET /api/portal/validate-token`, TOTP setup authorization checks, and the
+  supervisor's API auth middleware (`validateToken()` in
+  `supervisor/index.ts`).
 
 #### `deleteSession(token: string): void`
 
@@ -320,7 +338,8 @@ Retrieves the Agent SDK session ID for a conversation.
   SELECT session_id FROM conversations WHERE id = ?
   ```
 
-- **Called by:** Agent/chat logic when resuming a stateful conversation.
+- **Called by:** No current callers. Exported for conversation-to-session
+  mapping; the harness layer currently passes resume ids per request instead.
 
 #### `saveSessionId(convId: string, sessionId: string): void`
 
@@ -336,7 +355,7 @@ Stores the Agent SDK session ID on a conversation.
   UPDATE conversations SET session_id = ? WHERE id = ?
   ```
 
-- **Called by:** Agent/chat logic after starting or resuming a session.
+- **Called by:** No current callers (see `getSessionId`).
 
 ---
 

@@ -4,8 +4,10 @@ title: "Connection Management"
 
 ### 2.1 Primary Database (memory.db)
 
-Connection is established by `initDb()`, called once at worker startup
-(`worker/index.ts`, line 74):
+Connection is established by `initDb()`, called once at the top of
+`createWorkerApp()` in `worker/index.ts`. The worker runs in-process: the
+supervisor mounts the returned Express app, so the connection opens during
+supervisor startup:
 
 ```typescript
 export function initDb(): void {
@@ -31,17 +33,16 @@ The `DATA_DIR` (`~/.morphy/`) is created recursively if it does not exist before
 opening the database. The `better-sqlite3` driver creates the database file
 automatically on first open.
 
-Connection teardown is handled by `closeDb()`, called on `SIGTERM`:
+Connection teardown is handled by `closeDb()`:
 
 ```typescript
 export function closeDb(): void { db?.close(); }
 ```
 
-From `worker/index.ts`:
-
-```typescript
-process.on('SIGTERM', () => { closeDb(); server.close(); process.exit(0); });
-```
+The supervisor owns process shutdown. It imports `closeDb` from `worker/db.js`
+and calls it from its `shutdown()` handler in `supervisor/index.ts`, which runs
+on both `SIGINT` and `SIGTERM` alongside the rest of the teardown (stopping the
+user backend, closing the carrier socket, closing the HTTP server).
 
 ### 2.2 Workspace Database (app.db)
 

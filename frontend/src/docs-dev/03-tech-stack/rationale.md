@@ -25,10 +25,10 @@ For a single-user agent with a few thousand conversations, SQLite is faster, sim
 
 ### Why Vite over webpack
 
-- **Speed**: Vite's native ESM dev server serves modules on-demand. No bundling during development. Cold start is sub-second even with heavy dependencies (Three.js, Recharts).
+- **Speed**: Vite's native ESM dev server serves modules on-demand. No bundling during development. Cold start is sub-second even with heavy dependencies (Recharts, Framer Motion).
 - **Dual config**: Vite's config format makes it trivial to build two independent apps (dashboard + chat) from the same project with clean separation.
 - **Tailwind v4**: The `@tailwindcss/vite` plugin integrates natively, bypassing PostCSS entirely.
-- **HMR**: Vite's HMR is attached directly to the supervisor's HTTP server (`hmr: { server: hmrServer }`), allowing hot reload through Cloudflare tunnels without extra WebSocket ports.
+- **HMR**: Vite's HMR is attached directly to the supervisor's HTTP server (`hmr: { server: hmrServer }`), so hot reload rides the same connection as everything else -- including the Morphy relay -- without extra WebSocket ports.
 
 ### Why Zustand over Redux
 
@@ -52,7 +52,7 @@ React 19 ships the new `use()` hook, improved server-client serialization primit
 The supervisor does not serve typical HTTP routes -- it is a **reverse proxy** and **WebSocket gateway**. Express adds overhead that provides no value here:
 
 - Routing is simple prefix-matching (`/api/*`, `/bloby/*`, everything else).
-- Request bodies are not parsed -- they are piped directly to upstream services.
+- The supervisor never parses request bodies itself: `/api/*` requests are handed to the in-process worker Express app (`createWorkerApp()` in `worker/index.ts`) with no proxy hop, and everything else is piped untouched to the dashboard Vite dev server or the user's backend.
 - WebSocket upgrade handling requires raw access to the `http.Server` instance.
 - Vite's HMR WebSocket attaches directly to the server (requires `hmr: { server }`).
 
@@ -72,8 +72,8 @@ The raw Anthropic API (also in `shared/ai.ts`) supports streaming text, but not 
 - Session resumption via `session_id` for conversation continuity across process restarts.
 - Abort controller support for user-initiated stop.
 
-The raw API path remains available for OpenAI and Ollama providers, which do not need tool use in Morphy's current architecture.
+OpenAI gets the same treatment through its own harness (`supervisor/harnesses/codex.ts`), which drives a `codex app-server` subprocess with full tool use. The raw API path in `shared/ai.ts` remains for the Ollama provider, which stays chat-only in Morphy's current architecture.
 
-### Why Three.js / React Three Fiber
+### Why Framer Motion (and no 3D stack)
 
-Used for the 3D elements in the dashboard UI (e.g., animated backgrounds, data visualizations). R3F wraps Three.js in React's declarative model, and `@react-three/drei` provides pre-built abstractions (cameras, controls, geometries) that dramatically reduce boilerplate compared to raw Three.js imperative code.
+UI animation across the dashboard and chat (sidebar transitions, the chat input bar, the image lightbox, the login screen) runs on Framer Motion's declarative `motion` components. Earlier builds carried Three.js and React Three Fiber for 3D dashboard elements; those dependencies were removed. A WebGL renderer adds megabytes of JavaScript and real GPU/CPU load for what was decorative motion, which matters on the low-resource devices Morphy targets. Framer Motion springs and CSS transforms deliver the same polish at a fraction of the cost.

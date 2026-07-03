@@ -41,14 +41,15 @@ Key decisions:
 
 ### 3.2 Vite Configuration (Dashboard) -- `vite.config.ts`
 
-- **Root:** `workspace/client/`
+- **Root:** `workspace/client/` (overridable via the `MORPHY_WORKSPACE` env var)
 - **Build output:** `dist/` (relative to root, resolves to project root `dist/`)
 - **Dev server port:** 5173
-- **Proxy rules:** `/api` to `http://localhost:3000` (supervisor/worker), `/app/api` to `http://localhost:3004` (user backend, strips `/app/api` prefix)
+- **Proxy rules:** `/api` to `http://localhost:7400` (the supervisor, which serves the worker API in-process), `/app/api` to `http://localhost:7404` (user backend, strips the `/app` prefix)
 - **Alias:** `@` maps to `workspace/client/src/`
 - **Plugins:** React (via `@vitejs/plugin-react`), Tailwind CSS (via `@tailwindcss/vite`)
+- **Dep cache:** the prebundle cache dir is keyed by package version (`.vite-v<version>`), forcing exactly one clean re-optimize per release
 - **Watch ignores:** Database files (`*.db*`), log files, `files/` directory, `.env`, `backend/` directory
-- **Optimized deps:** React, React DOM, Lucide, Framer Motion, Recharts, Zustand, Sonner
+- **Optimized deps:** React, React DOM, React Router, Lucide, Framer Motion, Recharts, Zustand, Sonner, driver.js, Radix UI, and the Tailwind class utilities (clsx, tailwind-merge, CVA)
 
 ### 3.3 Vite Configuration (Chat SPA) -- `vite.chat.config.ts`
 
@@ -58,7 +59,7 @@ Key decisions:
 - **Multi-page:** Two entry points -- `chat.html` (chat) and `onboard.html` (wizard)
 - **Alias:** `@` maps to `supervisor/chat/src/`
 - **Plugins:** Same as dashboard (React + Tailwind)
-- **Optimized deps:** React, Lucide, Framer Motion, React Markdown, Remark GFM, React Syntax Highlighter
+- **Optimized deps:** React, Lucide, Framer Motion, Streamdown (`streamdown` + `@streamdown/code` for markdown and syntax highlighting)
 
 ### 3.4 PostCSS Configuration -- `postcss.config.js`
 

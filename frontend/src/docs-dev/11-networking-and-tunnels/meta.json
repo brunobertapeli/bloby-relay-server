@@ -1,10 +1,10 @@
 {
-    "title": "Networking & Tunnels",
+    "title": "Networking & Relay",
     "pages": [
         "index",
         "architecture",
         "port-allocation",
-        "cloudflare-tunnel",
+        "morphy-carrier",
         "morphy-relay",
         "reverse-proxy",
         "websocket",

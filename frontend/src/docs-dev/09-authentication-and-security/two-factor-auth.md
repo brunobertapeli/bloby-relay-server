@@ -8,12 +8,11 @@ title: "Two-Factor Authentication"
 
 TOTP is implemented using the `otpauth` library with the following parameters:
 
-**File:** `worker/index.ts`, lines 33--41
+**File:** `worker/index.ts`
 
 ```typescript
 function generateTOTPSecret(): string {
-  return crypto.randomBytes(20).toString('base64url')
-    .replace(/[^A-Z2-7]/gi, '').slice(0, 32).toUpperCase();
+  return crypto.randomBytes(20).toString('base64url').replace(/[^A-Z2-7]/gi, '').slice(0, 32).toUpperCase();
 }
 
 function verifyTOTPCode(code: string, secret: string): boolean {
@@ -35,31 +34,31 @@ TOTP configuration:
 
 ### 4.2 Setup Endpoint
 
-**File:** `worker/index.ts`, lines 425--454
+**File:** `worker/index.ts`
 
 `POST /api/portal/totp/setup` generates a new TOTP secret, creates a QR code, and returns both:
 
 1. Authorization is verified via Bearer token, password, or during initial onboard (when no password is set).
 2. A secret is generated and stored temporarily as `totp_pending_secret`.
-3. An `otpauth://` URI is built: `otpauth://totp/{botName}?issuer=Morphy&algorithm=SHA1&digits=6&period=30&secret={secret}`.
+3. An `otpauth://totp/...` URI is built via the `otpauth` library's `TOTP.toString()`, with issuer `Morphy`, the bot's name (the `agent_name` setting, default `Morphy`) as the label, and the SHA1/6-digit/30-second parameters above.
 4. A QR code data URI is generated via `QRCode.toDataURL()` at 256px width.
 5. The response includes `{ secret, qrDataUri, otpauthUri }`.
 
 ### 4.3 Setup Verification
 
-**File:** `worker/index.ts`, lines 456--495
+**File:** `worker/index.ts`
 
 `POST /api/portal/totp/verify-setup` completes the TOTP enrollment:
 
 1. Verifies the submitted code against the pending secret.
 2. On success, persists `totp_secret` and sets `totp_enabled` to `'true'`.
-3. Generates 8 recovery codes (4-byte random hex each, line 44--48).
+3. Generates 8 recovery codes (4-byte random hex each, `generateRecoveryCodes()`).
 4. Hashes each recovery code with SHA-256 and stores the hash array as JSON in `totp_recovery_codes`.
 5. Returns `{ success: true, recoveryCodes: [...] }` -- the only time plaintext codes are returned.
 
 ### 4.4 Recovery Codes
 
-**File:** `worker/index.ts`, lines 43--62
+**File:** `worker/index.ts`
 
 ```typescript
 function generateRecoveryCodes(): string[] {
@@ -87,13 +86,13 @@ function verifyRecoveryCode(code: string, hashes: string[]): { valid: boolean; r
 - 8 codes generated per TOTP setup.
 - Each code is 8 hex characters (e.g., `a3f1b2c0`).
 - Codes are stored as SHA-256 hashes.
-- Each recovery code is single-use: once validated, its hash is removed from the stored array and the reduced set is persisted (line 557).
+- Each recovery code is single-use: once validated, its hash is removed from the stored array and the reduced set is persisted back to `totp_recovery_codes`.
 
 ### 4.5 2FA Verification Flow
 
 When TOTP is enabled, login is a two-phase process:
 
-**Phase 1 -- Password** (`handleLogin`, `worker/index.ts`, lines 356--378):
+**Phase 1 -- Password** (`handleLogin`, `worker/index.ts`):
 
 After password verification, the server checks for a trusted device cookie. If no valid device is found, it creates a pending login token (32 random bytes, 5-minute expiry) stored in the `settings` table as `totp_pending_login:{pendingToken}`, and returns:
 
@@ -101,7 +100,7 @@ After password verification, the server checks for a trusted device cookie. If n
 { "requiresTOTP": true, "pendingToken": "..." }
 ```
 
-**Phase 2 -- TOTP code** (`GET /api/portal/login/totp`, `worker/index.ts`, lines 525--584):
+**Phase 2 -- TOTP code** (`GET /api/portal/login/totp`, `worker/index.ts`):
 
 The TOTP verification endpoint receives `pending`, `code`, and `trust` as query parameters. The flow:
 
@@ -113,9 +112,9 @@ The TOTP verification endpoint receives `pending`, `code`, and `trust` as query 
 
 ### 4.6 Trusted Devices
 
-When the user checks "Trust this device for 90 days" (see `LoginScreen.tsx`, line 244), the TOTP verification endpoint creates a trusted device record:
+When the user checks "Trust this device for 90 days" (see `LoginScreen.tsx`), the TOTP verification endpoint creates a trusted device record:
 
-**File:** `worker/index.ts`, lines 575--581
+**File:** `worker/index.ts`
 
 ```typescript
 if (trust === '1') {
@@ -138,7 +137,7 @@ The cookie attributes:
 | `Max-Age` | 7776000 (90 days) | Cookie lifetime |
 | `Path` | `/` | Available on all routes |
 
-**Trusted devices table** (`worker/db.ts`, lines 42--50):
+**Trusted devices table** (`worker/db.ts`):
 
 ```sql
 CREATE TABLE IF NOT EXISTS trusted_devices (
@@ -157,13 +156,13 @@ Device management endpoints:
 - `DELETE /api/portal/devices/:id` -- removes a specific device.
 - `POST /api/portal/devices/revoke` -- removes a device by ID (body param).
 
-When TOTP is disabled (`POST /api/portal/totp/disable`, lines 497--523), all trusted devices are wiped via `deleteAllTrustedDevices()`.
+When TOTP is disabled (`POST /api/portal/totp/disable`), all trusted devices are wiped via `deleteAllTrustedDevices()`.
 
 ### 4.7 TOTP Login Persistence Across App Suspension
 
 The `LoginScreen` component persists the TOTP pending state in `sessionStorage` to survive mobile app suspension (e.g., switching to an authenticator app):
 
-**File:** `supervisor/chat/src/components/LoginScreen.tsx`, lines 47--55
+**File:** `supervisor/chat/src/components/LoginScreen.tsx`, `saveLoginState()`
 
 ```typescript
 function saveLoginState(token: string) {
@@ -174,4 +173,4 @@ function saveLoginState(token: string) {
 }
 ```
 
-On mount, the component checks `sessionStorage` for a valid pending token and resumes the TOTP phase if one is found (lines 27--38).
+On mount, the component checks `sessionStorage` for a valid pending token and resumes the TOTP phase if one is found.

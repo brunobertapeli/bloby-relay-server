@@ -8,7 +8,7 @@ title: "Web Push Security"
 
 VAPID (Voluntary Application Server Identification) keys are generated on first use and persisted in the SQLite settings table.
 
-**File:** `worker/index.ts`, lines 81--99
+**File:** `worker/index.ts`, `getOrCreateVapidKeys()` and `initWebPush()`
 
 ```typescript
 function getOrCreateVapidKeys() {
@@ -36,7 +36,7 @@ The `mailto:` subject is set to `push@morphyagent.com`. VAPID keys use the `web-
 
 Push subscriptions are stored in the `push_subscriptions` table:
 
-**File:** `worker/db.ts`, lines 35--41
+**File:** `worker/db.ts`
 
 ```sql
 CREATE TABLE IF NOT EXISTS push_subscriptions (

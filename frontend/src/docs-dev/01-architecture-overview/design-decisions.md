@@ -2,28 +2,28 @@
 title: "Design Decisions"
 ---
 
-### Why supervisor + worker split (process isolation)?
+### Why the worker runs in-process (and the backend does not)?
 
-The supervisor and worker are separate OS processes. The worker owns SQLite and all API logic. The supervisor never touches the database directly -- everything goes through HTTP to `127.0.0.1:3001`.
+The worker owns SQLite and all `/api` logic, but it is not a separate OS process. `worker/index.ts` exports `createWorkerApp()`, which the supervisor mounts on its own HTTP server -- `workerApi()` calls in `supervisor/index.ts` are loopback requests to `127.0.0.1:<port>` (default `7400`) handled in-process. Earlier releases ran the worker as a child process on its own port with crash-restart machinery; that split was removed: one process, one port, no proxy hop for `/api/*`.
 
-**Rationale**: If the worker crashes (bad migration, OOM, unhandled exception), the supervisor keeps running. The tunnel stays up. The chat WebSocket stays connected. The user can still talk to Claude. The supervisor auto-restarts the worker up to 3 times.
-
-The same logic applies to the backend: if Claude writes buggy Express code, only the backend process dies. The supervisor, worker, and chat are unaffected.
+**Rationale**: Process isolation is reserved for the code that actually crashes in the field: the user's generated backend. Worker code ships with the package and is identical on every install, so a crash there is a bug to fix, not a fault to firewall -- the extra process bought only latency and lifecycle code. The backend is different: if the agent writes buggy Express code, only the backend child process dies. The supervisor (chat WebSocket, tunnel carrier, worker API) keeps running and restarts it.
 
 ```plain
                 Crash Isolation Boundaries
     +--------------------------------------------------+
-    |  SUPERVISOR (port 3000)                           |
+    |  SUPERVISOR (port 7400)                          |
     |  - Always alive                                  |
     |  - Chat WebSocket handler                        |
-    |  - Tunnel management                             |
-    |  - File serving (dist-chat/)                    |
-    |                                                   |
-    |    +----------------+  +---------------------+   |
-    |    | WORKER (:3001) |  | BACKEND (:3004)     |   |
-    |    | Can crash      |  | Can crash            |   |
-    |    | independently  |  | independently        |   |
-    |    +----------------+  +---------------------+   |
+    |  - Carrier tunnel (relay-tunnel.ts)              |
+    |  - Worker API + SQLite (in-process)              |
+    |  - File serving (dist-chat/)                     |
+    |                                                  |
+    |    +---------------------+                       |
+    |    | BACKEND (:7404)     |                       |
+    |    | Child process       |                       |
+    |    | Can crash           |                       |
+    |    | independently       |                       |
+    |    +---------------------+                       |
     +--------------------------------------------------+
 ```
 
@@ -39,28 +39,28 @@ The chat runs in an iframe injected by `supervisor/widget.js`. The iframe and th
 
 The original motivation was a relay bug: `express.json()` middleware consumed POST request bodies before `http-proxy` could forward them. Sending chat messages, settings, and whisper audio over WebSocket bypassed this entirely.
 
-The relay bug has since been fixed (body parser scoped to `/api` routes only), but WebSocket remains as the primary transport because it provides:
+That relay proxy no longer exists (self-hosted traffic now rides the Morphy carrier, which forwards opaque frames and never parses request bodies), but WebSocket remains the primary transport because it provides:
 
 1. **Bidirectional streaming** -- Token-by-token response streaming without SSE complexity
 2. **Multi-device sync** -- All connected clients receive every event via `broadcastBloby()`
 3. **Reconnection state** -- `chat:state` event catches up reconnecting clients with the current stream buffer
-4. **Heartbeat detection** -- 25-second ping interval with `pong` response
-5. **Defense-in-depth** -- WebSocket messages bypass the relay's HTTP pipeline entirely
+4. **Heartbeat detection** -- 30-second ping interval; clients that miss a pong are terminated so half-open sockets get cleaned up
+5. **Transport simplicity** -- One persistent socket per client instead of a request pipeline, so chat traffic is immune to any HTTP middleware between phone and supervisor
 
 ### Why bypassPermissions on the agent?
 
-The entire point of Morphy is that the user talks to Claude from their phone while the host machine runs unattended. There is no terminal session to confirm tool usage. Confirmation prompts would make the agent useless in this context.
+The entire point of Morphy is that the user talks to their agent from their phone while the host machine runs unattended. There is no terminal session to confirm tool usage. Confirmation prompts would make the agent useless in this context. (`bypassPermissions` is the Claude Agent SDK setting; the Codex and Pi harnesses run with their equivalent unattended configurations.)
 
 Safety is enforced by two boundaries:
 
 1. **Directory boundary**: The agent's `cwd` is set to `workspace/`. The system prompt explicitly forbids touching `supervisor/`, `worker/`, `shared/`, or `bin/`.
-2. **System prompt**: `worker/prompts/bloby-system-prompt.txt` constrains the agent's behavior.
+2. **System prompt**: The base prompts in `worker/prompts/` (`bloby-system-prompt.txt` and its `-codex` / `-pi` variants, assembled with dynamic fragments by `prompt-assembler.ts`) constrain the agent's behavior.
 
 ### Why file-based memory instead of a database?
 
 The Claude Agent SDK has built-in file tools (Read, Write, Edit, Bash, Grep, Glob). Files are the SDK's natural interface. By storing memory as markdown files in the workspace, the agent can manage its own memory using the exact same tools it uses to edit code.
 
-No custom tool was needed. No API integration. The agent reads `MYSELF.md` to know who it is, reads `MYHUMAN.md` to know its user, reads `MEMORY.md` for long-term knowledge, and writes to `memory/YYYY-MM-DD.md` for daily notes. All four files are injected into the system prompt at query time by `supervisor/bloby-agent.ts:readMemoryFiles()`.
+No custom tool was needed. No API integration. The agent reads `MYSELF.md` to know who it is, reads `MYHUMAN.md` to know its user, reads `MEMORY.md` for long-term knowledge, and writes to `memory/YYYY-MM-DD.md` for daily notes. `MYSELF.md`, `MYHUMAN.md`, and `MEMORY.md` (plus `PULSE.json` and `CRONS.json`) are injected into the system prompt at query time by each harness's `readMemoryFiles()` (`supervisor/harnesses/claude.ts`, `codex.ts`, `pi/`).
 
 ```plain
 Memory files read at query time:
@@ -76,10 +76,10 @@ Memory files read at query time:
 
 The project has two separate SPAs that must be built independently:
 
-| Config                 | Entry                         | Output                        | Serving                             |
-| ---------------------- | ----------------------------- | ----------------------------- | ----------------------------------- |
-| `vite.config.ts`       | `workspace/client/index.html` | (dev server, no build output) | Vite dev server on `:3002` with HMR |
-| `vite.chat.config.ts` | `supervisor/chat/chat.html`  | `dist-chat/`                 | Static files served by supervisor   |
+| Config                 | Entry                                        | Output                        | Serving                                            |
+| ---------------------- | -------------------------------------------- | ----------------------------- | -------------------------------------------------- |
+| `vite.config.ts`       | `workspace/client/index.html`                | (dev server, no build output) | Vite dev server on `:7402` (base port + 2) with HMR |
+| `vite.chat.config.ts` | `supervisor/chat/chat.html` (+ `onboard.html`) | `dist-chat/`                 | Static files served by supervisor                  |
 
 The dashboard (workspace/client) is served via Vite dev server with HMR so the agent's edits show up instantly. The chat SPA (supervisor/chat) is pre-built and served as static files so it survives crashes.
 

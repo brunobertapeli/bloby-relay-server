@@ -40,7 +40,9 @@ Configured in `workspace/CRONS.json`:
 
 The scheduler evaluates cron expressions using `cron-parser`. Each cron is checked against the current minute and only fires once per minute (tracked via `lastCronRuns` map).
 
-One-shot crons are automatically removed from `CRONS.json` after they fire. The removal is deferred until the agent query completes, so the agent can still read `CRONS.json` during its turn.
+One-shot crons are automatically removed from `CRONS.json` after they fire. The removal is deferred until the agent query completes, so the agent can still read `CRONS.json` during its turn. Expired one-shots (schedule entirely in the past) are cleaned up too.
+
+A cron can also carry `paused: true` (toggled via `/api/crons/pause`); paused crons neither fire nor advance state. If a task file exists at `workspace/tasks/<id>.md`, its content is injected into the cron prompt as `<CRON_TASK_DETAIL>`.
 
 ### Agent Trigger Flow
 
@@ -48,19 +50,21 @@ One-shot crons are automatically removed from `CRONS.json` after they fire. The 
 tick()
   |
   v
-triggerAgent(prompt, label)          scheduler.ts:120
+triggerAgent(prompt, label)          supervisor/scheduler.ts
   |
-  +-- Get or create conversation     (workerApi)
-  +-- Fetch bot name for push title  (workerApi)
+  +-- Build conversation id          (pulse-<ts> or cron-<id>-<ts>)
   +-- startBlobyAgentQuery(...)
   |
   v
 On bot:done:
-  +-- Extract <Message>...</Message> blocks from response
-  +-- Save each message to DB
-  +-- broadcastBloby('chat:sync', ...) to all connected clients
-  +-- POST /api/push/send for each message (push notification)
+  +-- Extract <mac_push> / <Message> blocks (extractOutboundTags, outbound.ts)
+  +-- deliverMac: send each <mac_push> to connected Mac-app sockets
+  +-- deliverChat: persist each <Message> to the chat timeline, sync
+  |   live clients, and fire a web push notification
   +-- If usedFileTools: restartBackend()
+  +-- onTurnComplete: flush any queued self-update
 ```
+
+Delivery goes through `outbound.ts`, the same parser and delivery path interactive turns use, so `<mac_push>` and `<Message>` behave identically on every kind of turn.
 
 ---

@@ -5,6 +5,16 @@ title: "API Endpoints"
 All endpoints are prefixed with `/api`. Responses are JSON unless stated
 otherwise.
 
+**Authentication model (secure by default)**: the supervisor's auth gate sits
+in front of every worker route. Once a portal password is set, EVERY `/api`
+route requires a valid portal session token
+(`Authorization: Bearer <token>`) except a small pre-login allowlist:
+health, onboard status, non-secret settings, the VAPID public key, the
+portal login/TOTP endpoints, provider OAuth setup under `/api/auth/*`, and
+handle availability under `GET /api/handle/*`. The per-endpoint
+"Authentication" lines below reflect this gate. Internal supervisor calls
+bypass the gate with a per-process secret header.
+
 ---
 
 ### 4.1 Health
@@ -13,7 +23,7 @@ otherwise.
 
 Returns the server health status.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Request body**: None
 - **Response**:
 
@@ -29,7 +39,7 @@ Returns the server health status.
 
 Lists all conversations, ordered by `updated_at` descending, limited to 50.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**: None
 - **Response**: Array of conversation objects.
 
@@ -38,10 +48,10 @@ Lists all conversations, ordered by `updated_at` descending, limited to 50.
     {
       "id": "a1b2c3d4e5f67890",
       "title": "My Chat",
-      "model": "claude-sonnet-4-20250514",
+      "model": "claude-sonnet-5",
       "session_id": null,
-      "created_at": "2025-01-15 10:30:00",
-      "updated_at": "2025-01-15 12:00:00"
+      "created_at": "2026-01-15 10:30:00",
+      "updated_at": "2026-01-15 12:00:00"
     }
   ]
   ```
@@ -50,7 +60,7 @@ Lists all conversations, ordered by `updated_at` descending, limited to 50.
 
 Returns a single conversation with all its messages.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- conversation ID
 - **Response**:
 
@@ -68,7 +78,7 @@ Returns a single conversation with all its messages.
         "model": null,
         "audio_data": null,
         "attachments": null,
-        "created_at": "2025-01-15 10:30:00"
+        "created_at": "2026-01-15 10:30:00"
       }
     ]
   }
@@ -81,7 +91,7 @@ Returns a single conversation with all its messages.
 
 Creates a new conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -100,7 +110,7 @@ Creates a new conversation.
 
 Deletes a conversation and all its messages (cascading delete via FK).
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- conversation ID
 - **Response**:
 
@@ -116,7 +126,7 @@ Deletes a conversation and all its messages (cascading delete via FK).
 
 Adds a new message to a conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- conversation ID
 - **Request body**:
 
@@ -127,7 +137,7 @@ Adds a new message to a conversation.
     "meta": {
       "tokens_in": 10,
       "tokens_out": 50,
-      "model": "claude-sonnet-4-20250514",
+      "model": "claude-sonnet-5",
       "audio_data": "<base64>",
       "attachments": "[{\"name\":\"file.pdf\",\"url\":\"/api/files/documents/file.pdf\"}]"
     }
@@ -145,24 +155,28 @@ Adds a new message to a conversation.
   { "error": "Missing role or content" }
   ```
 
-- **Side effect**: Updates the parent conversation's `updated_at` timestamp.
+- **Side effects**: Updates the parent conversation's `updated_at`
+  timestamp. If the conversation row is missing (orphan live conversation
+  ID, deleted parent), it is created on the fly so the FK constraint never
+  fires.
 
 #### `GET /api/conversations/:id/messages`
 
 Returns messages for a conversation with cursor-based pagination.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- conversation ID
 - **Query params**:
   - `before` (optional): Message ID cursor. If provided, returns messages
-    with `id < before`.
+    older than that message.
   - `limit` (optional): Number of messages to return. Defaults to `20`,
-    capped at `100`.
-- **Response**: Array of message objects, ordered ascending by `id` (when
-  using `before`) or `created_at` (when not).
+    capped at `1000`.
+- **Response**: Array of message objects, ordered ascending by insertion
+  order (SQLite rowid; `created_at` has 1-second resolution, so rapid-fire
+  messages could collide on it).
 - **Behavior**:
-  - If `before` is provided: returns `limit` messages older than the given ID
-    (cursor-based backward pagination via `getMessagesBefore()`).
+  - If `before` is provided: returns `limit` messages older than the given
+    message (cursor-based backward pagination via `getMessagesBefore()`).
   - If `before` is omitted: returns the most recent `limit` messages (via
     `getRecentMessages()`).
 
@@ -170,14 +184,15 @@ Returns messages for a conversation with cursor-based pagination.
 
 Returns the most recent messages for a conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- conversation ID
 - **Query params**:
-  - `limit` (optional): Defaults to `20`, capped at `100`.
-- **Response**: Array of message objects, ordered by `created_at` ascending.
-- **Internals**: Executes a subquery that selects the last N messages ordered
-  descending, then re-orders ascending. This gives you the "tail" of the
-  conversation in chronological order.
+  - `limit` (optional): Defaults to `20`, capped at `1000`.
+- **Response**: Array of message objects, ordered ascending by insertion
+  order.
+- **Internals**: Executes a subquery that selects the last N messages
+  ordered descending by rowid, then re-orders ascending. This gives you the
+  "tail" of the conversation in chronological order.
 
 ---
 
@@ -185,32 +200,35 @@ Returns the most recent messages for a conversation.
 
 #### `GET /api/settings`
 
-Returns all settings as a flat key-value object.
+Returns settings as a flat key-value object, with secret keys stripped.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route; the widget and
+  onboarding read flags before login)
 - **Response**:
 
   ```json
   {
     "user_name": "Bruno",
     "agent_name": "Morphy",
-    "portal_pass": "<scrypt hash>",
     "onboard_complete": "true",
+    "whisper_enabled": "false",
     "vapid_public_key": "...",
     "totp_enabled": "false"
   }
   ```
 
-  **Warning**: This endpoint returns ALL settings including sensitive ones
-  like password hashes, TOTP secrets, and VAPID private keys. It is intended
-  for internal use by the supervisor and should not be exposed to untrusted
-  clients.
+  **Security**: Because this route is reachable without auth (and over the
+  public relay handle), the worker strips every secret before responding:
+  `portal_pass`, `totp_secret`, `totp_pending_secret`,
+  `totp_recovery_codes`, `whisper_key`, `vapid_private_key`, and any
+  `totp_pending_login:*` keys. "Is a password set" is exposed separately as
+  `portalConfigured` on `GET /api/onboard/status`.
 
 #### `PUT /api/settings/:key`
 
 Sets a single setting value.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `key` -- the setting key
 - **Request body**:
 
@@ -237,7 +255,7 @@ shared across all connected devices.
 
 Returns the ID of the currently active conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Response**:
 
   ```json
@@ -250,7 +268,7 @@ Returns the ID of the currently active conversation.
 
 Sets the currently active conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -271,7 +289,7 @@ Sets the currently active conversation.
 
 Clears the currently active conversation.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Response**:
 
   ```json
@@ -303,7 +321,7 @@ Authenticates with username and password via JSON body.
   ```json
   {
     "token": "<128 hex chars>",
-    "expiresAt": "2025-01-22T10:30:00.000Z"
+    "expiresAt": "2026-01-22T10:30:00.000Z"
   }
   ```
 
@@ -341,7 +359,7 @@ POST bodies.
 
 Validates a session token.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Request body**:
 
   ```json
@@ -367,7 +385,8 @@ Same as the POST variant, but the token is passed as a query parameter.
 
 Verifies a password without creating a session.
 
-- **Authentication**: None
+- **Authentication**: None (verifies the password itself, so it cannot
+  require a token)
 - **Request body**:
 
   ```json
@@ -391,7 +410,7 @@ Verifies a password without creating a session.
 
 Returns whether TOTP 2FA is enabled.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Response**:
 
   ```json
@@ -403,7 +422,7 @@ Returns whether TOTP 2FA is enabled.
 Generates a new TOTP secret and QR code for the user to scan with their
 authenticator app.
 
-- **Authentication**: One of:
+- **Authentication**: Self-protected in-handler. One of:
   - `Authorization: Bearer <session_token>` (existing session)
   - `password` field in request body (verified against stored hash)
   - No auth required if no portal password has been set yet (initial onboard)
@@ -509,7 +528,7 @@ Completes a TOTP-guarded login. The client must have already obtained a
   ```json
   {
     "token": "<128 hex chars>",
-    "expiresAt": "2025-01-22T10:30:00.000Z"
+    "expiresAt": "2026-01-22T10:30:00.000Z"
   }
   ```
 
@@ -538,7 +557,7 @@ Completes a TOTP-guarded login. The client must have already obtained a
 
 Lists all non-expired trusted devices.
 
-- **Authentication**: None (should be behind portal auth in production)
+- **Authentication**: Portal session token (once a portal password is set)
 - **Response**: Array of device objects.
 
   ```json
@@ -546,8 +565,8 @@ Lists all non-expired trusted devices.
     {
       "id": "a1b2c3d4e5f67890",
       "label": "Browser",
-      "last_seen": "2025-01-15 10:30:00",
-      "created_at": "2025-01-10 08:00:00"
+      "last_seen": "2026-01-15 10:30:00",
+      "created_at": "2026-01-10 08:00:00"
     }
   ]
   ```
@@ -556,7 +575,7 @@ Lists all non-expired trusted devices.
 
 Removes a trusted device by its database ID.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Path params**: `id` -- the device database ID (not the token)
 - **Response**:
 
@@ -568,7 +587,7 @@ Removes a trusted device by its database ID.
 
 Alternative to `DELETE /api/portal/devices/:id` using a POST body.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -593,7 +612,7 @@ Returns the current onboarding state, combining data from settings and
 config. This is the primary endpoint the dashboard uses to determine what
 setup steps remain.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Response**:
 
   ```json
@@ -605,28 +624,38 @@ setup steps remain.
     "whisperEnabled": false,
     "whisperKey": "",
     "provider": "anthropic",
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-sonnet-5",
     "handle": {
       "username": "bruno",
-      "tier": "free",
-      "url": "https://bruno.morphyagent.com"
+      "tier": "at",
+      "url": "https://open.morphyagent.com/bruno"
     },
-    "tunnelMode": "quick",
+    "tunnelMode": "relay",
     "tunnelDomain": "",
-    "tunnelUrl": "https://abc123.trycloudflare.com",
+    "tunnelUrl": "https://bruno.open.morphyagent.com",
     "totpEnabled": false
   }
   ```
 
   `handle` is `null` if no relay handle is registered. `portalConfigured` is
   `true` if a portal password hash exists (does not reveal the hash).
+  `tunnelMode` is `"relay"` (the built-in Morphy carrier, the default) or
+  `"off"`; legacy `"quick"`/`"named"` values are migrated to `"relay"` when
+  the config loads. `tunnelUrl` is the bot's stable carrier origin, derived
+  from handle and tier (free tier `at`:
+  `https://<handle>.open.morphyagent.com`; `premium`:
+  `https://<handle>.morphyagent.com`). It never rotates.
 
 #### `POST /api/onboard`
 
 Saves the full onboarding configuration. This is the primary "save
 everything" endpoint called when the user completes the setup wizard.
 
-- **Authentication**: None
+- **Authentication**: Open only on genuine first run (no portal password
+  set yet). Once a password exists, requires a portal session token; the
+  gate reads the stored password directly (not a cached flag) so it closes
+  the instant onboarding sets one. The dashboard's own re-onboard uses the
+  internal supervisor path instead.
 - **Request body**:
 
   ```json
@@ -634,7 +663,7 @@ everything" endpoint called when the user completes the setup wizard.
     "userName": "Bruno",
     "agentName": "Morphy",
     "provider": "anthropic",
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-sonnet-5",
     "apiKey": "sk-...",
     "baseUrl": "https://custom.api.endpoint",
     "portalUser": "admin",
@@ -656,8 +685,9 @@ everything" endpoint called when the user completes the setup wizard.
   1. Reads old `agent_name` and `user_name` for MORPHY.md placeholder
      replacement.
   2. Saves `user_name`, `agent_name`, `onboard_complete` to settings.
-  3. Hashes and saves `portal_pass` (scrypt with random 16-byte salt).
-  4. Saves `portal_user` (lowercased and trimmed).
+  3. If provided, hashes and saves `portal_pass` (scrypt with random
+     16-byte salt).
+  4. If provided, saves `portal_user` (lowercased and trimmed).
   5. Saves whisper configuration.
   6. Reads `workspace/MORPHY.md` and replaces old bot/human name strings
      with the new ones, handling both initial `$BOT`/`$HUMAN` placeholders
@@ -665,28 +695,40 @@ everything" endpoint called when the user completes the setup wizard.
   7. Re-reads `config.json` from disk to preserve any relay data written by
      handle registration that may have occurred concurrently.
   8. Updates `ai.provider`, `ai.model`, and `ai.baseUrl` in the config.
-  9. If no `apiKey` was provided, reads the OAuth access token from the
-     appropriate provider's credential file (Codex for OpenAI, Claude for
-     Anthropic).
+  9. If the provider is Anthropic and no `apiKey` was provided, reads the
+     Claude OAuth access token from `~/.claude/.credentials.json` into
+     `ai.apiKey`. Codex (OpenAI) tokens are never copied into the config;
+     the Codex harness reads `~/.codex/auth.json` directly and refreshes it
+     as needed.
   10. Writes the updated config to disk.
 
 ---
 
 ### 4.10 Handle Registration (Relay)
 
-These endpoints manage the user's vanity URL handle (e.g.
-`username.morphyagent.com`) through the Morphy relay server.
+These endpoints manage the user's vanity handle through the Morphy relay
+server (free tier `at`: `open.morphyagent.com/<username>`; `premium`, a $5
+one-time purchase: `morphyagent.com/<username>`). The handle also determines
+the bot's stable carrier origin (`<username>.open.morphyagent.com` or
+`<username>.morphyagent.com`).
 
 #### `GET /api/handle/check/:username`
 
-Checks if a username is available for registration.
+Checks per-tier availability for a username.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Path params**: `username` -- desired handle
 - **Response**:
 
   ```json
-  { "available": true, "valid": true }
+  {
+    "username": "bruno",
+    "valid": true,
+    "handles": [
+      { "tier": "premium", "url": "https://morphyagent.com/bruno", "paid": true, "price": 5, "available": true },
+      { "tier": "at", "url": "https://open.morphyagent.com/bruno", "paid": false, "price": 0, "available": true }
+    ]
+  }
   ```
 
   On network error:
@@ -699,15 +741,15 @@ Checks if a username is available for registration.
 
 Returns the current handle registration status.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Response**:
 
   ```json
   {
     "registered": true,
     "username": "bruno",
-    "tier": "free",
-    "url": "https://bruno.morphyagent.com"
+    "tier": "at",
+    "url": "https://open.morphyagent.com/bruno"
   }
   ```
 
@@ -717,58 +759,63 @@ Returns the current handle registration status.
 
 Registers a new handle with the relay server.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
   {
     "username": "bruno",
-    "tier": "free"
+    "tier": "at"
   }
   ```
 
+  `tier` is `"at"` (free) or `"premium"`.
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://bruno.morphyagent.com" }
+  { "ok": true, "url": "https://open.morphyagent.com/bruno" }
   ```
 
 - **Error**: `400` if `username` or `tier` is missing, or if registration
   fails (username taken, invalid format, etc.).
 - **Side effects**:
-  1. Calls `registerHandle()` on the relay server.
+  1. Calls `registerHandle()` on the relay server (passing the bot's wallet
+     address when present).
   2. Saves the relay token, tier, URL, and username to `config.json`.
-  3. If a tunnel URL already exists, immediately pushes it to the relay and
-     starts the heartbeat.
+  3. Nothing is pushed to the relay and no heartbeat starts: routing goes
+     through the bot's per-handle Durable Object at the edge, and the
+     carrier connects (via `tunnel:switch` after onboarding, or on the next
+     restart). Presence comes from the live carrier socket.
 
 #### `POST /api/handle/change`
 
 Changes an existing handle to a new username.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
   {
     "username": "new-name",
-    "tier": "free"
+    "tier": "at"
   }
   ```
 
 - **Response**:
 
   ```json
-  { "ok": true, "url": "https://new-name.morphyagent.com" }
+  { "ok": true, "url": "https://open.morphyagent.com/new-name" }
   ```
 
 - **Error**: `400` if fields are missing or if the new registration fails.
 - **Side effects**:
-  1. Stops the heartbeat.
-  2. Releases the old handle (using the stored relay token). If no token
+  1. Releases the old handle (using the stored relay token). If no token
      exists, the old handle is orphaned in the relay database.
-  3. Registers the new handle.
-  4. Updates `config.json`.
-  5. Pushes the tunnel URL to the new handle and restarts the heartbeat.
+  2. Registers the new handle.
+  3. Updates `config.json`.
+  4. The carrier reconnects under the new handle on the next
+     `tunnel:switch` or restart (its hostname is derived from
+     `config.username`); there is no URL push and no heartbeat to restart.
 
 ---
 
@@ -776,9 +823,11 @@ Changes an existing handle to a new username.
 
 #### `POST /api/auth/codex/start`
 
-Initiates the OpenAI/Codex OAuth PKCE flow.
+Initiates the OpenAI/Codex OAuth PKCE flow in paste-back mode (no local
+callback server).
 
-- **Authentication**: None
+- **Authentication**: None (all of `/api/auth/*` is on the pre-login
+  allowlist)
 - **Request body**: None
 - **Response**:
 
@@ -789,14 +838,40 @@ Initiates the OpenAI/Codex OAuth PKCE flow.
   }
   ```
 
-- **Error**: If port 1455 is busy:
+- **Internals**: Generates the PKCE verifier and state in memory and
+  returns the authorization URL. Nothing listens on port 1455: the
+  browser's redirect to `http://localhost:1455/auth/callback` fails to
+  load, but its URL bar contains the `code`. The user pastes that URL (or
+  just the code) back into the wizard, which submits it to
+  `/api/auth/codex/exchange`. See section 5.2 for the full flow.
+
+#### `POST /api/auth/codex/exchange`
+
+Exchanges a pasted authorization code for tokens.
+
+- **Authentication**: None
+- **Request body**:
 
   ```json
-  { "success": false, "error": "Port 1455 is busy. Close other Codex instances." }
+  { "code": "<full callback URL, query string, or raw code>" }
   ```
 
-- **Internals**: Starts a temporary HTTP server on `127.0.0.1:1455` that
-  listens for the OAuth callback. See section 5.2 for the full flow.
+- **Response** (success):
+
+  ```json
+  { "success": true }
+  ```
+
+- **Response** (failure): `{ "success": false, "error": "..." }`, e.g.
+  `"No code provided"`, a state mismatch, or an
+  `"Authentication failed (<status>). Codes are single-use..."` message
+  (each code can only be exchanged once; the user must start over and paste
+  a fresh one).
+- **Internals**: Parses the pasted input, verifies the `state` when
+  present, performs the PKCE token exchange, and stores the tokens at
+  `~/.codex/auth.json` (the Codex CLI's native shape). On success, the
+  supervisor ends live conversations so the next message starts with fresh
+  credentials.
 
 #### `POST /api/auth/codex/cancel`
 
@@ -810,7 +885,7 @@ Cancels an in-progress Codex OAuth flow.
   { "ok": true }
   ```
 
-- **Side effects**: Stops the callback server and clears the PKCE state.
+- **Side effects**: Clears the in-memory PKCE state.
 
 #### `GET /api/auth/codex/status`
 
@@ -829,14 +904,25 @@ Returns the current Codex authentication status.
   { "authenticated": false }
   ```
 
-- **Response** (expired):
+- **Response** (expired and refresh failed):
 
   ```json
-  { "authenticated": false, "error": "Token expired" }
+  { "authenticated": false, "error": "Token expired and refresh failed" }
   ```
 
-- **Internals**: Reads `~/.codex/codedeck-auth.json` and checks if the
-  access token exists and has not expired.
+- **Internals**: Reads `~/.codex/auth.json` (a legacy
+  `~/.codex/codedeck-auth.json` file is auto-migrated on read), checks the
+  access token's JWT expiry, and automatically attempts a refresh with the
+  stored refresh token when expired. `plan` comes from the ID token claims.
+
+#### Device-code variant
+
+`POST /api/auth/codex/device/start`, `GET /api/auth/codex/device/status`,
+and `POST /api/auth/codex/device/cancel` implement OpenAI's device-code
+flow, preferred for headless or remote dashboards: `device/start` returns a
+`user_code` the user types in at OpenAI's device page, the worker polls in
+the background, and `device/status` reports the current state
+(`idle`/`pending`/`success`/`error`).
 
 ---
 
@@ -846,7 +932,8 @@ Returns the current Codex authentication status.
 
 Initiates the Claude OAuth PKCE flow.
 
-- **Authentication**: None
+- **Authentication**: None (all of `/api/auth/*` is on the pre-login
+  allowlist)
 - **Request body**: None
 - **Response**:
 
@@ -857,9 +944,9 @@ Initiates the Claude OAuth PKCE flow.
   }
   ```
 
-- **Internals**: Unlike the Codex flow, this does NOT start a local callback
-  server. The user manually copies the authorization code from the browser
-  and pastes it back. See section 5.1 for full flow.
+- **Internals**: Paste-back like the Codex flow: no local callback server
+  is started. The user manually copies the authorization code from the
+  browser and pastes it back. See section 5.1 for full flow.
 
 #### `POST /api/auth/claude/exchange`
 
@@ -921,7 +1008,7 @@ Returns the current Claude authentication status.
 Returns the VAPID public key needed by clients to subscribe to push
 notifications.
 
-- **Authentication**: None
+- **Authentication**: None (public pre-login route)
 - **Response**:
 
   ```json
@@ -934,7 +1021,7 @@ notifications.
 
 Registers a push subscription.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -961,7 +1048,7 @@ Registers a push subscription.
 
 Removes a push subscription.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -980,7 +1067,7 @@ Removes a push subscription.
 
 Sends a push notification to all registered subscriptions.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Request body**:
 
   ```json
@@ -995,7 +1082,7 @@ Sends a push notification to all registered subscriptions.
   All fields are optional.
   - `title` defaults to `"Morphy"`.
   - `body` defaults to `""`.
-  - `tag` defaults to `"bloby"`.
+  - `tag` defaults to `"morphy"`.
   - `url` defaults to `"/"`.
 - **Response**:
 
@@ -1013,7 +1100,7 @@ Sends a push notification to all registered subscriptions.
 
 Checks if a specific endpoint is currently subscribed.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Query params**: `endpoint` -- the push endpoint URL
 - **Response**:
 
@@ -1032,8 +1119,9 @@ Checks if a specific endpoint is currently subscribed.
 
 Transcribes audio using the OpenAI Whisper API.
 
-- **Authentication**: None (but requires Whisper to be enabled and an API
-  key to be configured in settings)
+- **Authentication**: Portal session token (once a portal password is set).
+  Also requires Whisper to be enabled and an API key to be configured in
+  settings.
 - **Request body**:
 
   ```json
@@ -1069,7 +1157,7 @@ Transcribes audio using the OpenAI Whisper API.
 
 Serves static files from the `workspace/files/` directory.
 
-- **Authentication**: None
+- **Authentication**: Portal session token (once a portal password is set)
 - **Examples**:
   - `GET /api/files/audio/recording-123.webm`
   - `GET /api/files/images/photo.png`

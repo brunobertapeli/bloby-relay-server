@@ -16,7 +16,7 @@ db.pragma('journal_mode = WAL');
   with WAL mode, but no `CREATE TABLE` or schema DDL is executed.
 - **Purpose:** Reserved for workspace-scoped data that is local to the deployed
   package rather than the user's home directory. The workspace backend currently
-  serves only a health check endpoint (`/health`).
+  serves only a health check endpoint (`/api/health`).
 - **Separation rationale:** The primary `memory.db` lives in `~/.morphy/` and
   persists across package updates/reinstalls. The workspace `app.db` lives
   inside the package directory and may be recreated on redeploy.

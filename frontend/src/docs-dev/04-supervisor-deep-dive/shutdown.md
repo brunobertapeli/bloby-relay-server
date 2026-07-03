@@ -2,32 +2,39 @@
 title: "Shutdown Sequence"
 ---
 
-The `shutdown()` function (lines 928-952) performs an orderly teardown:
+The `shutdown()` function in `supervisor/index.ts` performs an orderly teardown. A
+`shuttingDown` guard makes it run once (both signals, or a repeat signal, call the same
+function), and it arms a **5-second hard-exit deadline**
+(`setTimeout(() => process.exit(0), 5000).unref()`) so a hung teardown step, such as a
+relay notify on a dead network during sleep/wake, can never block process exit:
 
-1. **Stop scheduler** (line 930): `stopScheduler()`.
-2. **Close file watchers** (lines 931-932): `backendWatcher.close()`,
-   `workspaceWatcher.close()`.
-3. **Clear timers** (lines 933-934): Cancel the backend restart debounce timer and
-   the tunnel watchdog interval.
-4. **Stop relay heartbeat** (line 935): `stopHeartbeat()`.
-5. **Disconnect from relay** (lines 936-939): If a relay token exists, call
-   `disconnect()` to notify the relay server.
-6. **Clear persisted tunnel URL** (lines 940-942): Remove `tunnelUrl` from config
-   and save, so stale URLs are not reused on next startup.
-7. **Stop worker** (line 943): `stopWorker()` -- kills the worker child process.
-8. **Stop backend** (line 944): `await stopBackend()` -- kills the backend and waits
-   for full exit (up to 3s SIGKILL timeout).
-9. **Stop tunnel** (line 945): `stopTunnel()` -- kills the cloudflared process.
-10. **Stop Vite** (lines 946-947): `await stopViteDevServers()` -- closes the Vite
-    dev server.
-11. **Close HTTP server** (line 948): `server.close()`.
-12. **Exit** (line 949): `process.exit(0)`.
+1. **Disconnect channels**: `await channelManager.disconnectAll()` (WhatsApp,
+   Telegram, etc.).
+2. **Stop scheduler**: `stopScheduler()`.
+3. **Close file watchers**: `backendWatcher.close()`, `workspaceWatcher.close()`.
+4. **Clear timers**: the WebSocket liveness heartbeat interval, the backend restart
+   debounce timer, and the carrier wake/network-change watchdog interval.
+5. **Notify the relay**: if a relay token exists, call `disconnect()` -- best-effort;
+   presence is the live carrier socket (the edge posts presence on connect/drop), so
+   this just marks the bot offline promptly.
+6. **Close the database**: `closeDb()`.
+7. **Stop backend**: `await stopBackend()` -- kills the backend child and waits for
+   full exit (up to 3s before SIGKILL).
+8. **Close the carrier**: `relayTunnel?.close()` -- tears down the persistent outbound
+   WSS to the bot's Durable Object. The persisted `tunnelUrl` stays in config: the
+   carrier URL is stable (derived from the bot's handle), so there is no stale URL to
+   clear.
+9. **Stop Vite**: `await stopViteDevServers()` -- closes the Vite dev server.
+10. **Close HTTP server**: `server.close()`.
+11. **Remove the runtime file**: `removeRuntimeFile()` deletes
+    `~/.morphy/supervisor.json`, but only if it still records this process's pid.
+12. **Exit**: `process.exit(0)`.
 
 The shutdown is triggered by either `SIGINT` (Ctrl+C) or `SIGTERM` (daemon manager
-signal), registered at lines 951-952:
+signal):
 
 ```typescript
-// supervisor/index.ts, lines 951-952
+// supervisor/index.ts
 process.on('SIGINT', () => shutdown());
 process.on('SIGTERM', () => shutdown());
 ```

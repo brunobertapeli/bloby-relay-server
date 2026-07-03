@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS conversations (
 |---|---|---|---|---|
 | `id` | TEXT | PRIMARY KEY | `lower(hex(randomblob(8)))` | 16-character lowercase hex string (8 random bytes). Auto-generated. |
 | `title` | TEXT | nullable | `NULL` | Human-readable conversation title. |
-| `model` | TEXT | nullable | `NULL` | AI model identifier used for the conversation (e.g., `gpt-4o`, `claude-sonnet-4-20250514`). |
-| `session_id` | TEXT | nullable | `NULL` | Agent SDK session ID for stateful multi-turn conversations. Added by migration. |
+| `model` | TEXT | nullable | `NULL` | AI model identifier used for the conversation (e.g., `claude-opus-4-7[1m]`, `gpt-5.1`). |
+| `session_id` | TEXT | nullable | `NULL` | Harness session ID for stateful multi-turn conversations. |
 | `created_at` | DATETIME | | `CURRENT_TIMESTAMP` | Row creation timestamp. |
 | `updated_at` | DATETIME | | `CURRENT_TIMESTAMP` | Last modification timestamp. Updated whenever a message is added. |
 
@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS conversations (
 
 **Notes:**
 
-- The `session_id` column is not part of the original `CREATE TABLE` statement.
-  It was added by migration (see Section 5) and will be present via `ALTER TABLE`
-  on existing databases.
+- The `session_id` column is part of the base `CREATE TABLE` statement. An
+  `ALTER TABLE` migration (see Section 5) adds it to older databases created
+  before the column existed.
 - `updated_at` is explicitly bumped to `CURRENT_TIMESTAMP` each time a message
   is inserted via `addMessage()`.
 
@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS messages (
   tokens_in       INTEGER,
   tokens_out      INTEGER,
   model           TEXT,
+  audio_data      TEXT,
+  attachments     TEXT,
   created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -70,8 +72,8 @@ CREATE TABLE IF NOT EXISTS messages (
 | `tokens_in` | INTEGER | nullable | `NULL` | Input token count for this message (populated for assistant responses). |
 | `tokens_out` | INTEGER | nullable | `NULL` | Output token count for this message. |
 | `model` | TEXT | nullable | `NULL` | Model that generated this message (for assistant messages). |
-| `audio_data` | TEXT | nullable | `NULL` | Base64-encoded audio data for voice messages. Added by migration. |
-| `attachments` | TEXT | nullable | `NULL` | JSON string containing persistent file attachment metadata. Added by migration. |
+| `audio_data` | TEXT | nullable | `NULL` | Base64-encoded audio data for voice messages. |
+| `attachments` | TEXT | nullable | `NULL` | JSON string containing persistent file attachment metadata. |
 | `created_at` | DATETIME | | `CURRENT_TIMESTAMP` | Insertion timestamp. |
 
 **Indexes:**
@@ -83,8 +85,9 @@ CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at)
 This composite index is the primary query accelerator. It covers:
 
 - Fetching all messages for a conversation ordered by time (`getMessages`)
-- Fetching recent messages for a conversation (`getRecentMessages`)
-- Conversation-scoped ordering
+- Narrowing to a single conversation in the recent-message and pagination
+  queries (`getRecentMessages`, `getMessagesBefore`, which then order by
+  `rowid`)
 
 **Foreign keys:**
 
@@ -94,8 +97,9 @@ This composite index is the primary query accelerator. It covers:
 
 **Notes:**
 
-- `audio_data` and `attachments` are migration-added columns (not in the
-  original CREATE TABLE). See Section 5.
+- `audio_data` and `attachments` are part of the base CREATE TABLE. `ALTER
+  TABLE` migrations (see Section 5) add them to older databases that predate
+  the columns.
 - The `role` CHECK constraint restricts values at the database level, preventing
   invalid roles from being stored regardless of application logic.
 

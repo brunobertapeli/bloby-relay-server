@@ -8,7 +8,7 @@ title: "Backend Stack"
 | ------------ | --------- |
 | **express**  | ^5.2.1    |
 
-Express v5 is used in the **worker** process, not in the supervisor. Key v5 features leveraged:
+Express v5 powers the API layer. `worker/index.ts` exports `createWorkerApp()`, an Express app the supervisor mounts **in-process** and dispatches `/api/*` requests to directly (there is no separate worker process, port, or proxy hop). Key v5 features leveraged:
 
 - Native `async` route handler support (rejected promises auto-forward to error middleware).
 - Improved `req.query` parsing.
@@ -38,7 +38,7 @@ Database file: `~/.morphy/memory.db`
 | `push_subscriptions` | Web Push subscription endpoints             |
 | `trusted_devices`    | 2FA trusted device tokens                   |
 
-The database layer is **synchronous** by design -- `better-sqlite3` runs queries on the calling thread with no async overhead, which is ideal for the single-process worker model.
+The database layer is **synchronous** by design -- `better-sqlite3` runs queries on the calling thread with no async overhead, which is ideal for the single-process model (supervisor and API app share one process).
 
 Automatic **migrations** run at startup: the `initDb()` function checks for missing columns (`session_id`, `audio_data`, `attachments`) and adds them via `ALTER TABLE`, ensuring backward compatibility with older databases.
 
@@ -48,7 +48,7 @@ Automatic **migrations** run at startup: the `initDb()` function checks for miss
 | ------------ | --------- |
 | **web-push** | ^3.6.7    |
 
-VAPID key-pair based push notifications. Subscriptions are stored in the `push_subscriptions` table. Push is used by the scheduler to notify users when the agent completes autonomous tasks (pulse/cron).
+VAPID key-pair based push notifications. Subscriptions are stored in the `push_subscriptions` table. Push is used to notify users of proactive agent messages, including output from autonomous pulse/cron turns (delivered through `supervisor/outbound.ts`).
 
 ### WebSocket
 
@@ -56,7 +56,7 @@ VAPID key-pair based push notifications. Subscriptions are stored in the `push_s
 | ---------- | --------- |
 | **ws**     | ^8.19.0   |
 
-Used in `noServer` mode -- the supervisor's `http.Server` handles the `upgrade` event and routes `/bloby/ws` connections to the `WebSocketServer`. All other upgrade requests pass through to Vite's HMR WebSocket handler.
+Used in `noServer` mode -- the supervisor's `http.Server` handles the `upgrade` event and routes connections by path: `/bloby/ws` goes to the Morphy chat `WebSocketServer` (`blobyWss`, token-authenticated once a portal password is set), and `/app/ws` goes to a second `WebSocketServer` (`appWss`) for the user's app backend, which handles its own auth. Vite's HMR WebSocket is attached directly to the same HTTP server, so HMR upgrades are handled by Vite itself.
 
 The WebSocket protocol supports:
 
@@ -79,7 +79,7 @@ The WebSocket protocol supports:
 
 Password hashing uses Node's built-in `crypto.scryptSync` (no external dependency). Sessions are stored in SQLite with expiry timestamps. TOTP uses SHA1 algorithm with 6-digit codes and a 30-second period. Recovery codes are generated as 8 random hex strings, stored as SHA-256 hashes.
 
-Auth-exempt routes are explicitly listed in `AUTH_EXEMPT_ROUTES` and checked by the supervisor before proxying to the worker.
+API auth is **secure by default**: once a portal password is set, every `/api/*` route requires a valid Bearer token. The only exceptions are the pre-login routes explicitly listed in the `PUBLIC_PRELOGIN_ROUTES` allowlist in `supervisor/index.ts` (login, onboarding status, health, non-secret settings). A new `/api` route is therefore gated automatically unless deliberately added to the allowlist.
 
 ### Scheduling
 
@@ -87,7 +87,7 @@ Auth-exempt routes are explicitly listed in `AUTH_EXEMPT_ROUTES` and checked by 
 | --------------- | --------- |
 | **cron-parser** | ^5.5.0    |
 
-The scheduler runs inside the supervisor (not the worker), checking every 60 seconds. Two scheduling systems:
+The scheduler (`supervisor/scheduler.ts`) runs inside the supervisor, checking every 60 seconds. Two scheduling systems:
 
 1. **Pulse** -- periodic autonomous agent activation with configurable interval and quiet hours. Config in `workspace/PULSE.json`.
 2. **Crons** -- standard cron expressions with support for one-shot tasks. Config in `workspace/CRONS.json`. Task details can be stored in `workspace/tasks/{id}.md`.

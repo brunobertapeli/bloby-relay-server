@@ -36,7 +36,7 @@ Notable choices:
 
 - **`"types": []`** prevents auto-inclusion of all `@types/*` packages, avoiding type conflicts between server (Node) and client (DOM) code.
 - **`"moduleResolution": "bundler"`** allows imports without `.js` extensions and supports the `exports` field in `package.json`, matching Vite's resolution behavior.
-- **`"skipLibCheck": true`** is critical for build speed given the large number of dependencies (React 19, Three.js, Radix UI, etc.).
+- **`"skipLibCheck": true`** is critical for build speed given the large number of dependencies (React 19, Radix UI, Recharts, etc.).
 
 ### Type Definitions (devDependencies)
 
@@ -48,5 +48,5 @@ Notable choices:
 | `@types/qrcode`                        | ^1.5.5     |
 | `@types/react`                         | ^19.2.14   |
 | `@types/react-dom`                     | ^19.2.3    |
-| `@types/react-syntax-highlighter`      | ^15.5.13   |
+| `@types/web-push`                      | ^3.6.4     |
 | `@types/ws`                            | ^8.18.1    |

@@ -185,9 +185,9 @@ const docSets = {
         ],
       },
       {
-        group: 'Networking & Tunnels',
+        group: 'Networking & Relay',
         items: [
-          { slug: 'cloudflare-tunnel', title: 'Cloudflare Tunnel' },
+          { slug: 'morphy-carrier', title: 'Morphy Carrier' },
           { slug: 'morphy-relay', title: 'Morphy Relay' },
           { slug: 'https-tls', title: 'HTTPS & TLS' },
         ],
@@ -201,6 +201,12 @@ const docSets = {
           { slug: 'building', title: 'Building' },
           { slug: 'debugging', title: 'Debugging' },
           { slug: 'dev-workflow', title: 'Dev Workflow' },
+        ],
+      },
+      {
+        group: 'Marketplace & Modules',
+        items: [
+          { slug: 'marketplace-system', title: 'Marketplace & Modules' },
         ],
       },
     ],

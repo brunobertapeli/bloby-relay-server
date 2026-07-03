@@ -11,10 +11,13 @@ manually:
 
 | Variable | Set by | Used by | Value |
 |----------|--------|---------|-------|
-| `WORKER_PORT` | `supervisor/worker.ts` | `worker/index.ts` | `basePort + 1` (default `3001`) |
-| `BACKEND_PORT` | `supervisor/backend.ts` | `workspace/backend/index.ts` | `basePort + 4` (default `3004`) |
+| `BACKEND_PORT` | `supervisor/backend.ts` | `workspace/backend/index.ts` | `basePort + 4` (default `7404`) |
 | `MORPHY_REAL_HOME` | `bin/cli.js` (sudo re-exec) | `bin/cli.js` | Original user's home directory |
 | `MORPHY_NODE_PATH` | `bin/cli.js` (daemon install) | systemd/launchd unit | Absolute path to `node` binary |
+
+The worker has no port of its own: `worker/index.ts` exports `createWorkerApp()`
+and the supervisor mounts it in-process, so there is no `WORKER_PORT` and no
+separate worker process.
 
 ### `workspace/.env`
 
@@ -44,18 +47,16 @@ Key fields:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `port` | number | `3000` | Base port for all services |
-| `username` | string | `""` | Display name (set during onboarding) |
-| `ai.provider` | string | `""` | `"anthropic"`, `"openai"`, or `"ollama"` |
-| `ai.model` | string | `""` | Model identifier (e.g. `"claude-sonnet-4-20250514"`) |
+| `port` | number | `7400` | Base port for all services (Vite `+2`, backend `+4`) |
+| `username` | string | `""` | Display name / handle (set during onboarding) |
+| `ai.provider` | string | `""` | `"anthropic"`, `"openai"`, `"ollama"`, or `"pi"` |
+| `ai.model` | string | `""` | Model identifier (e.g. `"claude-opus-4-8"`) |
 | `ai.apiKey` | string | `""` | Provider API key |
 | `ai.baseUrl` | string | undefined | Custom API endpoint (for Ollama or proxies) |
-| `tunnel.mode` | string | `"quick"` | `"off"`, `"quick"`, or `"named"` |
-| `tunnel.name` | string | undefined | Named tunnel identifier |
-| `tunnel.domain` | string | undefined | Custom domain for named tunnel |
-| `tunnel.configPath` | string | undefined | Path to cloudflared YAML config |
-| `relay.token` | string | `""` | Morphy relay server auth token |
+| `tunnel.mode` | string | `"relay"` | `"relay"` (persistent carrier, default) or `"off"` |
+| `relay.token` | string | `""` | Morphy relay auth token (mints the carrier's Ed25519 tickets) |
+| `relay.tier` | string | `""` | Carrier tier; selects the stable subdomain (open vs premium) |
 | `relay.url` | string | `""` | Public URL via relay (e.g. `https://open.morphyagent.com/HANDLE`) |
-| `tunnelUrl` | string | undefined | Written at runtime -- current tunnel URL |
+| `tunnelUrl` | string | undefined | Written once at runtime; the carrier URL is derived and stable (no rotation) |
 
 ---

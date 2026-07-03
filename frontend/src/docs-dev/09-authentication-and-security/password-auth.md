@@ -8,7 +8,7 @@ title: "Password Authentication"
 
 Passwords are hashed using Node.js's built-in `crypto.scryptSync` with a 16-byte random salt and a 64-byte derived key.
 
-**File:** `worker/index.ts`, lines 18--28
+**File:** `worker/index.ts` (`hashPassword`, `verifyPassword`)
 
 ```typescript
 function hashPassword(password: string): string {
@@ -28,7 +28,7 @@ The stored format is `<salt_hex>:<hash_hex>`. The salt is unique per password, s
 
 Password hashing occurs during onboarding when the portal password is first set:
 
-**File:** `worker/index.ts`, lines 617--619
+**File:** `worker/index.ts` (`POST /api/onboard` handler)
 
 ```typescript
 if (portalPass) {
@@ -40,7 +40,7 @@ if (portalPass) {
 
 Morphy supports two login methods to accommodate relay proxies that may not forward POST bodies:
 
-**POST login** (`POST /api/portal/login`) -- credentials in JSON body (`worker/index.ts`, lines 389--392):
+**POST login** (`POST /api/portal/login`) -- credentials in JSON body (`worker/index.ts`):
 
 ```typescript
 app.post('/api/portal/login', (req, res) => {
@@ -49,7 +49,7 @@ app.post('/api/portal/login', (req, res) => {
 });
 ```
 
-**GET login** (`GET /api/portal/login`) -- credentials via HTTP Basic `Authorization` header (`worker/index.ts`, lines 395--402):
+**GET login** (`GET /api/portal/login`) -- credentials via HTTP Basic `Authorization` header (`worker/index.ts`):
 
 ```typescript
 app.get('/api/portal/login', (req, res) => {
@@ -61,7 +61,7 @@ app.get('/api/portal/login', (req, res) => {
 });
 ```
 
-The shared `handleLogin` function (`worker/index.ts`, lines 349--386) executes the following logic:
+The shared `handleLogin` function (`worker/index.ts`) executes the following logic:
 
 1. Verify the password is provided and a stored password exists.
 2. Call `verifyPassword()` against the stored `portal_pass` setting.
@@ -78,7 +78,7 @@ res.json({ token, expiresAt });
 
 ### 2.3 Client-Side Login
 
-The `LoginScreen` component (`supervisor/chat/src/components/LoginScreen.tsx`, lines 61--89) sends credentials using the GET login path with a Base64-encoded `Authorization: Basic` header:
+The `LoginScreen` component (`supervisor/chat/src/components/LoginScreen.tsx`) sends credentials using the GET login path with a Base64-encoded `Authorization: Basic` header:
 
 ```typescript
 const credentials = btoa(`admin:${password}`);

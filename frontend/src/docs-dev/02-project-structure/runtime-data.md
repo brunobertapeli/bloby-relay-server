@@ -6,12 +6,11 @@ When installed globally (`npm install -g morphyagent`) or via the curl installer
 
 ```
 ~/.morphy/
-  config.json               Bot configuration (port, username, AI provider, tunnel mode, relay token)
+  config.json               Bot configuration (port, username, AI provider, tunnel mode 'relay'|'off', relay token)
+  config.json.bak           Mirror of the last good config.json (recovery from torn writes)
   memory.db                 SQLite database (conversations, messages, settings, sessions, push subs, trusted devices)
   bin/
-    cli.js                  Symlinked CLI entry point
-    cloudflared             Cloudflare Tunnel binary (downloaded on first tunnel start)
-    cloudflared.exe         Windows variant of the above
+    cli.js                  CLI entry point (the global `morphy` command symlinks to it)
   workspace/                Cloned from package's workspace/ on first install (preserved on upgrades)
     client/                 Dashboard source (agent-editable)
     backend/                Backend source (agent-editable)
@@ -24,7 +23,7 @@ When installed globally (`npm install -g morphyagent`) or via the curl installer
     files/                  Uploaded files (audio, images, documents)
     app.db                  User's app database (created by workspace/backend/index.ts)
     .env                    User's environment variables (manually parsed by backend)
-    .backend.log            Backend stdout/stderr log (reset on each restart)
+    .backend.log            Backend stdout/stderr log (reset on each restart; last crash kept as .backend.log.prev)
   tools/                    (installer-only) Bundled Node.js if system Node was unavailable
     node/                   Local Node.js installation
   supervisor/               Application code (overwritten on upgrade)

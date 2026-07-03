@@ -19,14 +19,14 @@ npm -v     # ships with Node
 
 ### Git
 
-Git is required to clone the repository and is used by the CLI to detect
-development mode (it checks for `PKG_ROOT/.git`).
+Git is used by the CLI to detect development mode: it checks for a `.git`
+directory at the package root.
 
 ### Platform-specific requirements
 
 | Platform | Notes |
 |----------|-------|
-| **Windows** | PowerShell 5.1+ or Windows Terminal. `curl.exe` must be available (ships with Windows 10+). `tar` must be available (ships with Windows 10 1803+). |
+| **Windows** | PowerShell 5.1+ or Windows Terminal. `tar` must be available for `morphy update` (ships with Windows 10 1803+). |
 | **macOS** | Xcode Command Line Tools (`xcode-select --install`) for native modules (`better-sqlite3`). Homebrew is recommended but not required. |
 | **Linux** | `build-essential` (gcc, g++, make) and `python3` for compiling `better-sqlite3`. On Debian/Ubuntu: `sudo apt install build-essential python3`. |
 
@@ -39,7 +39,7 @@ variables.
 | Provider | Required? | How to obtain |
 |----------|-----------|---------------|
 | **Anthropic** | Recommended | <https://console.anthropic.com/> -- or use the built-in OAuth flow (`morphy` supports Claude Agent SDK with OAuth tokens) |
-| **OpenAI** | Optional | <https://platform.openai.com/api-keys> |
+| **OpenAI** | Optional | <https://platform.openai.com/api-keys> -- or use the built-in Codex OAuth flow (ChatGPT Plus/Pro subscription) |
 | **Ollama** | Optional | Install Ollama locally (<https://ollama.com/>) -- no key needed, uses `baseUrl` |
 
 ---

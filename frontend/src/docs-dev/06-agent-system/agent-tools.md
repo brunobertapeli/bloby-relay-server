@@ -6,7 +6,7 @@ title: "Agent Tools"
 
 ### 4.1 Built-in Claude Agent SDK Tools
 
-When the agent runs through the Claude Agent SDK path, it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Morphy's codebase). The agent can:
+When the agent runs through the Claude Agent SDK path (provider `anthropic`, the default -- see `supervisor/harnesses/claude.ts`), it has access to the full Claude Code tool set. These are the tools provided by the SDK itself (not explicitly defined in Morphy's codebase). The agent can:
 
 - **Read** -- Read file contents from disk
 - **Write** -- Write/create files
@@ -15,14 +15,14 @@ When the agent runs through the Claude Agent SDK path, it has access to the full
 - **Glob** -- Find files by pattern
 - **Grep** -- Search file contents
 
-The system prompt instructs the agent on how to use these tools in context (lines 206-229 of `bloby-system-prompt.txt`):
+The system prompt (`worker/prompts/bloby-system-prompt.txt`, assembled by `worker/prompts/prompt-assembler.ts`) instructs the agent on how to use these tools in context:
 
 > "Always read code before changing it. Understand what exists."
 > "Run independent tool calls in parallel. Don't serialize what can run concurrently."
 
 ### 4.2 File Tool Tracking
 
-The agent system tracks which tools were used during a query. In `startBlobyAgentQuery()`, a `usedTools` set accumulates tool names (lines 148, 232-234):
+The agent system tracks which tools were used during each turn. In the Claude harness (`supervisor/harnesses/claude.ts`), a `usedTools` set accumulates tool names inside the streaming loop:
 
 ```ts
 const usedTools = new Set<string>();
@@ -33,15 +33,14 @@ const usedTools = new Set<string>();
 }
 ```
 
-At cleanup (lines 274-276), the system checks whether file-modifying tools were used:
+At each turn boundary, the system checks whether file-modifying tools were used:
 
 ```ts
-const FILE_TOOLS = ['Write', 'Edit'];
+const FILE_TOOLS = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
 const usedFileTools = FILE_TOOLS.some((t) => usedTools.has(t));
-onMessage('bot:done', { conversationId, usedFileTools });
 ```
 
-This flag drives the auto-restart behavior: if the agent wrote or edited files, the supervisor restarts the backend after the turn ends (line 544-549 of `supervisor/index.ts`).
+Live conversations emit this flag on `bot:turn-complete` (then clear `usedTools` for the next turn); one-shot queries emit it on `bot:done` at cleanup. The flag drives the auto-restart behavior: if the agent wrote or edited files, the supervisor restarts the user's backend after the turn ends (the `bot:turn-complete` handler in `supervisor/index.ts`; the scheduler does the same on `bot:done` for pulse/cron turns).
 
 ### 4.3 Skills
 
@@ -53,7 +52,7 @@ The SDK lists each skill's name and description in the agent's context and lazy-
 
 ### 4.4 MCP Servers (External Tools)
 
-MCP (Model Context Protocol) servers extend the agent's tool set with external capabilities. Configuration is read from `workspace/MCP.json` (lines 173-190):
+MCP (Model Context Protocol) servers extend the agent's tool set with external capabilities. Configuration is read from `workspace/MCP.json` by the Claude harness's `loadMcpServers()` helper:
 
 ```ts
 const mcpConfigPath = path.join(WORKSPACE_DIR, 'MCP.json');

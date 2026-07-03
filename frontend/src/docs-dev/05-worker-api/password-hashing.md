@@ -10,5 +10,4 @@ Portal passwords are hashed with Node.js `crypto.scryptSync`:
 - **Storage format**: `<salt>:<hash>` (e.g. `a1b2...c3d4:e5f6...7890`).
 
 Verification re-derives the hash from the candidate password and the stored
-salt, then compares with timing-safe string equality (JavaScript `===` on
-hex strings).
+salt, then compares the two hex strings with JavaScript `===`.

@@ -2,9 +2,10 @@
 title: "Development Setup"
 ---
 
-This guide walks a new developer from a clean machine to a fully running local
+This guide walks a developer from a clean machine to a fully running local
 Morphy development environment. It covers every layer of the stack: the
-supervisor, the worker, the user backend, the dashboard UI, and the chat UI.
+supervisor, the in-process worker, the user backend, the dashboard UI, and the
+chat UI.
 
 ---
 

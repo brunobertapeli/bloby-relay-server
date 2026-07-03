@@ -6,18 +6,19 @@ title: "Security Considerations"
 
 ### 9.1 Tunnel Exposure
 
-Morphy is designed to be accessed over the public internet via Cloudflare tunnels. The supervisor manages two tunnel modes:
+Morphy is designed to be accessed over the public internet through the Morphy relay. The supervisor holds one persistent outbound WSS connection (the "carrier", `supervisor/relay-tunnel.ts`) to a per-bot Durable Object at the Cloudflare edge, authenticated with short-lived Ed25519 tickets minted by the relay control plane (`fetchTicket` in `shared/relay.ts`). Browser traffic flows browser -> Cloudflare Worker -> Durable Object -> carrier -> local supervisor.
 
-- **Quick tunnel** (`supervisor/index.ts`, lines 783--835): A temporary Cloudflare tunnel with a random subdomain. The URL changes on restart.
-- **Named tunnel** (`supervisor/index.ts`, lines 837--874): A persistent Cloudflare tunnel with a fixed domain.
+- `tunnel.mode` (`shared/config.ts`) is `'relay'` (default for self-hosted) or `'off'` (managed/hosted instances, reached directly). Legacy cloudflared `quick`/`named` configs are migrated to `'relay'` automatically on load.
+- The public URL is stable and derived from the handle: `<handle>.open.morphyagent.com` (free tier) or `<handle>.morphyagent.com` (premium). A reconnect is a redial of the same Durable Object: no URL rotation, no re-registration.
+- Every request replayed down the carrier carries the real client IP in `cf-connecting-ip` plus an `x-morphy-tunnel` marker (client-supplied copies are stripped), so the supervisor's loopback guards can keep internal control endpoints unreachable from the public path.
 
-When exposed via a tunnel, any traffic from the internet reaches the supervisor's HTTP server. This makes the authentication layer critical: without a portal password set, the entire API (conversations, settings, AI queries, file access) is publicly accessible.
+When exposed via the relay, any traffic from the internet reaches the supervisor's HTTP server. This makes the authentication layer critical: without a portal password set, the entire API (conversations, settings, AI queries, file access) is publicly accessible.
 
-**Relay registration** (`worker/index.ts`, lines 207--312) associates a handle (e.g., `username.morphyagent.com`) with the tunnel URL via an external relay server, making the instance discoverable. The relay token (stored in `config.relay.token`) authenticates the Morphy instance with the relay server.
+**Handle registration** (`registerHandle` in `shared/relay.ts`, called from the `/api/handle/*` routes in `worker/index.ts`) associates a handle with this instance on the relay control plane. The returned relay token (stored in `config.relay.token`) authenticates the instance to the relay, including carrier ticket minting. No tunnel URL is registered or stored; the carrier's URL is derived from the handle and tier.
 
 ### 9.2 Token Storage on Client
 
-Session tokens are stored in `localStorage` (`supervisor/chat/src/lib/auth.ts`, line 9). This means:
+Session tokens are stored in `localStorage` (`supervisor/chat/src/lib/auth.ts`). This means:
 
 - Tokens survive page reloads and browser restarts.
 - Tokens are accessible to any JavaScript running on the same origin.
@@ -32,7 +33,7 @@ No explicit CORS headers or middleware are configured in either the worker or su
 
 API responses are explicitly configured to prevent caching:
 
-**File:** `worker/index.ts`, lines 108--114
+**File:** `worker/index.ts` (the `/api` middleware)
 
 ```typescript
 app.use('/api', (_, res, next) => {
@@ -57,7 +58,7 @@ There is no rate limiting implemented on any endpoint. Login attempts, TOTP veri
 
 The supervisor protects against directory traversal when serving static files from the Morphy chat distribution:
 
-**File:** `supervisor/index.ts`, lines 311--316
+**File:** `supervisor/index.ts` (static file handler)
 
 ```typescript
 const fullPath = path.join(DIST_CHAT, filePath);
@@ -72,8 +73,8 @@ if (!fullPath.startsWith(DIST_CHAT)) {
 
 Both OAuth flows set file permissions to `0o600` (owner read/write only) on credential files:
 
-- Claude: `~/.claude/.credentials.json` (`claude-auth.ts`, line 247)
-- Codex: `~/.codex/codedeck-auth.json` (`codex-auth.ts`, line 68)
+- Claude: `~/.claude/.credentials.json` (`worker/claude-auth.ts`)
+- Codex: `~/.codex/auth.json` (`worker/codex-auth.ts`; the legacy `~/.codex/codedeck-auth.json` layout is migrated to `auth.json` and deleted on first load)
 
 These `chmod` calls are wrapped in try/catch to handle platforms where they may fail (notably Windows).
 
@@ -81,7 +82,7 @@ These `chmod` calls are wrapped in try/catch to handle platforms where they may 
 
 The Express JSON parser is configured with a 10MB limit:
 
-**File:** `worker/index.ts`, line 105
+**File:** `worker/index.ts`
 
 ```typescript
 app.use(express.json({ limit: '10mb' }));

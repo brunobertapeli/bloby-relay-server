@@ -2,211 +2,162 @@
 title: "Process Management"
 ---
 
-### 6.1 Worker Spawning (`worker.ts`)
+### 6.1 Worker (in-process, `worker/index.ts`)
 
-The worker is the internal API server (likely Express/Fastify). It is spawned as a
-child process using an inline ESM wrapper pattern.
-
-**Spawn mechanism** (`spawnWorker`, lines 18-66):
-
-```typescript
-// worker.ts, lines 27-32
-const workerUrl = 'file://' + workerPath.replace(/\\/g, '/');
-const wrapper = [
-  `import('${workerUrl}')`,
-  `  .catch(e => { console.error('[worker] Fatal:', e); process.exit(1); });`,
-  `setInterval(() => {}, 60000);`,
-].join('\n');
-```
-
-The wrapper is an inline JavaScript string passed via `node -e`. It achieves three
-things:
-
-1. Dynamically imports the worker entry point (`worker/index.ts`) through tsx for
-   TypeScript compilation.
-2. Catches and logs import-time errors that would otherwise cause a silent exit.
-3. Adds a 60-second keepalive `setInterval` to prevent the event loop from draining
-   under systemd (which would cause an unexpected exit code 0).
-
-The child process is spawned with:
+The worker is the internal API server (an Express app). It is no longer a separate
+child process: the supervisor creates it in-process during startup by calling
+`createWorkerApp()` (exported from `worker/index.ts`) and dispatches every `/api/*`
+request to it from inside its own HTTP request handler.
 
 ```typescript
-// worker.ts, line 34
-child = spawn(process.execPath, ['--import', 'tsx/esm', '--input-type=module', '-e', wrapper], {
-  cwd: PKG_DIR,
-  stdio: ['ignore', 'pipe', 'pipe'],
-  env: { ...process.env, WORKER_PORT: String(port) },
-});
+// supervisor/index.ts (startup)
+// Initialize worker routes in-process (no separate child process)
+const workerApp = createWorkerApp();
 ```
 
-The port is passed via the `WORKER_PORT` environment variable. Stdout and stderr
-are piped to the supervisor's own stdout/stderr (lines 40-46).
+Consequences of the in-process design:
 
-**Health check** (`isWorkerAlive`, lines 74-76): Returns `true` if the child process
-reference is non-null and `exitCode` is null (meaning the process has not exited).
+1. There is no worker port and no `WORKER_PORT` environment variable. `/api` requests
+   never leave the supervisor's HTTP server (see the Reverse Proxy section).
+2. There is no worker health check, spawn wrapper, or auto-restart logic. The worker
+   lives and dies with the supervisor process itself.
+3. Internal calls from the supervisor to the worker go through the `workerApi()`
+   helper, which fetches the supervisor's own port with a per-process `x-internal`
+   secret header (see Section 3.3 in the Reverse Proxy doc).
 
-**Stop** (`stopWorker`, lines 68-72): Sets the `intentionallyStopped` flag to
-prevent the auto-restart handler from firing, then kills the process.
+The child-process machinery described in the rest of this chapter now applies only to
+the user backend.
 
 ### 6.2 Backend Spawning (`backend.ts`)
 
 The backend is the user's custom server code located at `workspace/backend/index.ts`.
-It uses the same inline-wrapper spawn pattern as the worker.
+It is spawned as a child process using an inline ESM wrapper passed via `node -e`
+(with `--import tsx/esm` for TypeScript compilation). The wrapper (built inside
+`spawnBackend`) achieves four things:
 
-**Key differences from the worker**:
+1. Registers `node:module` resolution hooks that block imports from resolving outside
+   the workspace boundary (workspace isolation; requires Node 22.15+, warns and
+   continues without it otherwise).
+2. Dynamically imports the user's backend entry point through tsx.
+3. Catches and logs import-time errors that would otherwise cause a silent exit.
+4. Adds a 60-second keepalive `setInterval` to prevent the event loop from draining
+   under systemd (which would cause an unexpected exit code 0).
 
-- **CWD**: Set to `workspace/` (not `PKG_DIR`), so user code can use relative paths
-  within their workspace (line 40).
-- **Port env var**: Uses `BACKEND_PORT` instead of `WORKER_PORT` (line 42).
-- **Log file**: All stdout/stderr is also appended to `workspace/.backend.log`
-  (lines 45-53). The log file is truncated on each restart (line 26).
+**Key spawn parameters**:
+
+- **CWD**: Set to `workspace/`, so user code can use relative paths within the
+  workspace.
+- **Port env var**: `BACKEND_PORT` (base port + 4, from `getBackendPort()`). Extra
+  env vars registered via `setBackendEnv()` (e.g. `MORPHY_AGENT_SECRET`) are injected
+  into every spawn, including auto-restarts.
+- **Log file**: All stdout/stderr is piped to the supervisor's own stdout/stderr and
+  appended to `workspace/.backend.log`. The log file is truncated on each spawn; on a
+  crash, the just-crashed run's output is first copied to `.backend.log.prev` so the
+  originating error survives the restart (readable via `readBackendLogTail(n, prev)`).
 - **Graceful stop**: `stopBackend()` returns a Promise that resolves only after the
-  child process has fully exited (lines 80-98). This prevents port collisions when
-  restarting. A 3-second SIGKILL safety timeout ensures the function always resolves:
+  child process has fully exited. This prevents port collisions when restarting. A
+  3-second SIGKILL safety timeout ensures the function always resolves, and concurrent
+  callers share the same in-flight stop promise to avoid double-spawn races.
+- **Serialized restart**: `restartBackend()` is the single funnel for every deliberate
+  restart (file watcher, turn-complete, scheduler pulse, channel manager). Concurrent
+  callers share one in-flight stop-then-spawn cycle; a request arriving mid-restart
+  triggers exactly one more cycle afterward.
+- **Reset function**: `resetBackendRestarts()` resets the restart counter (and the
+  rolling crash window, below) to zero. It runs before intentional restarts so that
+  deliberate restarts never count toward the crash limit.
 
-```typescript
-// backend.ts, lines 80-98
-export function stopBackend(): Promise<void> {
-  return new Promise((resolve) => {
-    // ... setup ...
-    dying.once('exit', () => resolve());
-    dying.kill();
-    // Safety: force kill after 3s if SIGTERM doesn't work
-    setTimeout(() => {
-      try { dying.kill('SIGKILL'); } catch {}
-      resolve();
-    }, 3000);
-  });
-}
-```
+### 6.3 Auto-Restart Logic (`backend.ts`)
 
-- **Reset function**: `resetBackendRestarts()` (lines 104-106) manually resets the
-  restart counter to zero. This is called by the supervisor before intentional
-  restarts triggered by file changes, agent tool usage, or the scheduler -- so that
-  these deliberate restarts do not count toward the crash limit.
-
-### 6.3 Auto-Restart Logic (shared by worker and backend)
-
-Both `worker.ts` and `backend.ts` implement identical auto-restart logic with these
-parameters:
+The backend's `exit` handler implements crash-loop protection with these parameters:
 
 | Constant | Value | Purpose |
 |---|---|---|
 | `MAX_RESTARTS` | 3 | Maximum consecutive restart attempts |
-| `STABLE_THRESHOLD` | 30,000 ms | Time a process must survive to reset the counter |
+| `STABLE_THRESHOLD` | 30,000 ms | Time the process must survive to reset the counter |
+| `CRASH_WINDOW_MS` / `CRASH_WINDOW_MAX` | 5 min / 6 | Rolling-window backstop against slow crash loops |
 
-The logic in the `exit` handler (worker.ts lines 48-62, backend.ts lines 55-72):
+The logic in the `exit` handler:
 
-1. If `intentionallyStopped` is true, exit silently (no restart).
-2. Log the unexpected exit.
+1. If `intentionallyStopped` is true (the supervisor called `stopBackend()`), exit
+   silently with no restart.
+2. Preserve the crashed run's log to `.backend.log.prev`, then log the unexpected
+   exit and record the crash timestamp in the rolling window.
 3. If the process ran for longer than `STABLE_THRESHOLD` (30 seconds), reset
-   `restarts` to 0. This means a process that runs successfully for 30+ seconds
-   before crashing gets a fresh set of 3 retry attempts.
-4. If `restarts < MAX_RESTARTS`, increment and schedule a restart with exponential
-   backoff: `setTimeout(() => spawnWorker(port), 1000 * restarts)`. This means:
-   - 1st retry: 1 second delay
-   - 2nd retry: 2 second delay
-   - 3rd retry: 3 second delay
-5. If all retries exhausted, log a fatal error: "failed too many times. Use Morphy
-   chat to debug."
+   `restarts` to 0: a process that runs successfully for 30+ seconds before crashing
+   gets a fresh set of retry attempts. The rolling window exists precisely because of
+   this reset; a backend that crashes every ~35 seconds would otherwise restart
+   forever, so more than 6 crashes within 5 minutes forces a give-up regardless.
+4. If neither limit is exceeded, increment `restarts` and schedule a respawn with
+   backoff: `Math.min(1000 * restarts, 5000)` ms (1s, 2s, 3s).
+5. If the limits are exhausted, set the `gaveUp` flag and log a fatal error:
+   "Backend failed too many times. Use Morphy chat to debug." The `gaveUp` state
+   (exposed as `isBackendDead()`) drives the supervisor's "backend down" interstitial,
+   and a one-shot `setBackendGiveUpHandler` callback lets the supervisor broadcast a
+   chat event telling the user to fix their code.
 
-### 6.4 Tunnel Management (`tunnel.ts`)
+### 6.4 Carrier Management (`relay-tunnel.ts`)
 
-The tunnel module manages Cloudflare Tunnel (`cloudflared`) processes for exposing
-the local server to the internet.
+Self-hosted bots are exposed to the internet through the Morphy carrier, not a
+third-party tunnel binary (cloudflared was retired in v0.3.8; `supervisor/tunnel.ts`
+no longer exists). `tunnel.mode` in config is `'relay'` (the default) or `'off'`
+(managed/hosted bots reached directly); legacy `quick`/`named` configs are migrated to
+`'relay'` automatically by `loadConfig()` in `shared/config.ts`.
 
-**Binary discovery** (`findBinary`, lines 12-25):
+**The connection** (`RelayTunnel`): one long-lived outbound WSS from the supervisor to
+the bot's own Durable Object at the edge, `wss://<host>/__morphy/carrier`. The host is
+derived from the bot's handle and tier: `<handle>.open.morphyagent.com` (free) or
+`<handle>.morphyagent.com` (premium). Because the URL is derived, it is stable
+forever: no URL rotation, no relay re-registration, no DNS propagation wait. A
+reconnect is just a redial of the same endpoint.
 
-1. First checks for a system-wide `cloudflared` install via `which`/`where`.
-2. Falls back to a local install at `~/.morphy/bin/cloudflared`.
-3. Validates local binaries by file size (must be >= 10 MB, line 10). If undersized
-   (corrupt download), the file is deleted and treated as missing.
+**Authentication**: each dial fetches a short-lived Ed25519-signed ticket from the
+relay control plane (`fetchTicket` in `shared/relay.ts`, cached for ~4 minutes) and
+presents it as a Bearer token. The edge verifies with the public key only; no minting
+secret ever leaves the relay.
 
-**Auto-installation** (`installCloudflared`, lines 27-58):
+**Multiplexing**: the Durable Object muxes browser HTTP and WebSocket traffic down the
+carrier as binary frames (`OPEN`/`RESP`/`DATA`/`CLOSE`/`RESET`, plus
+`PING`/`PONG`/`GOAWAY`). The client demuxes each stream and replays it to the local
+supervisor on `127.0.0.1:<port>`, exactly where cloudflared used to deliver it.
+Response bodies stream back in 64 KB `DATA` chunks with backpressure: when the
+socket's `bufferedAmount` exceeds 8 MB the local response is paused, resuming once it
+drains below 1 MB.
 
-Downloads the correct binary for the current platform and architecture from GitHub
-releases. Handles:
+**Liveness**: protocol-level ping/pong. The client pings every 15 seconds and forces a
+reconnect if no pong arrives within 30 seconds (two missed pings). Reconnects use
+jittered exponential backoff (500 ms doubling, capped at 30 seconds). There is no
+heartbeat to the relay: presence is the live carrier socket itself.
 
-- Windows: direct `.exe` download via `curl.exe`.
-- macOS: `.tgz` archive, piped through `tar xz`.
-- Linux: direct binary download with `chmod 755`.
-- Architectures: amd64, arm64, arm.
+**Security**: replayed requests arrive on loopback, so the client strips any
+client-supplied `cf-connecting-ip`, `cf-ray`, or `x-morphy-tunnel` headers and then
+unconditionally stamps `x-morphy-tunnel: 1` plus the real client IP in
+`cf-connecting-ip`. The supervisor's loopback-only guards reject both markers, keeping
+the sensitive endpoints (`/__bloby/control/*`, channel mutations, agent API)
+unreachable from the public path.
 
-**Quick mode** (`startTunnel`, lines 60-82):
+### 6.5 Carrier Watchdog
 
-Spawns `cloudflared tunnel --url http://localhost:<port> --no-autoupdate`. Parses
-stdout/stderr for a `*.trycloudflare.com` URL using a regex match. Returns a
-Promise that resolves with the tunnel URL or rejects after a 30-second timeout.
+The supervisor runs a watchdog interval every 30 seconds whose only job is fast
+sleep/wake and network-change recovery:
 
 ```typescript
-// tunnel.ts, lines 65-74
-proc = spawn(bin, ['tunnel', '--url', `http://localhost:${port}`, '--no-autoupdate'], {
-  stdio: ['ignore', 'pipe', 'pipe'],
-  windowsHide: true,
-});
-let buf = '';
-const onData = (d: Buffer) => {
-  buf += d.toString();
-  const m = buf.match(/https:\/\/[^\s]+\.trycloudflare\.com/);
-  if (m) { clearTimeout(timeout); resolve(m[0]); }
-};
+// supervisor/index.ts (watchdog)
+const wakeGap = now - lastTick > 60_000;
+if (wakeGap) relayTunnel?.reconnectNow(); // wake/network change: redial immediately
 ```
 
-**Named mode** (`startNamedTunnel`, lines 84-96):
-
-Spawns `cloudflared tunnel --config <path> run <name>` for pre-configured tunnels
-with stable domain names. Does not need to parse a URL because the domain is already
-known from configuration.
-
-**Health checking** (`isTunnelAlive`, lines 124-146):
-
-A two-layer check:
-
-1. Process-level: Is the `cloudflared` child process still running?
-2. Network-level: Can `http://127.0.0.1:<port>/api/health` be reached within 3
-   seconds?
-
-Importantly, the health check probes localhost directly rather than the tunnel URL.
-This avoids a macOS issue where the server cannot reach itself through the Cloudflare
-tunnel due to DNS/firewall configuration.
-
-**Restart** (`restartTunnel` / `restartNamedTunnel`, lines 148-156):
-
-Simple stop-then-start sequences. Quick mode generates a new URL; named mode
-reconnects with the same domain.
-
-### 6.5 Tunnel Watchdog
-
-The supervisor runs a watchdog interval (lines 877-925) every 30 seconds that detects
-two conditions:
-
-1. **Sleep/wake detection**: If the gap between ticks exceeds 60 seconds, the machine
-   likely slept. This is implemented by comparing `Date.now()` against `lastTick`:
-
-   ```typescript
-   // supervisor/index.ts, lines 883-884
-   const wakeGap = now - lastTick > 60_000;
-   ```
-
-2. **Periodic health check**: Every 10th tick (roughly every 5 minutes):
-
-   ```typescript
-   const periodicCheck = ++healthCounter % 10 === 0;
-   ```
-
-When either condition triggers, `isTunnelAlive()` is called. If the tunnel is dead:
-
-- **Named mode**: The tunnel process is restarted; the URL stays the same.
-- **Quick mode**: The tunnel process is restarted, generating a new URL. The new URL
-  is persisted to config, and if a relay token exists, the relay is updated with the
-  new URL and heartbeats are restarted.
+If the gap between ticks exceeds 60 seconds, the machine likely slept, so the watchdog
+calls `reconnectNow()` to tear down and redial the carrier immediately instead of
+waiting out the pong deadline. Ongoing liveness is entirely the ws ping/pong described
+above; there are no periodic health probes, and because the carrier URL is stable a
+reconnect never changes the public URL or touches config.
 
 ### 6.6 Vite Dev Server (`vite-dev.ts`)
 
 The Vite dev server provides Hot Module Replacement (HMR) for the dashboard during
 development.
 
-**Startup** (`startViteDevServers`, lines 9-56):
+**Startup** (`startViteDevServers`):
 
 Creates a Vite dev server programmatically via `createViteServer()` with these
 critical settings:
@@ -214,24 +165,29 @@ critical settings:
 - `port`: `supervisorPort + 2`
 - `host`: `'127.0.0.1'` (only listens locally)
 - `strictPort: true` (fails if port is taken)
-- `allowedHosts: true` (permits tunnel/relay hostnames)
-- `hmr: { server: hmrServer }` -- binds HMR WebSocket to the supervisor's HTTP
-  server
+- `allowedHosts: true` (permits carrier hostnames)
+- `hmr: { server: hmrServer }` -- binds the HMR WebSocket to the supervisor's HTTP
+  server, so the browser connects on the same origin the page is served from (works
+  locally and through the carrier)
+- `customLogger` -- mirrors Vite errors/warnings to stdout while also capturing them
+  into the server-side frontend log ring, so compile errors surface even when the
+  browser never ran a line of JS
 
-**Warm-up** (lines 43-53): After starting, the supervisor fetches the dashboard
-entry page, extracts `<script src="...tsx">` references via regex, and pre-fetches
-each to trigger Vite's module transformation ahead of the first real browser request.
+**Warm-up**: after starting, the supervisor fetches the dashboard entry page once
+(the HTML transform is not covered by `server.warmup`), then waits for the warmup
+module graph to finish transforming via `waitForRequestsIdle()`, with a 20-second
+timeout guard so a wedged transform can never hang the boot signal.
 
-**Dashboard reload** (`reloadDashboard`, lines 59-63): Provides a mechanism to
-trigger full browser reloads via Vite's HMR channel:
+**Dashboard reload** (`reloadDashboard`): provides a mechanism to trigger full browser
+reloads via Vite's HMR channel:
 
 ```typescript
-// vite-dev.ts, lines 59-63
+// vite-dev.ts
 export function reloadDashboard(): void {
   if (!dashboardVite) return;
   dashboardVite.hot.send({ type: 'full-reload', path: '*' });
 }
 ```
 
-**Shutdown** (`stopViteDevServers`, lines 65-72): Closes the Vite dev server
-cleanly and nulls the reference.
+**Shutdown** (`stopViteDevServers`): closes the Vite dev server cleanly and nulls the
+reference.

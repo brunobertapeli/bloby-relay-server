@@ -4,12 +4,10 @@ title: "Getting Started"
 
 ## 2. Getting Started
 
-### Clone the repository
+### Get the source
 
-```bash
-cd <your-local-copy-of-the-codebase>
-cd morphy
-```
+All development happens inside the `morphyagent` source tree. Open a shell at its
+root before running any of the commands below.
 
 ### Install dependencies
 
@@ -20,7 +18,7 @@ npm install
 #### What `npm install` does -- the postinstall script
 
 The file `scripts/postinstall.js` runs automatically after `npm install`. In
-**production** (installed via `npm install -g morphyagent`), postinstall performs
+**production** (installed via `npm install -g morphy`), postinstall performs
 several steps:
 
 1. Copies all code directories (`bin/`, `supervisor/`, `worker/`, `shared/`,
@@ -63,15 +61,15 @@ const ROOT = IS_DEV ? REPO_ROOT : DATA_DIR;  // DATA_DIR = ~/.morphy
 ```
 
 In development mode, the supervisor reads source files from the repo. The config
-file (`config.json`), the database (`memory.db`), and CLoudflare binaries always
-live in `~/.morphy/` regardless of mode.
+file (`config.json`) and the database (`memory.db`) always live in `~/.morphy/`
+regardless of mode.
 
 Key paths (from `shared/paths.ts`):
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | `PKG_DIR` | Repo root (dev) or `~/.morphy` (prod) | Base for all code lookups |
-| `DATA_DIR` | `~/.morphy/` | Config, database, cloudflared binary |
+| `DATA_DIR` | `~/.morphy/` | Config and database |
 | `WORKSPACE_DIR` | `<PKG_DIR>/workspace/` | User's dashboard app, backend, files |
 | `paths.config` | `~/.morphy/config.json` | Runtime configuration |
 | `paths.db` | `~/.morphy/memory.db` | SQLite database for conversations, sessions |
@@ -83,7 +81,7 @@ On first launch, `morphy init` (or `morphy start`) creates a default
 
 ```json
 {
-  "port": 3000,
+  "port": 7400,
   "username": "",
   "ai": {
     "provider": "",
@@ -91,7 +89,7 @@ On first launch, `morphy init` (or `morphy start`) creates a default
     "apiKey": ""
   },
   "tunnel": {
-    "mode": "quick"
+    "mode": "relay"
   },
   "relay": {
     "token": "",
@@ -101,34 +99,36 @@ On first launch, `morphy init` (or `morphy start`) creates a default
 }
 ```
 
-For development, you can create this file manually, or run `morphy init` once and
-cancel the tunnel setup. All fields are configured through the dashboard
-onboarding flow at `http://localhost:3000/bloby` after first start.
+For development, you can create this file manually, or run `morphy init` once to
+generate it. All fields are configured through the dashboard onboarding flow at
+`http://localhost:7400/bloby` after first start.
 
 The `BotConfig` TypeScript interface (in `shared/config.ts`):
 
 ```typescript
 interface BotConfig {
-  port: number;
+  port: number;             // Base port (default 7400)
   username: string;
   ai: {
-    provider: 'openai' | 'anthropic' | 'ollama' | '';
+    provider: 'openai' | 'anthropic' | 'ollama' | 'pi' | '';
     model: string;
     apiKey: string;
     baseUrl?: string;       // For Ollama or custom endpoints
   };
   tunnel: {
-    mode: 'off' | 'quick' | 'named';
-    name?: string;          // Named tunnel: tunnel name
-    domain?: string;        // Named tunnel: your domain
-    configPath?: string;    // Named tunnel: path to cloudflared config YAML
+    // 'relay' = persistent carrier into the bot's Durable Object (default).
+    // 'off'   = no tunnel (managed/hosted bots reached directly).
+    mode: 'off' | 'relay';
+    name?: string;          // legacy (unused; retained for old configs)
+    domain?: string;        // legacy (unused)
+    configPath?: string;    // legacy (unused)
   };
   relay: {
     token: string;
     tier: string;
     url: string;
   };
-  tunnelUrl?: string;       // Written at runtime by supervisor
+  tunnelUrl?: string;       // Written once at runtime; the carrier URL is derived and stable
 }
 ```
 

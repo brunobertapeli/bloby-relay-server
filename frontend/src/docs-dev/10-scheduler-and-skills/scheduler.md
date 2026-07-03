@@ -13,35 +13,31 @@ The scheduler is an in-process `setInterval` loop that runs inside the superviso
 1. **Pulse** -- a simple interval-based heartbeat that wakes the agent periodically.
 2. **Crons** -- standard cron-expression jobs that trigger the agent at precise times.
 
-Both systems ultimately call the same internal function, `triggerAgent()`, which invokes the Claude Agent SDK via `startBlobyAgentQuery()` (defined in `supervisor/bloby-agent.ts`). The agent receives a synthetic prompt -- either `<PULSE/>` or `<CRON>{id}</CRON>` -- that tells it which scheduled event woke it up.
+Both systems ultimately call the same internal function, `triggerAgent()`, which starts an agent turn via `startBlobyAgentQuery()` (defined in `supervisor/bloby-agent.ts`). That function is a harness dispatcher: it routes the query to the harness for the configured `ai.provider` -- `anthropic` to the Claude Agent SDK harness (`supervisor/harnesses/claude.ts`), `openai` to the Codex app-server harness (`supervisor/harnesses/codex.ts`), `pi` to the Pi harness -- so scheduled turns run on whichever provider is configured. The agent receives a synthetic prompt -- either `<PULSE/>` or `<CRON>{id}</CRON>` -- that tells it which scheduled event woke it up.
 
 The scheduler is started by the supervisor during boot and stopped on shutdown:
 
 ```typescript
 // supervisor/index.ts -- startup
 startScheduler({
-    broadcastBloby,
-    workerApi,
-    restartBackend: async () => {
-        resetBackendRestarts();
-        await stopBackend();
-        spawnBackend(backendPort);
-    },
+    outbound,
+    restartBackend: () => doRestart(),
     getModel: () => loadConfig().ai.model,
+    onTurnComplete: () => { if (pendingBackendRestart) void doRestart(); flushPendingUpdate(); },
 });
 
 // supervisor/index.ts -- shutdown
 stopScheduler();
 ```
 
-The `SchedulerOpts` interface defines the four dependencies injected from the supervisor:
+The `SchedulerOpts` interface defines the dependencies injected from the supervisor:
 
-| Option           | Type                                     | Purpose                                                       |
-| ---------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `broadcastBloby` | `(type: string, data: any) => void`      | Sends a WebSocket message to all connected Morphy chat clients |
-| `workerApi`      | `(path, method?, body?) => Promise<any>` | Calls the worker HTTP API (conversations, push, onboard)      |
-| `restartBackend` | `() => void`                             | Restarts the workspace backend after file-tool mutations      |
-| `getModel`       | `() => string`                           | Returns the currently configured AI model identifier          |
+| Option           | Type                                          | Purpose                                                                                                          |
+| ---------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `outbound`       | `Pick<Outbound, 'deliverMac' \| 'deliverChat'>` | Unified delivery for `<mac_push>`/`<Message>` blocks (`supervisor/outbound.ts`), the same pipeline interactive turns use |
+| `restartBackend` | `() => void`                                  | Restarts the workspace backend after file-tool mutations                                                          |
+| `getModel`       | `() => string`                                | Returns the currently configured AI model identifier                                                              |
+| `onTurnComplete` | `() => void` (optional)                       | Fired after a pulse/cron turn ends; the supervisor uses it to flush a deferred backend restart and any queued self-update |
 
 ### 1.2 The PULSE System
 
@@ -118,12 +114,10 @@ triggerAgent('<PULSE/>', 'pulse');
 This:
 
 1. Creates a conversation ID in the form `pulse-{timestamp}`.
-2. Retrieves (or creates) the user's current DB conversation via `workerApi('/api/context/current')`.
-3. Fetches the bot name from `workerApi('/api/onboard/status')`.
-4. Calls `startBlobyAgentQuery()` with prompt `<PULSE/>` and the current model.
-5. The agent's system prompt already contains the full contents of `PULSE.json`, `CRONS.json`, `MYSELF.md`, `MYHUMAN.md`, and `MEMORY.md` -- so the agent has full context about why it was woken and what it knows about its user.
+2. Calls `startBlobyAgentQuery()` with prompt `<PULSE/>` and the current model; the harness dispatcher routes the turn to the configured provider.
+3. The agent's system prompt already contains the full contents of `PULSE.json`, `CRONS.json`, `MYSELF.md`, `MYHUMAN.md`, and `MEMORY.md` -- so the agent has full context about why it was woken and what it knows about its user.
 
-The agent can then decide what to do: check in with the user, summarize recent activity, run maintenance, etc. The agent communicates back through `<Message>` blocks in its response (see Section 1.5).
+The agent can then decide what to do: check in with the user, summarize recent activity, run maintenance, etc. The agent communicates back through `<Message>` and `<mac_push>` blocks in its response (see Section 1.5).
 
 #### Use Cases
 
@@ -173,6 +167,7 @@ interface CronConfig {
     task: string;
     enabled: boolean;
     oneShot?: boolean;
+    paused?: boolean;
 }
 ```
 
@@ -183,6 +178,7 @@ interface CronConfig {
 | `task`     | string  | Yes      | Human-readable description of what the cron should do.                                      |
 | `enabled`  | boolean | Yes      | Master switch for this individual cron.                                                     |
 | `oneShot`  | boolean | No       | If `true`, the cron is automatically removed after it fires once.                           |
+| `paused`   | boolean | No       | User-controlled via `POST /api/crons/pause`. Checked strictly (`paused === true`), so configs written before the flag existed are unaffected. A paused cron neither fires nor advances its dedup state. |
 
 #### Cron Expression Parsing
 
@@ -286,7 +282,7 @@ Each tick executes in this order:
 1. Read `PULSE.json` from disk.
 2. If pulse is enabled and not in quiet hours and interval has elapsed, fire pulse.
 3. Read `CRONS.json` from disk.
-4. For each enabled cron with a valid id and schedule:
+4. For each enabled, non-paused cron with a valid id and schedule:
     - Check if the schedule matches the current minute.
     - Check deduplication (last run was > 60s ago).
     - If both pass, fire the cron.
@@ -294,7 +290,7 @@ Each tick executes in this order:
 
 #### State Management
 
-Module-level state (all reset on `stopScheduler()`):
+Module-level state (`stopScheduler()` clears the timer and injected deps; `lastPulseTime` is re-initialized on the next `startScheduler()`):
 
 | Variable         | Type                             | Purpose                                    |
 | ---------------- | -------------------------------- | ------------------------------------------ |
@@ -316,59 +312,47 @@ export function stopScheduler() {
 }
 ```
 
-Called from the supervisor's `shutdown()` function alongside worker, backend, tunnel, and Vite teardown.
+Called from the supervisor's `shutdown()` function alongside channel, backend, relay carrier, and Vite teardown.
 
 ### 1.5 Push Notifications and Message Delivery
 
-When the agent completes a scheduled turn (pulse or cron), the `triggerAgent()` function processes its response for `<Message>` blocks. This is the mechanism by which the autonomous agent communicates with the user.
+When the agent completes a scheduled turn (pulse or cron), `triggerAgent()` accumulates the full response text and, on `bot:done`, parses it for outbound tags. This is the mechanism by which the autonomous agent communicates with the user.
 
 #### Message Extraction
 
-The agent's full response text is scanned with a regex:
-
-```typescript
-const messageRegex = /<Message(?:\s+([^>]*))?>(([\s\S]*?))<\/Message>/g;
-```
-
-Each `<Message>` block can have an optional `title` attribute:
+Parsing happens in `extractOutboundTags()` (`supervisor/outbound.ts`), the shared parser used by both the scheduler and the interactive turn pipeline, so the tags behave identically on every kind of turn. It extracts two block types and strips them from the surrounding text:
 
 ```xml
+<mac_push>Spoken line and optional card for the Mac notch</mac_push>
 <Message title="Good Morning">Here is your daily summary...</Message>
 ```
 
+Each `<Message>` block supports optional `title` and `priority` attributes.
+
 #### Delivery Pipeline
 
-For each extracted message, three things happen in parallel:
+Extracted blocks are handed to the unified outbound module (`createOutbound()` in `supervisor/outbound.ts`). Both deliverers record what they sent in the chat timeline, so scheduled output is never broadcast-only. If the response contains neither tag, delivery is a no-op.
 
-1. **Database persistence** -- The message is saved to the user's conversation in the DB via `workerApi('/api/conversations/{id}/messages', 'POST', ...)` with `role: 'assistant'`.
+1. **`<mac_push>` blocks -> `outbound.deliverMac()`** -- sends a `mac:push` frame to identified Mac clients (notch card + TTS) and reports the real recipient count. A copy is persisted to the chat timeline with `meta.channel: 'mac'`.
 
-2. **WebSocket broadcast** -- The message is broadcast to all connected Morphy chat clients as a `chat:sync` event:
+2. **`<Message>` blocks -> `outbound.deliverChat()`** -- three steps:
 
-    ```typescript
-    broadcastBloby('chat:sync', {
-        conversationId: dbConvId,
-        message: {
-            role: 'assistant',
-            content: messageContent,
-            timestamp: msgTimestamp,
-        },
-    });
-    ```
+    - **Database persistence** -- the message is saved to the user's current conversation via the in-process worker API (`POST /api/conversations/{id}/messages`) with `role: 'assistant'` and `meta.proactive: true`.
 
-    This makes the message appear in real-time for any user who has the chat open.
+    - **WebSocket broadcast** -- the message is broadcast to all connected Morphy chat clients as a `chat:sync` event, so it appears in real time for anyone who has the chat open.
 
-3. **Push notification** -- A web push notification is sent via `workerApi('/api/push/send', 'POST', ...)`:
+    - **Push notification** -- a web push notification is sent via `POST /api/push/send`:
 
-    ```typescript
-    {
-      title: titleMatch?.[1] || botName,  // from <Message title="..."> or agent name
-      body: messageContent.slice(0, 200), // first 200 chars
-      tag: `bloby-{label}`,              // e.g. "bloby-pulse" or "bloby-morning-standup"
-      url: '/',
-    }
-    ```
+        ```typescript
+        {
+          title: opts.title || botName,   // from <Message title="..."> or agent name
+          body: content.slice(0, 200),    // first 200 chars
+          tag: `bloby-${label}`,          // e.g. "bloby-pulse" or "bloby-morning-standup"
+          url: '/',
+        }
+        ```
 
-    The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Morphy chat.
+        The push notification reaches the user even when the browser tab is closed or the device is locked. The service worker (embedded in `supervisor/index.ts` as `SW_JS`) handles the `push` event, shows the notification with vibration, and on click focuses or opens the Morphy chat.
 
 #### Backend Restart After File Mutations
 

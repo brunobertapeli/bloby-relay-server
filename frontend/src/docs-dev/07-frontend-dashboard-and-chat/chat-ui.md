@@ -20,9 +20,9 @@ export default defineConfig({
   build: {
     outDir: '../../dist-chat',
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
-        bloby: path.resolve(__dirname, 'supervisor/chat/chat.html'),
+        chat: path.resolve(__dirname, 'supervisor/chat/chat.html'),
         onboard: path.resolve(__dirname, 'supervisor/chat/onboard.html'),
       },
     },
@@ -34,9 +34,9 @@ export default defineConfig({
 Key differences from the dashboard config:
 
 - **Base path** is `/bloby/` so all assets are served under that prefix.
-- **Multiple entry points** via Rollup's `input` -- `chat.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
-- **Build output** goes to `dist-chat/` at the project root, which is committed to the npm package. The supervisor serves these files statically -- no Vite dev server.
-- **Dep optimization** includes `react-markdown`, `remark-gfm`, and `react-syntax-highlighter` for markdown rendering in chat messages.
+- **Multiple entry points** via `rolldownOptions.input` (Vite 8 bundles with Rolldown) -- `chat.html` (chat) and `onboard.html` (onboarding wizard). Each gets its own JS bundle.
+- **Build output** goes to `dist-chat/` at the project root, which is shipped in the npm package. The supervisor serves these files statically -- no Vite dev server.
+- **Dep optimization** includes `streamdown` and `@streamdown/code` for markdown rendering in chat messages.
 
 The build is triggered via `npm run build:chat` (or as part of `npm run build`). The resulting `dist-chat/` directory is pre-shipped in the npm package so users do not need to build it.
 
@@ -63,7 +63,7 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 
 ### Chat Components (`src/components/Chat/`)
 
-**`ChatView`** -- Wrapper component that wires `useChat` to `MessageList` and `InputBar`. Used by the dashboard-embedded variant (using the simpler `useChat` hook). The standalone Morphy app (`chat-main.tsx`) uses `useBlobyChat` directly instead.
+**`ChatView`** -- Minimal wrapper component that wires the simpler `useChat` hook to `MessageList` and `InputBar`. The standalone Morphy app (`chat-main.tsx`) does not mount it -- it uses `useBlobyChat` directly instead.
 
 **`MessageList`** -- Scrollable message container with:
 
@@ -76,17 +76,17 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 **`MessageBubble`** -- Renders a single message with different layouts for user and assistant:
 
 - **User messages** -- Right-aligned, blue background (`bg-primary`). Supports text, image thumbnails (clickable to open lightbox), document attachment indicators, and audio bubbles for voice messages.
-- **Assistant messages** -- Left-aligned, muted background (`bg-muted`). Renders markdown via `react-markdown` with `remark-gfm`. Code blocks use `react-syntax-highlighter` with the `oneDark` theme. Tables, lists, and inline code have custom renderers.
+- **Assistant messages** -- Left-aligned, muted background (`bg-muted`). Renders markdown via `Streamdown` (the `streamdown` package) with the `@streamdown/code` plugin -- Shiki syntax highlighting (`github-dark` theme), copy controls on code blocks, and copy/download/fullscreen controls on tables. Custom link renderers turn channel pairing URLs (WhatsApp, Alexa) into branded cards.
 - Both include a copy-to-clipboard button (appears on hover) and a timestamp.
 
 **`InputBar`** -- The message composer with:
 
 - Auto-resizing textarea (up to 4 lines, then scrolls).
-- File attachments (`Paperclip` button) supporting images and PDFs. Camera capture button (`Camera`) for mobile.
+- File attachments (`Paperclip` button) accepting any file type (the harness/model decides what it can use), capped at 12MB per attachment. Camera capture button (`Camera`) for mobile.
 - Image paste handling from clipboard.
 - Image compression (`compressImage()`) that scales images down to 1600px max dimension and compresses JPEG quality to stay under 4MB.
 - Draft persistence to `localStorage` (debounced, key `bloby_draft`).
-- Voice recording via `MediaRecorder` API (hold-to-record with slide-to-cancel gesture). Records WebM audio, sends to Whisper for transcription.
+- Voice input (hold-to-record with slide-to-cancel gesture). With Whisper enabled, records WebM audio via the `MediaRecorder` API and sends it for transcription; otherwise it falls back to the browser's Web Speech API (`useSpeechRecognition` hook).
 - Three button states: microphone (no text), send arrow (has text), stop square (streaming).
 - Desktop: Enter sends, Shift+Enter inserts newline. Mobile: Enter always inserts newline.
 
@@ -94,7 +94,7 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 
 **`ImageLightbox`** -- Full-screen overlay for viewing images. Supports keyboard navigation (arrow keys, Escape), left/right arrows for multi-image navigation, and image counter.
 
-**`TypingIndicator`** -- Shown during streaming. Displays the streaming text buffer with a blinking cursor, or a bouncing three-dot animation when waiting for the first token. Shows the current tool name (e.g., "Reading file...", "Running command...") from a human-friendly label map.
+**`TypingIndicator`** -- Shown during streaming. Displays the streaming text buffer (rendered via `Streamdown` in streaming mode with a block caret), or a bouncing three-dot animation when waiting for the first token. Contains a human-friendly tool label map (e.g., "Reading file", "Running command") that is currently commented out in the UI, reserved for a future skill UI.
 
 ### Login Screen (`src/components/`)
 
@@ -105,18 +105,18 @@ The initial setup wizard, displayed as a full-screen iframe over the dashboard o
 
 ### Onboarding Wizard
 
-**`OnboardWizard`** -- Multi-step setup wizard with:
+**`OnboardWizard`** (`supervisor/chat/OnboardWizard.tsx`) -- Multi-step setup wizard with:
 
-- AI provider selection (Claude/Anthropic or OpenAI Codex).
-- OAuth device flow for Anthropic or OpenAI authentication.
+- AI provider selection (Claude by Anthropic, Codex by OpenAI, or Pi).
+- Provider authentication: Anthropic OAuth with code paste-back; Codex device-code flow with a paste-back fallback (no local callback server).
 - Model selection dropdown.
 - Agent name customization (with live validation).
 - User name input.
 - Whisper (voice input) toggle.
-- Portal password setup (optional on private networks, recommended on public).
-- Tunnel configuration (Cloudflare quick tunnel toggle).
-- Handle/relay registration for remote access.
-- Access method detection (Tailscale, LAN, localhost, tunnel, relay, custom domain).
+- Portal password setup, with optional TOTP two-factor auth and recovery codes.
+- Remote access mode (`tunnelMode`): `'relay'` (default, the built-in Morphy carrier) or `'off'` (private network only). Loaded legacy tunnel modes are coerced to `'relay'`.
+- Handle registration for the bot's stable URL: a free `<handle>.open.morphyagent.com` handle or a premium `<handle>.morphyagent.com` upgrade.
+- Access method detection (Tailscale, LAN, localhost, legacy tunnel hostnames, relay, custom domain).
 
 The wizard saves settings via WebSocket (`settings:save` message type) rather than HTTP POST to avoid relay/proxy issues.
 
@@ -182,7 +182,7 @@ WebSocket events used:
 | Client -> Server | `user:clear-context` | Clear conversation |
 | Client -> Server | `whisper:transcribe` | Transcribe audio |
 | Client -> Server | `settings:save` | Save settings |
-| Client -> Server | `tunnel:switch` | Change tunnel mode |
+| Client -> Server | `tunnel:switch` | Change tunnel mode (`'relay'` or `'off'`) |
 | Heartbeat | `ping` / `pong` | Keep-alive |
 
 ## Auth Library (`src/lib/auth.ts`)
@@ -205,7 +205,7 @@ Push states: `loading`, `unsupported`, `denied`, `subscribed`, `unsubscribed`.
 
 ## Styling
 
-The chat UI uses the same Tailwind v4 setup as the dashboard, with an identical `globals.css` theme. The dark color scheme (`#212121` background, `#3C8FFF` primary, `#FD486B` destructive) provides visual consistency. Custom classes include `.text-gradient`, `.bg-gradient-brand`, `.glow-border`, `.animated-border`, and `.input-glow`.
+The chat UI uses the same Tailwind v4 setup as the dashboard, with its own `globals.css` theme (`supervisor/chat/src/styles/globals.css`). The dark color scheme (`#1A1A1A` background, `#0069FE` primary, `#F04D68` destructive) stays visually consistent with the dashboard. Custom classes include `.text-gradient`, `.bg-gradient-brand`, `.glow-border`, `.animated-border`, and `.input-glow`.
 
 ## How dist-chat/ Works
 
@@ -216,6 +216,6 @@ The chat UI is pre-built and shipped as static files:
 3. Two HTML entry points: `chat.html` and `onboard.html`.
 4. The supervisor serves these files statically for any request matching `/bloby/*`.
 5. The `dist-chat/` directory is included in the npm package's `files` array.
-6. If `dist-chat/` is missing at startup (e.g., first run after clone), the supervisor auto-builds it.
+6. If `dist-chat/` is missing at startup (e.g., the postinstall build failed silently), the supervisor auto-builds it with `npx vite build --config vite.chat.config.ts`.
 
 This approach means the chat never depends on a dev server being alive -- it works even if Vite crashes, the Node process is restarting, or the dashboard is rebuilding.

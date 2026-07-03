@@ -76,123 +76,43 @@ Both front matter keys are mandatory: `name` must equal the skill's folder name,
 
 ### 2.3 Built-in Skills
 
-Morphy ships with three built-in skills.
+Morphy ships with six built-in skills: four channel skills (they teach the agent how to behave on an external surface), one device integration, and one meta-skill for authoring more skills.
 
-#### 2.3.1 code-reviewer
+#### 2.3.1 whatsapp
 
-**Directory**: `workspace/skills/code-reviewer/`
+**Directory**: `workspace/skills/whatsapp/`
 
-**Purpose**: Reviews code changes and provides improvement suggestions across the Morphy full-stack (React + Tailwind frontend, Express + SQLite backend).
+Gives the agent a WhatsApp number, built on Baileys (no Meta Business API needed). Covers QR-code pairing, messaging, voice-note transcription, and the personal (channel) and business modes. The agent's plain text response IS the WhatsApp reply -- the supervisor delivers it, no API calls needed.
 
-**Front matter** (`SKILL.md`):
+#### 2.3.2 telegram
 
-```yaml
-name: code-reviewer
-description: Reviews code changes and provides improvement suggestions.
-```
+**Directory**: `workspace/skills/telegram/`
 
-**Activation triggers**: User asks to "review", "check", or "audit" code; requests feedback on changes; asks about code quality or best practices.
+Gives the agent its own Telegram bot. The user creates a free bot via Telegram's @BotFather and pastes the token into a connect page; the agent then holds the token locally and long-polls Telegram directly, with no relay or middle server in the message path. Covers messaging, voice notes, photos, and channel/business/assistant modes. In business mode, Telegram user ids in the `admins` array get the full system prompt while everyone else gets the customer persona from the active skill's SCRIPT.md.
 
-**What it does**:
+#### 2.3.3 alexa
 
-The skill provides the agent with a structured review checklist covering:
+**Directory**: `workspace/skills/alexa/`
 
-- **Frontend (React + Tailwind)**: Component structure, performance (unnecessary re-renders, missing memoization), accessibility (semantic HTML, ARIA, keyboard nav), styling consistency, error handling (boundaries, loading states, fallbacks).
-- **Backend (Express + SQLite)**: Route structure (HTTP methods, status codes), input validation and sanitization, database safety (parameterized queries), security (no exposed secrets, auth checks), performance (N+1 queries, indexes).
+A voice channel through the public **Morphy** skill in the Alexa store. Users enable the skill once in the Alexa app, pair their Alexa to a specific Morphy with a 6-digit code, then say "Alexa, ask Morphy ...". Because Alexa is strictly request/response with a hard latency budget, the skill teaches a voice-first response style and a three-pattern decision tree: fast direct answer, chat-deferred (finish the work later and surface it in chat), or Home-Assistant-announce-deferred.
 
-**Output format**: The agent structures its response into three sections:
+#### 2.3.4 mac
 
-- **Issues** -- Bugs or potential problems with severity ratings.
-- **Suggestions** -- Improvements with rationale.
-- **Praise** -- Things done well to reinforce good patterns.
+**Directory**: `workspace/skills/mac/`
 
-#### 2.3.2 daily-standup
+Drives the Morphy native macOS companion app (menu bar + MacBook notch). Activates on the `[Mac]` message tag, and when the user asks to get or install the Mac app (the DMG download links and setup walkthrough live in this skill). Each turn the agent replies with a concise spoken line (TTS) and can optionally drive the Mac's action registry via a `<mac_actions>` JSON array: render a notch card, point the mascot at something on screen, or spotlight a control. Custom hand-written HTML cards use `<notch_html>`; proactive pushes (PULSE/cron) wrap the same registry in `<mac_push>`. Card presets and reusable snippets ship in the skill's `presets/` and `frequentSnippets/` folders.
 
-**Directory**: `workspace/skills/daily-standup/`
+#### 2.3.5 plaud
 
-**Purpose**: Generates daily standup summaries by analyzing recent file changes, git history, and workspace activity.
+**Directory**: `workspace/skills/plaud/`
 
-**Front matter** (`SKILL.md`):
+Plaud Note voice-recorder integration. Pairs the user's Plaud account (email OTP, or paste-token for Google/Apple identities), pulls recordings off Plaud's cloud into `workspace/files/audio/plaud/`, and routes transcription through either the Morphy Marketplace audio-to-text service (pay-per-minute) or the user's own provider (Groq, OpenAI Whisper, Mistral Voxtral, or local).
 
-```yaml
-name: daily-standup
-description: Generates daily standup summaries from recent workspace activity.
-```
+#### 2.3.6 create-skill
 
-**Activation triggers**: User asks for a "standup", "daily update", or "progress report"; asks "what changed recently?" or "what did I work on?"; wants a summary of recent activity.
+**Directory**: `workspace/skills/create-skill/`
 
-**What it does**:
-
-The skill instructs the agent to:
-
-1. Check `git log` for recent commits (last 24 hours or since last standup).
-2. Check modified files using `git status` and `git diff`.
-3. Identify patterns: new features, bug fixes, refactors, documentation.
-
-**Output format** -- a structured standup report:
-
-```plain
-### Daily Standup -- {date}
-
-**Completed:**
-- List of completed work items based on commits and changes
-
-**In Progress:**
-- Uncommitted changes or partially completed work
-
-**Blockers:**
-- Any issues identified from error logs or failing tests
-
-**Next Steps:**
-- Suggested priorities based on the current state of the project
-```
-
-**Rules**: Keep it concise (2-3 bullet points per section), skip trivial changes, use plain language, link to specific files when helpful.
-
-This skill pairs naturally with the cron system. A cron like `{ "id": "morning-standup", "schedule": "0 9 * * 1-5", ... }` can trigger a daily standup automatically every weekday at 9 AM.
-
-#### 2.3.3 workspace-helper
-
-**Directory**: `workspace/skills/workspace-helper/`
-
-**Purpose**: Helps manage and understand the Morphy workspace structure -- project layout, file organization, code navigation, and scaffolding.
-
-**Front matter** (`SKILL.md`):
-
-```yaml
-name: workspace-helper
-description: Helps manage and understand the Morphy workspace structure.
-```
-
-**Activation triggers**: User asks about the project layout, file organization, where things are, how the workspace is structured; needs help navigating the codebase; asks to scaffold new components, pages, or API routes.
-
-**What it does**:
-
-The skill provides the agent with a complete map of the workspace:
-
-```plain
-workspace/
-  client/                 React + Vite + Tailwind frontend
-    index.html            HTML shell, PWA manifest
-    src/
-      main.tsx            React DOM entry
-      App.tsx             Root component with error boundary
-      components/         UI components
-  backend/
-    index.ts              Express server (port 3004, accessed at /app/api/*)
-  .env                    Environment variables for the backend
-  app.db                  SQLite database for workspace data
-  files/                  Uploaded file storage (audio, images, documents)
-```
-
-It encodes key architectural rules:
-
-- Frontend is served by Vite with HMR -- changes picked up instantly.
-- Backend runs on port 3004, proxied through `/app/api/*` -- the prefix is stripped, so routes are defined as `/health` not `/app/api/health`.
-- Backend auto-restarts on file changes.
-- Only files inside `workspace/` may be modified. Never touch `supervisor/`, `worker/`, `shared/`, or `bin/`.
-
-It also provides scaffolding instructions for adding new pages (component + route in App.tsx + Tailwind) and new API routes (route in backend/index.ts + frontend calls at `/app/api/{route}`).
+A meta-skill that teaches the agent how to author new skills (and sharpen existing ones) the Morphy way. It triggers when the user wants to teach the agent a repeatable capability -- "turn this into a skill", "make a skill for X", "save this workflow" -- and walks a capture-intent / draft / test / sharpen loop. It also covers packaging a skill (optionally with live widgets and pages) as a blueprint to sell on the marketplace.
 
 ### 2.4 How to Create a New Skill
 
@@ -253,7 +173,7 @@ Send a message to Morphy that matches your skill's activation criteria. Skills a
 - **Be specific in the description**: The `description` field in YAML front matter is the agent's primary signal for skill selection. Vague descriptions lead to the skill being ignored or over-applied.
 - **Structure output formats**: Give the agent a template to follow. This produces consistent, predictable output.
 - **Include rules**: Constraints like "keep it concise" or "never modify files outside workspace/" prevent the agent from going off-track.
-- **Pair with crons**: Skills become powerful when combined with scheduled triggers. A `code-reviewer` skill + a daily cron = automated code review reports.
+- **Pair with crons**: Skills become powerful when combined with scheduled triggers. A skill that defines a report format + a daily cron = an automated daily report, delivered over whichever channel skill the user prefers.
 
 ### 2.5 MCP Configuration (MCP.json)
 
@@ -302,37 +222,23 @@ Array entries are merged into a single object via `Object.assign({}, ...mcpConfi
 
 #### How MCP Servers Are Loaded
 
-In `supervisor/bloby-agent.ts`, MCP configuration is read from disk on every agent query:
+MCP loading lives inside the harnesses (`supervisor/bloby-agent.ts` is only the harness dispatcher and contains no MCP code):
+
+- **Claude harness** (`supervisor/harnesses/claude.ts`): `loadMcpServers()` reads `workspace/MCP.json` from disk each time a conversation session or one-shot query is built. It accepts the canonical object map, or the legacy array merged via `Object.assign({}, ...mcpConfig)`. The result is passed straight to the Claude Agent SDK as the `mcpServers` option:
 
 ```typescript
-let mcpServers: Record<string, any> | undefined;
-try {
-    const mcpConfigPath = path.join(WORKSPACE_DIR, 'MCP.json');
-    const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf-8'));
-    if (
-        mcpConfig &&
-        typeof mcpConfig === 'object' &&
-        !Array.isArray(mcpConfig) &&
-        Object.keys(mcpConfig).length
-    ) {
-        mcpServers = mcpConfig;
-    } else if (Array.isArray(mcpConfig) && mcpConfig.length) {
-        mcpServers = Object.assign({}, ...mcpConfig);
-    }
-} catch {}
+const options = {
+    // ...
+    systemPrompt,
+    mcpServers, // from loadMcpServers()
+    agents,
+    skills,
+};
 ```
 
-The loaded servers are passed to the Claude Agent SDK:
+- **Codex harness** (`supervisor/harnesses/codex.ts`): `loadMcpServersForCodex()` reads the same file (additionally accepting a `{ "mcpServers": { ... } }` wrapper), and `buildMcpConfigArgs()` translates each entry into `codex app-server -c mcp_servers.<name>.<field>=...` spawn flags, because codex sources MCP from its own config layer rather than a per-query parameter. Both stdio entries (`command`/`args`/`env`) and streamable-HTTP entries (`url`/`headers`) are supported; non-string values are coerced to strings where codex's config requires them.
 
-```typescript
-const claudeQuery = query({
-    prompt: sdkPrompt,
-    options: {
-        // ...
-        mcpServers,
-    },
-});
-```
+- **Pi harness**: no MCP support.
 
 If `MCP.json` does not exist or is empty, no MCP servers are loaded and the agent runs with its default tool set (file read/write/edit, bash, etc.).
 
@@ -343,6 +249,6 @@ If `MCP.json` does not exist or is empty, no MCP servers are loaded and the agen
 - **External APIs**: Wrap any REST API in an MCP server to give the agent access to third-party services.
 - **Custom tools**: Build domain-specific tools (deployment, monitoring, CI/CD) and expose them through MCP.
 
-Like skills, MCP configuration is re-read on every query, so changes to `MCP.json` take effect on the next agent interaction without a restart.
+Like skills, MCP configuration is re-read from disk when a session is built (Claude harness) or when the codex app-server is spawned for a conversation, so changes to `MCP.json` take effect on the next new session without restarting Morphy.
 
 ---

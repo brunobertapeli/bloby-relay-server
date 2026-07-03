@@ -9,6 +9,6 @@ title: "Build Outputs"
 | `npm run build`                            | Both                | Both `dist/` and `dist-chat/` | Full production build (runs both in sequence) |
 | `npm run build:chat`                      | Chat only           | `dist-chat/`                  | Rebuild chat SPA only                         |
 
-The `dist/` directory is gitignored. The `dist-chat/` directory is committed to git and included in the npm package so that users get a pre-built chat UI without needing to run a build step.
+Both `dist/` and `dist-chat/` are gitignored. `dist-chat/` is built at publish time (the `prepublishOnly` script runs `vite build --config vite.chat.config.ts`) and shipped in the npm package through the `files` allowlist, so users get a pre-built chat UI without needing to run a build step.
 
 ---

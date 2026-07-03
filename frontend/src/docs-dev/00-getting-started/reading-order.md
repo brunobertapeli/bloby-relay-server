@@ -8,7 +8,9 @@ title: Reading Order
 2. [Project Structure](02-project-structure.md) -- find your way around the code
 3. [Tech Stack](03-tech-stack.md) -- know what you're working with
 
-**Second session (set up):** 4. [Development Setup](12-development-setup.md) -- get it running locally
+**Second session (get it running):**
+
+4. [Development Setup](12-development-setup.md) -- get it running locally
 
 **Then dive into whichever system you'll be working on:**
 
@@ -19,4 +21,4 @@ title: Reading Order
 - Database --> [08](08-database-schema.md)
 - Auth/security --> [09](09-authentication-and-security.md)
 - Scheduler/skills --> [10](10-scheduler-and-skills.md)
-- Networking/tunnels --> [11](11-networking-and-tunnels.md)
+- Networking/relay --> [11](11-networking-and-tunnels.md)

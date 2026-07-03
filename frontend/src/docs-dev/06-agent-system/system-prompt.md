@@ -4,114 +4,131 @@ title: "System Prompt"
 
 ## 2. System Prompt Construction
 
-The system prompt is built in two stages: a base prompt with placeholder replacement, then enrichment with memory files and conversation history.
+The system prompt is built in two stages: a base prompt assembled per harness (with placeholder replacement and dynamic fragments), then enrichment with memory files, channel config, and conversation history.
 
 ### 2.1 Base Prompt
 
-The base prompt lives at `worker/prompts/bloby-system-prompt.txt` (381 lines). It is read by `readSystemPrompt()` in `supervisor/bloby-agent.ts` (line 98):
+There is one base prompt file per harness, all under `worker/prompts/`:
+
+| Harness | `ai.provider` | Base prompt file |
+|---|---|---|
+| Claude (Agent SDK) | `anthropic` | `bloby-system-prompt.txt` |
+| Codex (app-server) | `openai` | `bloby-system-prompt-codex.txt` |
+| Pi | `pi` | `bloby-system-prompt-pi.txt` |
+
+Assembly happens in `assembleSystemPrompt()` in `worker/prompts/prompt-assembler.ts`, imported by every harness (`supervisor/harnesses/claude.ts`, `codex.ts`, `pi/index.ts`). It does three things:
+
+1. **Reads the base prompt** for the active harness. If a harness-specific file is missing or empty it falls back to `bloby-system-prompt.txt`; if nothing is readable, a minimal one-line fallback is used.
+
+2. **Replaces placeholders.** `$BOT` and `$HUMAN` become the user-configured agent and user names:
 
 ```ts
-function readSystemPrompt(botName = 'Morphy', humanName = 'Human'): string {
-  const raw = fs.readFileSync(PROMPT_FILE, 'utf-8').trim();
-  return raw.replace(/\$BOT/g, botName).replace(/\$HUMAN/g, humanName);
-}
+return raw.replace(/\$BOT/g, botName).replace(/\$HUMAN/g, humanName);
 ```
 
-The `$BOT` and `$HUMAN` placeholders are replaced with the user-configured agent and user names, fetched from the worker API's `/api/onboard/status` endpoint (lines 507-512 of `supervisor/index.ts`).
+The names come from the in-process worker API (`/api/onboard/status`), fetched by the supervisor before each query.
 
-The prompt path is resolved relative to `import.meta.dirname` (line 14):
+3. **Applies dynamic fragments.** Swappable sections of the base prompt are wrapped in `<!-- dynamic:target --> ... <!-- /dynamic:target -->` markers. `prompt-fragments.json` defines the fragments (`replace`, `remove`, or `append`, ordered by `priority`), and `prompt-conditions.ts` maps each fragment id to an async condition function evaluated at query time. Condition results can supply variables that are interpolated into fragment content via `{{variable}}` placeholders; for `replace`/`remove` the first matching fragment per target wins, and leftover marker comments are stripped from the final prompt. Example: the `workspace-security` marker is swapped depending on whether the official Workspace Lock blueprint, a custom lock, or no lock is installed. The full playbook is `DYNAMIC-PROMPTS.md`.
 
-```ts
-const PROMPT_FILE = path.join(import.meta.dirname, '..', 'worker', 'prompts', 'bloby-system-prompt.txt');
-```
-
-If the file is missing or empty, a minimal fallback is used (lines 103-108).
+The three base files start as identical copies and are tuned independently per model. The fragment machinery is shared: a marker must exist in each base file a fragment should affect.
 
 ### 2.2 Prompt Structure
 
-The system prompt (`bloby-system-prompt.txt`) is organized into these major sections:
+The Claude base prompt (`bloby-system-prompt.txt`) is organized into these major sections:
 
 1. **Identity** -- Establishes who the agent is, that it has full machine access, and communicates through a chat bubble. It is explicitly told it is not a CLI tool but an agent with a home.
 
 2. **Context** -- Tells the agent its memory files are already injected into the system prompt and should not be re-read with tools. It should still WRITE to memory files to persist information.
 
-3. **Memory System** -- Detailed rules for the memory file hierarchy (see Section 5 below). Includes the golden rule: "Before ending any interaction, write down anything worth remembering."
+3. **Memory System** -- Rules for the memory file hierarchy: daily notes (`memory/YYYY-MM-DD.md`), `MEMORY.md`, `MYSELF.md`, `MYHUMAN.md`. Includes the golden rule: "Before ending any interaction, write down anything worth remembering."
 
-4. **PULSE and CRON** -- Instructions for handling `<PULSE/>` and `<CRON>id</CRON>` trigger messages from the scheduler. Covers config file editing, quiet hours, importance rating, and the `<Message>` output tag.
+4. **PULSE and CRON** -- Instructions for handling `<PULSE/>` and `<CRON>id</CRON>` trigger messages from the scheduler. Covers config file editing, quiet hours, importance rating, and the `<Message>` output tag. Includes **Self-Update** (version check plus the supervisor's update control endpoint, which queues the update until the turn ends) and **Task Files** (`tasks/{cron-id}.md` files that extend cron task definitions with detailed instructions).
 
-5. **Self-Update** -- How the agent checks for and triggers its own updates via `touch ~/.morphy/workspace/.update`.
+5. **How You Work** -- The agent owns the work (sub-agents report to it, not the human), background-work etiquette, skills, channel surface tags and channel discipline, proactive sends, the marketplace and payments, dashboard linking.
 
-6. **Task Files** -- How `tasks/{cron-id}.md` files extend cron task definitions with detailed instructions.
+6. **Coding Excellence** -- Action orientation, read-before-modify, simplicity rules, the stop-looping hard rule, parallel operations, security awareness.
 
-7. **Coding Excellence** -- Action orientation, read-before-modify, simplicity rules, parallel operations, security awareness.
+7. **Workspace Architecture** -- Frontend (React + Vite + Tailwind), Backend (Express), Database (SQLite), routing rules (the `/app/api` prefix stripping), build rules (never run builds manually), package installation, backend lifecycle (auto-restart), MCP servers (`MCP.json`), sacred directories the agent must never modify (`supervisor/`, `worker/`, `shared/`, `bin/`), workspace security (a dynamic section, see 2.1), and the modular mini-app philosophy.
 
-8. **Workspace Architecture** -- Frontend (React + Vite + Tailwind), Backend (Express), Database (SQLite), routing rules (the `/app/api` prefix stripping), build rules (never run builds manually), backend lifecycle (auto-restart).
+8. **Personality and Conduct** -- Communication style, internal vs. external action rules, error handling philosophy.
 
-9. **MCP Servers** -- How `MCP.json` configures external tool servers (Playwright, Fetch, etc.).
+9. **Relationship Awareness** -- Reading the room, the first-encounter message, evolving the relationship naturally.
 
-10. **Sacred Files** -- Directories the agent must never modify (`supervisor/`, `worker/`, `shared/`, `bin/`).
+10. **Idle Behavior** -- What to do when nothing is asked of it.
 
-11. **Personality and Conduct** -- Communication style, internal vs. external action rules, error handling philosophy.
-
-12. **Self-Evolution** -- The agent is told its memory files, identity, and operating manual are all its own to evolve.
+11. **Self-Evolution** -- The agent is told its memory files, identity, and operating manual are all its own to evolve.
 
 ### 2.3 Memory Injection
 
-After the base prompt is read and placeholders are replaced, `startBlobyAgentQuery()` appends memory file contents (line 139):
+After `assembleSystemPrompt()` returns, each harness appends the memory file contents. The code lives in each harness (shown here from `supervisor/harnesses/claude.ts`; `codex.ts` and `pi/index.ts` append the identical block):
 
-```ts
-enrichedPrompt += `\n\n---\n# Your Memory Files\n\n## MYSELF.md\n${memoryFiles.myself}` +
-  `\n\n## MYHUMAN.md\n${memoryFiles.myhuman}\n\n## MEMORY.md\n${memoryFiles.memory}` +
-  `\n\n---\n# Your Config Files\n\n## PULSE.json\n${memoryFiles.pulse}` +
-  `\n\n## CRONS.json\n${memoryFiles.crons}`;
+```
+---
+# Your Memory Files
+
+## MYSELF.md
+...
+## MYHUMAN.md
+...
+## MEMORY.md
+...
+
+---
+# Your Config Files
+
+## PULSE.json
+...
+## CRONS.json
+...
 ```
 
-The `readMemoryFiles()` function (line 45) reads all five files from `WORKSPACE_DIR`:
+The `readMemoryFiles()` helper reads all five files from the workspace directory:
 
 ```ts
 function readMemoryFiles() {
   return {
-    myself:  readMemoryFile('MYSELF.md'),
+    myself: readMemoryFile('MYSELF.md'),
     myhuman: readMemoryFile('MYHUMAN.md'),
-    memory:  readMemoryFile('MEMORY.md'),
-    pulse:   readMemoryFile('PULSE.json'),
-    crons:   readMemoryFile('CRONS.json'),
+    memory: readMemoryFile('MEMORY.md'),
+    pulse: readMemoryFile('PULSE.json'),
+    crons: readMemoryFile('CRONS.json'),
   };
 }
 ```
 
-Each file is read synchronously. If a file is missing or empty, `'(empty)'` is returned (lines 35-42).
+Each file is read synchronously from `WORKSPACE_DIR`. If a file is missing or empty, `'(empty)'` is returned. If any channels are configured (`channels` in the config), a `# Channel Config` section with the channels JSON is appended as well. One exception: one-shot queries that carry a `supportPrompt` (the customer-facing support persona) use that prompt as-is, skipping the assembled base and the memory/channel blocks.
 
 ### 2.4 Conversation History Injection
 
-If recent messages exist, they are appended as a final section (lines 141-143):
+If recent messages exist, they are appended as a final section:
 
 ```ts
 if (recentMessages?.length) {
-  enrichedPrompt += `\n\n---\n# Recent Conversation\n${formatConversationHistory(recentMessages)}`;
+  systemPrompt += `\n\n---\n# Recent Conversation\n${formatConversationHistory(recentMessages)}`;
 }
 ```
 
-The `formatConversationHistory()` function (line 56) produces a simple `role: content` format:
+The `formatConversationHistory()` helper produces a simple `role: content` format:
 
 ```ts
 function formatConversationHistory(messages: RecentMessage[]): string {
+  if (!messages.length) return '';
   return messages.map((m) => `${m.role}: ${m.content}`).join('\n\n');
 }
 ```
 
-Messages are fetched from the database via the worker API at `/api/conversations/{id}/messages/recent?limit=20` (line 509 of `supervisor/index.ts`). The current user message is excluded from the history (it is sent as the SDK prompt, not injected into the system prompt -- lines 515-524).
+The supervisor fetches messages from the in-process worker API at `/api/conversations/{id}/messages/recent?limit=30`, filters them to `user`/`assistant` roles, and drops the newest entry: the current user message is excluded from the history because it is sent as the harness prompt itself, not injected into the system prompt.
 
 ### 2.5 Context Enrichment
 
-Unlike some agent frameworks, Morphy does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the Claude Agent SDK's built-in tool set plus any configured MCP servers and installed skills.
+Unlike some agent frameworks, Morphy does not explicitly inject the current timestamp or tool availability list into the system prompt. The agent discovers the current time by running shell commands (e.g., `date`), and tool availability is determined by the active harness's built-in tool set plus any configured MCP servers and installed skills.
 
-The working directory context is provided implicitly via the `cwd` option in the SDK query (line 196):
+The working directory context is provided implicitly. Every harness runs the agent with the workspace as its working directory; in the Claude harness this is the `cwd` option of the SDK query:
 
 ```ts
-cwd: path.join(PKG_DIR, 'workspace'),
+cwd: WORKSPACE_DIR,
 ```
 
-This means the agent's file operations and shell commands execute relative to the `workspace/` directory.
+`WORKSPACE_DIR` (defined in `shared/paths.ts`) defaults to the `workspace/` directory under the package install, overridable with the `MORPHY_WORKSPACE` environment variable. The agent's file operations and shell commands execute relative to it.
 
 ---

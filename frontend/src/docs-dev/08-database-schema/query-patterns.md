@@ -16,8 +16,8 @@ export function getSetting(key: string): string | undefined {
 }
 ```
 
-`better-sqlite3` internally caches compiled statements, so this pattern has
-negligible overhead.
+Statement compilation in SQLite is fast, so re-preparing inside each call has
+negligible overhead for this workload.
 
 ### 7.2 Parameterized Queries
 
@@ -67,14 +67,20 @@ to retrieve the last N rows ordered ascending:
 
 ```sql
 SELECT * FROM (
-  SELECT * FROM messages WHERE conversation_id = ?
-  ORDER BY created_at DESC LIMIT ?
-) sub ORDER BY created_at ASC
+  SELECT messages.*, messages.rowid AS _rid FROM messages
+  WHERE conversation_id = ? ORDER BY messages.rowid DESC LIMIT ?
+) sub ORDER BY _rid ASC
 ```
 
 The inner query selects the N most recent rows (descending), and the outer query
-re-sorts them chronologically (ascending). This is a standard SQLite pattern
-since window functions or complex CTEs are unnecessary for this use case.
+re-sorts them chronologically (ascending). Ordering uses `rowid` (monotonic
+insertion order) rather than `created_at`, because `created_at` has one-second
+resolution and rapid-fire messages can collide; `rowid` never does. Since
+`rowid` is a hidden column that `SELECT *` omits, the inner query aliases it as
+`_rid` so the outer `ORDER BY` can reach it. `getMessagesBefore` applies the
+same pattern for cursor-based pagination, comparing against the anchor
+message's `rowid` (message ids are random hex, so `id < ?` would be
+meaningless).
 
 ### 7.6 Expiry Filtering at Query Time
 
@@ -89,14 +95,20 @@ SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')
 This means an expired token will never be considered valid, even if
 `deleteExpiredSessions()` has not been called recently.
 
-### 7.7 Implicit Transactions
+### 7.7 Transactions
 
-The codebase does not use explicit `BEGIN`/`COMMIT` transactions. Each
-statement runs in its own implicit auto-commit transaction. In the
-`addMessage()` function, the INSERT and UPDATE are two separate auto-commit
-operations. If the process crashes between them, the message would be persisted
-but the conversation's `updated_at` would not be updated -- a benign
-inconsistency.
+Most statements run in their own implicit auto-commit transaction. The one
+multi-statement write path, `addMessage()`, wraps its statements in an explicit
+`better-sqlite3` `db.transaction()`:
+
+1. A self-heal `INSERT OR IGNORE INTO conversations` that creates the parent
+   row if it is missing (orphan live conversation id, deleted parent), so the
+   foreign key constraint never fires.
+2. The message `INSERT ... RETURNING *`.
+3. An `UPDATE` bumping the conversation's `updated_at`.
+
+All three commit atomically -- a crash mid-way leaves no partial state, such as
+a persisted message with a stale conversation `updated_at`.
 
 ### 7.8 Synchronous API
 

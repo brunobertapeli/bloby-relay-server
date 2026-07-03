@@ -6,25 +6,28 @@ All paths are relative to the repository root.
 
 ### Core Infrastructure (agent must never modify)
 
-| File                        | Responsibility                                                     |
-| --------------------------- | ------------------------------------------------------------------ |
-| `supervisor/index.ts`       | HTTP server, reverse proxy, WebSocket, process orchestration       |
-| `supervisor/worker.ts`      | Worker process spawn/stop/restart with crash recovery              |
-| `supervisor/backend.ts`     | Backend process spawn/stop/restart with crash recovery             |
-| `supervisor/tunnel.ts`      | Cloudflare tunnel lifecycle (quick + named), binary management     |
-| `supervisor/vite-dev.ts`    | Vite dev server startup, HMR attachment to supervisor server       |
-| `supervisor/bloby-agent.ts` | Claude Agent SDK wrapper, memory injection, session management     |
-| `supervisor/scheduler.ts`   | PULSE + CRON 60s tick loop, push notification dispatch             |
-| `supervisor/file-saver.ts`  | Attachment storage (audio, images, documents)                      |
-| `supervisor/widget.js`      | Chat bubble + slide-out panel injected into dashboard              |
-| `worker/index.ts`           | Express API server, SQLite, auth, conversations, push              |
-| `worker/db.ts`              | SQLite schema, CRUD, auto-migrations                               |
-| `worker/claude-auth.ts`     | Claude OAuth PKCE, token refresh, Keychain integration             |
-| `shared/config.ts`          | Load/save `~/.morphy/config.json`                                   |
-| `shared/paths.ts`           | Path constants: PKG_DIR, DATA_DIR, WORKSPACE_DIR                   |
-| `shared/relay.ts`           | Relay API client (register, heartbeat, disconnect, tunnel update)  |
-| `shared/ai.ts`              | AI provider abstraction (Anthropic, OpenAI, Ollama) with streaming |
-| `shared/logger.ts`          | Colored console logging with timestamps                            |
+| File                          | Responsibility                                                     |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `supervisor/index.ts`         | HTTP server, reverse proxy, WebSocket, process orchestration       |
+| `supervisor/backend.ts`       | Backend process spawn/stop/restart with crash recovery             |
+| `supervisor/relay-tunnel.ts`  | Persistent carrier client: outbound WSS to the bot's edge Durable Object |
+| `supervisor/vite-dev.ts`      | Vite dev server startup, HMR attachment to supervisor server       |
+| `supervisor/bloby-agent.ts`   | Agent harness dispatcher (routes calls to the active harness by provider) |
+| `supervisor/harnesses/`       | Harness implementations: `claude.ts` (Claude Agent SDK), `codex.ts` (Codex app-server), `pi/` |
+| `supervisor/channels/`        | Messaging channel adapters (WhatsApp, Telegram, Alexa) + channel manager |
+| `supervisor/scheduler.ts`     | PULSE + CRON 60s tick loop, scheduled agent turns, push dispatch   |
+| `supervisor/file-saver.ts`    | Attachment storage (audio, images, documents)                      |
+| `supervisor/widget.js`        | Chat bubble + slide-out panel injected into dashboard              |
+| `worker/index.ts`             | Worker API (`createWorkerApp`, mounted in-process by the supervisor): SQLite, auth, conversations, push |
+| `worker/db.ts`                | SQLite schema, CRUD, auto-migrations                               |
+| `worker/claude-auth.ts`       | Claude OAuth PKCE, token refresh, Keychain integration             |
+| `worker/codex-auth.ts`        | OpenAI OAuth paste-back flow, credentials in `~/.codex/auth.json`  |
+| `worker/prompts/prompt-assembler.ts` | Dynamic system prompt assembly for the agent harnesses      |
+| `shared/config.ts`            | Load/save `~/.morphy/config.json`, defaults, legacy config migration |
+| `shared/paths.ts`             | Path constants: PKG_DIR, DATA_DIR, WORKSPACE_DIR                   |
+| `shared/relay.ts`             | Relay API client (handle register/claim/release, carrier tickets, disconnect) |
+| `shared/ai.ts`                | AI provider abstraction (Anthropic, OpenAI, Ollama) with streaming |
+| `shared/logger.ts`            | Colored console logging with timestamps                            |
 
 ### Workspace (agent can freely modify)
 
@@ -49,7 +52,7 @@ All paths are relative to the repository root.
 | -------------------------- | ----------------------------------------------------- |
 | `~/.morphy/config.json`     | Port, AI provider, tunnel mode, relay token           |
 | `~/.morphy/memory.db`       | SQLite -- conversations, messages, settings, sessions |
-| `~/.morphy/bin/cloudflared` | Cloudflare tunnel binary                              |
+| `~/.morphy/supervisor.json` | Runtime marker (pid, port, version) the CLI reads to detect a running supervisor |
 | `~/.morphy/workspace/`      | User's workspace copy (runtime)                       |
 
 ---

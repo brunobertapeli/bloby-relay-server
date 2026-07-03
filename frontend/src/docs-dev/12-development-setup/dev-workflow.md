@@ -7,32 +7,30 @@ title: "Development Workflow"
 ### Editing supervisor code (`supervisor/*.ts`, `shared/*.ts`)
 
 - `tsx watch` detects the change and restarts the entire supervisor process.
-- All child processes (worker, backend, Vite) are stopped and respawned.
+- The backend child process is torn down and respawned; the in-process worker
+  and the Vite dev server come back up with the supervisor.
 - Full restart takes 2-5 seconds.
 - All WebSocket connections are dropped; the chat UI and dashboard reconnect
   automatically.
 
-**Tip:** If you only need to test an API change in the worker, consider editing
-the worker files and restarting manually rather than relying on `tsx watch`
-(which restarts on *supervisor* file changes).
-
 ### Editing worker code (`worker/*.ts`)
 
-- The worker is **not independently watched** by `tsx watch`. Changes to
-  `worker/*.ts` do not trigger an automatic restart.
-- To pick up changes, either:
-  - Touch/save any `supervisor/*.ts` file to trigger a full restart.
-  - Manually kill and restart the dev server (`Ctrl+C` then `npm run dev`).
-- Alternatively, run the worker in isolation:
-  `WORKER_PORT=3001 node --import tsx/esm worker/index.ts`
+- The worker runs **in-process** inside the supervisor: `worker/index.ts`
+  exports `createWorkerApp()`, which the supervisor mounts on its own HTTP
+  server. There is no separate worker process and no worker port.
+- Because `worker/index.ts` is part of the supervisor's import graph, `tsx
+  watch` picks up changes to `worker/*.ts` and restarts the whole supervisor,
+  exactly as it does for `supervisor/*.ts` edits.
+- There is no way to reload just the worker; a worker edit is a full restart.
 
 ### Editing dashboard code (`workspace/client/src/**`)
 
 - Vite HMR picks up changes instantly. No restart needed.
 - Component state is preserved across edits (React Fast Refresh).
 - CSS changes (Tailwind) are applied without a page reload.
-- The Vite dev server proxies `/api/*` to the worker and `/app/api/*` to the
-  user backend, so dashboard code can call APIs during development.
+- The supervisor serves `/api/*` from the in-process worker and proxies
+  `/app/api/*` to the user backend, so dashboard code can call both during
+  development.
 
 ### Editing user backend code (`workspace/backend/**`)
 
@@ -72,12 +70,12 @@ the worker files and restarting manually rather than relying on `tsx watch`
 There is no automated test suite as of the current version. Testing is manual:
 
 1. **API testing:** Use `curl` or a tool like Postman against
-   `http://localhost:3000/api/*`.
-2. **Dashboard testing:** Open `http://localhost:3000` in a browser.
-3. **Chat UI testing:** Open `http://localhost:3000/bloby` in a browser.
-4. **Backend testing:** Hit `http://localhost:3000/app/api/*` endpoints.
+   `http://localhost:7400/api/*`.
+2. **Dashboard testing:** Open `http://localhost:7400` in a browser.
+3. **Chat UI testing:** Open `http://localhost:7400/bloby` in a browser.
+4. **Backend testing:** Hit `http://localhost:7400/app/api/*` endpoints.
 5. **WebSocket testing:** The chat UI connects via
-   `ws://localhost:3000/bloby/ws`. Browser DevTools (Network tab, WS filter)
+   `ws://localhost:7400/bloby/ws`. Browser DevTools (Network tab, WS filter)
    shows message traffic.
 
 ---

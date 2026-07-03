@@ -17,7 +17,8 @@
     "09-authentication-and-security",
     "10-scheduler-and-skills",
     "11-networking-and-tunnels",
-    "---Contributing---",
-    "12-development-setup"
+    "---Development---",
+    "12-development-setup",
+    "14-marketplace-and-modules"
   ]
 }

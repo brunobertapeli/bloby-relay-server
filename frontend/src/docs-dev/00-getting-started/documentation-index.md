@@ -6,7 +6,7 @@ title: Documentation Index
 
 | #   | Document                                     | Description                                                                    |
 | --- | -------------------------------------------- | ------------------------------------------------------------------------------ |
-| 12  | [Development Setup](12-development-setup.md) | Prerequisites, cloning, running in dev mode, building, debugging -- start here |
+| 12  | [Development Setup](12-development-setup.md) | Prerequisites, running in dev mode, building, debugging -- start here          |
 
 ### Architecture & Design
 
@@ -32,4 +32,5 @@ title: Documentation Index
 | 07  | [Frontend: Dashboard & Chat](07-frontend-dashboard-and-chat.md) | Dual frontend architecture, React apps, Vite configs, component hierarchy |
 | 09  | [Authentication & Security](09-authentication-and-security.md)  | Password auth, sessions, 2FA/TOTP, OAuth PKCE, WebSocket auth, Web Push   |
 | 10  | [Scheduler & Skills](10-scheduler-and-skills.md)                | PULSE/CRON systems, skill architecture, how to create skills              |
-| 11  | [Networking & Tunnels](11-networking-and-tunnels.md)            | Port allocation, Cloudflare tunnels, Morphy Relay, reverse proxy internals |
+| 11  | [Networking & Relay](11-networking-and-tunnels.md)            | Port allocation, the Morphy carrier and its Cloudflare edge, stable public URLs, reverse proxy internals |
+| 14  | [Marketplace & Modules](14-marketplace-and-modules.md)         | Module system, Stripe purchase and redeem flow, autonomous agent buying, x402 wallets |

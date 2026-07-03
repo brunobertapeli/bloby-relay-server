@@ -8,7 +8,7 @@ title: "Error Handling"
 |---|---|
 | `200` | Success (all successful responses) |
 | `400` | Bad Request -- missing/invalid parameters, invalid state |
-| `401` | Unauthorized -- wrong password, invalid TOTP code, expired session |
+| `401` | Unauthorized -- missing/invalid portal token (supervisor auth gate), wrong password, invalid TOTP code, expired session |
 | `500` | Internal Server Error -- QR code generation failure, VAPID key issues, transcription failure |
 | `502` | Bad Gateway -- upstream API error (Whisper API) |
 
@@ -27,10 +27,16 @@ endpoints).
 
 ### Unhandled Routes
 
-There is no catch-all 404 handler. Express returns its default HTML 404
-for unmatched routes.
+The Worker app has no catch-all 404 handler. An `/api` request that clears
+the supervisor's auth gate but matches no route gets Express's default HTML
+404. (When a password is set, an unknown route that is not on the public
+allowlist is rejected earlier with a `401` JSON body by the gate.)
 
 ### Process-Level Cleanup
 
-On `SIGTERM`, the process closes the SQLite database and the HTTP server,
-then exits with code 0.
+The Worker runs inside the supervisor process, so cleanup is the
+supervisor's shutdown handler. On `SIGINT` or `SIGTERM` it disconnects
+channels, stops the scheduler and user backend, closes the SQLite database
+(`closeDb()`), closes the relay carrier socket and HTTP server, then exits
+with code 0 (with a 5-second hard-exit deadline so a hung teardown step can
+never block shutdown).

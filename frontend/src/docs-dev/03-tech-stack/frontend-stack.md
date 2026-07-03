@@ -12,22 +12,20 @@ The main management UI. Full-featured SPA.
 | ------------------------------ | ------------ | -------------------------------------------- |
 | **react**                      | ^19.2.4      | UI framework                                 |
 | **react-dom**                  | ^19.2.4      | DOM renderer                                 |
-| **vite**                       | ^7.3.1       | Build tool and dev server                    |
-| **@vitejs/plugin-react**       | ^5.1.4       | React Fast Refresh + JSX transform           |
+| **vite**                       | ^8.0.3       | Build tool and dev server                    |
+| **@vitejs/plugin-react**       | ^6.0.1       | React Fast Refresh + JSX transform           |
 | **tailwindcss**                | ^4.2.0       | Utility-first CSS framework (v4)             |
 | **@tailwindcss/vite**          | ^4.2.0       | Vite-native Tailwind integration             |
-| **@tailwindcss/postcss**       | ^4.2.0       | PostCSS fallback (present but not active)    |
+| **react-router**               | ^7.13.2      | Client-side routing                          |
 | **radix-ui**                   | ^1.4.3       | Accessible headless UI primitives            |
 | **class-variance-authority**   | ^0.7.1       | Variant-driven component styling (shadcn)    |
 | **clsx**                       | ^2.1.1       | Conditional className construction           |
 | **tailwind-merge**             | ^3.5.0       | Intelligent Tailwind class deduplication     |
 | **zustand**                    | ^5.0.11      | Lightweight state management                 |
 | **framer-motion**              | ^12.34.3     | Declarative animations and gestures          |
-| **three**                      | ^0.183.1     | 3D rendering engine                          |
-| **@react-three/fiber**         | ^9.5.0       | React reconciler for Three.js                |
-| **@react-three/drei**          | ^10.7.7      | Helpers and abstractions for R3F             |
 | **recharts**                   | ^3.7.0       | Composable charting library                  |
-| **lucide-react**               | ^0.575.0     | Icon library (tree-shakeable SVG icons)      |
+| **driver.js**                  | ^1.4.0       | Guided product tours (workspace onboarding)  |
+| **lucide-react**               | ^1.7.0       | Icon library (tree-shakeable SVG icons)      |
 | **sonner**                     | ^2.0.7       | Toast notification system                    |
 | **date-fns**                   | ^4.1.0       | Date utility functions                       |
 
@@ -48,17 +46,16 @@ CSS globals live at `workspace/client/src/styles/globals.css`. Component aliases
 
 The embeddable chat interface and onboarding flow. Served under `/bloby/`.
 
-| Dependency                       | Version    | Purpose                              |
-| -------------------------------- | ---------- | ------------------------------------ |
-| **react**                        | ^19.2.4    | UI framework                         |
-| **react-dom**                    | ^19.2.4    | DOM renderer                         |
-| **react-markdown**               | ^10.1.0    | Markdown rendering in chat bubbles   |
-| **remark-gfm**                   | ^4.0.1     | GitHub Flavored Markdown support     |
-| **react-syntax-highlighter**     | ^16.1.0    | Code block syntax highlighting       |
-| **framer-motion**                | ^12.34.3   | Chat animations                      |
-| **lucide-react**                 | ^0.575.0   | Icons                                |
+| Dependency                       | Version    | Purpose                                        |
+| -------------------------------- | ---------- | ---------------------------------------------- |
+| **react**                        | ^19.2.4    | UI framework                                   |
+| **react-dom**                    | ^19.2.4    | DOM renderer                                   |
+| **streamdown**                   | ^2.5.0     | Streaming-safe Markdown rendering in chat bubbles |
+| **@streamdown/code**             | ^1.1.1     | Code block syntax highlighting for streamdown  |
+| **framer-motion**                | ^12.34.3   | Chat animations                                |
+| **lucide-react**                 | ^1.7.0     | Icons                                          |
 
-This build has **two HTML entry points** configured via Rollup:
+This build has **two HTML entry points** configured via `rolldownOptions`:
 
 - `chat.html` -- the main chat interface.
 - `onboard.html` -- the first-run setup wizard.
@@ -73,6 +70,6 @@ The `postcss.config.js` is intentionally **empty** -- Tailwind CSS v4 is handled
 
 Both Vite configs explicitly pre-bundle heavy dependencies via `optimizeDeps.include` to avoid cold-start waterfall requests:
 
-**Dashboard:** react, react-dom/client, react/jsx-runtime, lucide-react, framer-motion, recharts, zustand, sonner, use-sync-external-store.
+**Dashboard:** react, react-dom, react-dom/client, react/jsx-runtime, react-router, driver.js, lucide-react, framer-motion, recharts, zustand, sonner, radix-ui, class-variance-authority, clsx, tailwind-merge, use-sync-external-store.
 
-**Chat:** react, react-dom/client, react/jsx-runtime, lucide-react, framer-motion, react-markdown, remark-gfm, react-syntax-highlighter (+ Prism One Dark theme), use-sync-external-store.
+**Chat:** react, react-dom/client, react/jsx-runtime, lucide-react, framer-motion, streamdown, @streamdown/code, use-sync-external-store.

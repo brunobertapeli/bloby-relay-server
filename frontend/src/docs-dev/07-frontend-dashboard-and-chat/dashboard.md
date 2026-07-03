@@ -24,10 +24,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/app/api': {
-        target: 'http://localhost:3004',
-        rewrite: (path) => path.replace(/^\/app\/api/, '') || '/',
+        target: 'http://localhost:7404',
+        rewrite: (path) => path.replace(/^\/app/, ''),
       },
-      '/api': 'http://localhost:3000',
+      '/api': 'http://localhost:7400',
     },
   },
   plugins: [react(), tailwindcss()],
@@ -39,11 +39,11 @@ Key points:
 - **Root** is `workspace/client`, not the project root.
 - **Path alias** `@` maps to `workspace/client/src` so imports can use `@/components/ui/button`.
 - **Build output** goes to `dist/` at the project root.
-- **Proxy rules** forward `/api` to the supervisor (port 3000) and `/app/api` to the user's backend server (port 3004 by default).
+- **Proxy rules** forward `/api` to the supervisor (port 7400) and `/app/api` to the user's backend server (port 7404 by default).
 - **Dep optimization** pre-bundles `react`, `react-dom/client`, `lucide-react`, `framer-motion`, `recharts`, `zustand`, and `sonner`.
 - **File watch ignores** database files (`.db`, `.db-journal`, `.db-wal`), log files, `.env`, and the `backend/` directory to avoid unnecessary rebuilds.
 
-In production (dev mode -- Morphy always runs in dev mode), the supervisor spawns Vite internally via `createViteServer()` in `supervisor/vite-dev.ts`. It binds to port `supervisor_port + 2` (e.g., 3002 when supervisor is on 3000) and attaches HMR directly to the supervisor's HTTP server so hot-module replacement works transparently through the proxy.
+In production (dev mode -- Morphy always runs in dev mode), the supervisor spawns Vite internally via `createViteServer()` in `supervisor/vite-dev.ts`. It binds to port `supervisor_port + 2` (e.g., 7402 when supervisor is on 7400) and attaches HMR directly to the supervisor's HTTP server so hot-module replacement works transparently through the proxy.
 
 ## Entry Point and App Structure
 
@@ -186,9 +186,9 @@ Tailwind v4 is used in CSS-first configuration mode. There is no `tailwind.confi
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #212121;
+  --color-background: #0A0A0A;
   --color-foreground: #f5f5f5;
-  --color-primary: #3C8FFF;
+  --color-primary: #0069FE;
   --color-primary-foreground: #ffffff;
   --color-destructive: #FD486B;
   --color-sidebar: #1c1c1c;
@@ -229,7 +229,7 @@ This is used throughout all shadcn and custom components for conditional class m
 
 The dashboard is installable as a PWA:
 
-- **`manifest.json`** in `workspace/client/public/` declares `display: "standalone"`, `start_url: "/"`, and the `#212121` theme color.
+- **`manifest.json`** in `workspace/client/public/` declares `display: "standalone"`, `start_url: "/"`, and the `#0A0A0A` theme color.
 - **`sw.js`** in `workspace/client/public/` is a minimal service worker that enables installability and handles push notifications. In production, the supervisor serves its own embedded copy of the service worker to ensure it stays in sync with updates.
 - **iOS-specific meta tags** in `index.html` (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`) ensure proper behavior when added to the home screen.
 
@@ -239,11 +239,11 @@ The dashboard is installable as a PWA:
 |---|---|---|
 | `react` | ^19.2.4 | UI framework |
 | `react-dom` | ^19.2.4 | DOM rendering |
-| `vite` | ^7.3.1 | Dev server and bundler |
+| `vite` | ^8.0.3 | Dev server and bundler |
 | `tailwindcss` | ^4.2.0 | Utility-first CSS |
 | `@tailwindcss/vite` | ^4.2.0 | Vite plugin for Tailwind v4 |
 | `zustand` | ^5.0.11 | Lightweight state management |
-| `lucide-react` | ^0.575.0 | Icon library |
+| `lucide-react` | ^1.7.0 | Icon library |
 | `framer-motion` | ^12.34.3 | Animation library |
 | `recharts` | ^3.7.0 | Chart library |
 | `sonner` | ^2.0.7 | Toast notifications |
