@@ -241,7 +241,7 @@ function Hero({ user, onLogin, onLogout }) {
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
-          Everything OpenClaw does.
+          Everything any agent does.
           <br />
           <span className="text-gradient">Plus a personal app you build together.</span>
         </motion.h1>
