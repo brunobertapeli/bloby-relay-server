@@ -81,8 +81,8 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
             Claim your address
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
-            Your Morphy &mdash; and everything it builds for you &mdash; will live
-            at your own corner of the internet. Yours forever.
+            Your Morphy, and everything it builds for you, will live at your own
+            corner of the internet. Yours forever.
           </p>
         </div>
 

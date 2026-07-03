@@ -241,23 +241,23 @@ function Hero({ user, onLogin, onLogout }) {
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
-          Stop downloading apps.
+          Everything OpenClaw does.
           <br />
-          <span className="text-gradient">Just ask for them.</span>
+          <span className="text-gradient">Plus a personal app you build together.</span>
         </motion.h1>
 
         <motion.p
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
-          Morphy is a personal AI agent &mdash; everything OpenClaw can do &mdash; living
-          inside a personal app that&apos;s 100% yours. A workout planner, a budget
-          tracker, a barbecue calculator for 28 guests: say the word, and watch it
-          appear in your app, ready to use in minutes.
+          Morphy is your personal AI agent, inside a personal app that&apos;s all yours.
+          Ask for a workout planner, a budget tracker, or a barbecue calculator for
+          28 guests. Morphy builds it while you watch, and it lives in your app from
+          then on.
         </motion.p>
 
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-2"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-5 sm:mb-6 px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={3}
         >
           <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
@@ -272,6 +272,14 @@ function Hero({ user, onLogin, onLogout }) {
             <FaPlay className="w-3 h-3" /> Watch Morphy in action
           </Button>
         </motion.div>
+
+        <motion.p
+          className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground/70 mb-12 sm:mb-16 px-4 py-2 rounded-full border border-border/60 bg-white/[0.02]"
+          initial="hidden" animate="visible" variants={fadeUp} custom={4}
+        >
+          <FaCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+          Runs on the Claude or ChatGPT subscription you already pay for. No extra AI costs.
+        </motion.p>
 
         <motion.div
           id="install"
@@ -425,7 +433,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
             <HiArrowLeft className="w-4 h-4" />
           </button>
           <p className="text-xs text-muted-foreground font-display">
-            {plan.name} &middot; ${plan.price}/mo &mdash; Select region
+            {plan.name} &middot; ${plan.price}/mo &middot; Select region
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1238,7 +1246,7 @@ function Terminal({ user, onLogin, onLogout }) {
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
               Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
-              Comfortable with a terminal required &mdash; if not, managed is the way.
+              You should be comfortable with a terminal. If not, managed is the way.
             </p>
           </motion.div>
         )}
@@ -1252,13 +1260,13 @@ function TwoThings() {
     {
       tag: 'The agent',
       title: 'A full AI agent working for you',
-      description: 'The same class of agent developers run with OpenClaw — powered by Claude, with its own computer and full freedom to act. It browses the web, remembers what matters, runs tasks on a schedule, and keeps working while you sleep.',
+      description: 'The same class of agent developers run with OpenClaw, with its own computer and full freedom to act. It browses the web, remembers what matters, runs tasks on a schedule, and keeps working while you sleep. And it runs on the Claude or ChatGPT subscription you already have.',
       points: ['Runs 24/7 on its own machine', 'Does research, errands & scheduled tasks', 'Talk to it by text or voice, from anywhere'],
     },
     {
       tag: 'The app',
       title: 'Living inside an app that is yours',
-      description: 'Morphy doesn\'t live in a terminal or a chat window. It lives at morphyagent.com/you — a real app with pages, a sidebar, and a database. Everything it builds for you shows up there, ready to use.',
+      description: 'Morphy doesn\'t live in a terminal or a chat window. It lives at morphyagent.com/you, a real app with pages, a sidebar, and a database. Everything it builds for you shows up there, ready to use.',
       points: ['Your own address on the internet', 'Every request becomes a tool in your sidebar', 'Watch it being built, live on your screen'],
     },
   ]
@@ -1275,8 +1283,8 @@ function TwoThings() {
             Two things in one. <span className="text-gradient">That&apos;s the trick.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            AI products give you an agent <em>or</em> an app. Morphy is the first that&apos;s
-            both at once &mdash; an agent that builds its own home around you.
+            AI products give you an agent <em>or</em> an app. Morphy is the first
+            that&apos;s both at once: an agent that builds its own home around you.
           </p>
         </motion.div>
 
@@ -1318,6 +1326,173 @@ function TwoThings() {
   )
 }
 
+function BringYourOwnAI() {
+  const providers = [
+    {
+      name: 'Claude',
+      tag: 'Anthropic',
+      description: 'Sign in with your Claude subscription through the official Claude Agent SDK. Your Morphy runs models like Opus 4.8 and Sonnet 5, and picks up new ones as they ship.',
+    },
+    {
+      name: 'ChatGPT',
+      tag: 'OpenAI',
+      description: 'Connect your ChatGPT plan through the official OpenAI Codex app server. Your Morphy runs the latest OpenAI models, like GPT-5.6, on the plan you already have.',
+    },
+  ]
+
+  return (
+    <section id="your-ai" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          className="text-center mb-10 sm:mb-14"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+            Your AI subscription <span className="text-gradient">works here.</span>
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+            Morphy never charges you for AI. Sign in with the plan you already pay
+            for, and your agent uses it.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+          {providers.map((p, i) => (
+            <motion.div
+              key={p.name}
+              className="p-6 sm:p-7 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500"
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+              variants={scaleIn} custom={i}
+            >
+              <div className="flex items-baseline gap-2.5 mb-2.5">
+                <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground">{p.name}</h3>
+                <span className="text-[11px] text-muted-foreground/60 font-display">{p.tag}</span>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed">{p.description}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.p
+          className="text-center text-sm text-muted-foreground/60 mt-6 sm:mt-8 px-2"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+          variants={fadeUp}
+        >
+          Already paying for Claude or ChatGPT? Then the AI inside Morphy costs you nothing extra.
+        </motion.p>
+      </div>
+    </section>
+  )
+}
+
+// Ecosystem cards. Screenshots go in public/assets/images/ecosystem/;
+// while an image is missing the card shows a styled placeholder, so
+// new cards can be added here before their screenshot exists.
+const ECOSYSTEM = [
+  {
+    image: '/assets/images/ecosystem/mac-notch.png',
+    title: 'Morphy for Mac',
+    description: 'The official Mac app. Talk to Morphy from the notch of your Mac, and it answers right there with rich visuals. Charts, notes, whole mini pages.',
+  },
+  {
+    image: '/assets/images/ecosystem/chrome-extension.png',
+    title: 'Chrome extension',
+    description: 'Morphy rides along while you browse. Ask about any page, clip anything into your app, and let your agent act on what you see.',
+  },
+  {
+    image: '/assets/images/ecosystem/alexa.png',
+    title: 'Official Alexa skill',
+    description: 'Say "Alexa, ask Morphy Agent to add rice to the grocery list." Your agent answers even when your phone is in another room.',
+  },
+  {
+    image: '/assets/images/ecosystem/wearables.png',
+    title: 'Wearables & gadgets',
+    description: 'Official skills for MentraOS glasses, Plaud AI, Google Fitbit, and smart rings. Your agent tags along wherever you go.',
+  },
+  {
+    image: '/assets/images/ecosystem/channels.png',
+    title: 'Every channel you use',
+    description: 'WhatsApp, Telegram, the Mac app, Alexa, and the chat inside your own app. One Morphy, one memory, every channel.',
+  },
+  {
+    image: '/assets/images/ecosystem/marketplace.png',
+    title: 'Skill marketplace',
+    description: 'Add official skills in one click: Excalidraw whiteboard, Apple Notes, Apple Reminders, Sticky Notes, Morphy Messenger, and more.',
+  },
+  {
+    image: '/assets/images/ecosystem/pwa-push.png',
+    title: 'On your phone',
+    description: 'Install Morphy on your phone like any app. When it finds something worth telling you, it sends you a push notification.',
+  },
+  {
+    image: '/assets/images/ecosystem/wallet.png',
+    title: 'A wallet of its own',
+    description: 'Native x402 payments out of the box, with wallets on Coinbase Base and Stripe Tempo. Add funds and your agent can buy what it needs online.',
+  },
+]
+
+function EcosystemCard({ item, index }) {
+  const [imgOk, setImgOk] = useState(true)
+
+  return (
+    <motion.div
+      className="group rounded-2xl border border-border bg-card overflow-hidden hover:glow-border-hover transition-all duration-500"
+      initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+      variants={scaleIn} custom={index}
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+    >
+      <div className="aspect-[16/10] bg-white/[0.03] border-b border-border/50 overflow-hidden">
+        {imgOk ? (
+          <img
+            src={item.image}
+            alt={item.title}
+            loading="lazy"
+            onError={() => setImgOk(false)}
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/[0.06] to-transparent">
+            <span className="text-2xl font-bold font-display text-foreground/15">{item.title}</span>
+          </div>
+        )}
+      </div>
+      <div className="p-4 sm:p-5">
+        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground mb-1.5">{item.title}</h3>
+        <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{item.description}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+function Ecosystem() {
+  return (
+    <section id="ecosystem" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          className="text-center mb-10 sm:mb-16"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+            One Morphy. <span className="text-gradient">Everywhere.</span>
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+            Morphy is a big project, and new pieces ship all the time. A few highlights.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {ECOSYSTEM.map((item, i) => (
+            <EcosystemCard key={item.title} item={item} index={i} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Features() {
   const features = [
     {
@@ -1333,23 +1508,23 @@ function Features() {
     {
       image: '/assets/images/icons/voice.png',
       title: 'Talk to it like a person',
-      description: 'Install it on your phone like any app. Send a voice note from the supermarket queue and Morphy gets to work. No tech talk needed — plain words are enough.'
+      description: 'Install it on your phone like any app. Send a voice note from the supermarket queue and Morphy gets to work. No tech talk needed. Plain words are enough.'
     },
     {
       image: '/assets/images/icons/chat.png',
       title: 'You can never break it',
-      description: 'The chat is kept separate from your app. Even if an experiment goes wrong, Morphy is right there — tell it what happened and it fixes things for you.',
+      description: 'The chat is kept separate from your app. Even if an experiment goes wrong, Morphy is right there. Tell it what happened and it fixes things for you.',
       scale: 'scale-105',
     },
     {
       image: '/assets/images/icons/hardware.png',
       title: 'Always on, everywhere',
-      description: 'Your Morphy runs 24/7 — on our managed cloud, or your own Mac Mini or Raspberry Pi if you prefer. Close your laptop; it keeps working.'
+      description: 'Your Morphy runs 24/7 on our managed cloud, or on your own Mac Mini or Raspberry Pi if you prefer. Close your laptop. It keeps working.'
     },
     {
       image: '/assets/images/icons/secure.png',
       title: 'Private by default',
-      description: 'Your app is protected by encrypted connections, a password, and optional 2FA. Share it with family or your team if you want — keep it to yourself if you don\'t.'
+      description: 'Your app is protected by encrypted connections, a password, and optional 2FA. Share it with family or your team if you want, or keep it all to yourself.'
     },
   ]
 
@@ -1366,7 +1541,7 @@ function Features() {
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
             Other AI agents live in a terminal. Morphy lives in an app that belongs
-            to you &mdash; and fills it with whatever your life needs next.
+            to you, and fills it with whatever your life needs next.
           </p>
         </motion.div>
 
@@ -1400,15 +1575,15 @@ function UseCases() {
   const cases = [
     {
       label: 'The barbecue for 28',
-      description: 'Sunday, 28 guests, and no idea how much meat to buy. He asks Morphy on the way to the market. By the time he parks, there\'s a barbecue calculator in his app — sliders for guests, cuts of meat, sides.',
+      description: 'Sunday, 28 guests, and no idea how much meat to buy. He asks Morphy on the way to the market. By the time he parks, there\'s a barbecue calculator in his app, with sliders for guests, cuts of meat, and sides.',
     },
     {
       label: 'A gym app for one',
-      description: 'She asked for a workout tracker built around her plan: her exercises, her rest timers. Mid-workout she says "Morphy, add pec deck on Tuesdays" — and it\'s done before her water break.',
+      description: 'She asked for a workout tracker built around her plan: her exercises, her rest timers. Mid-workout she says "Morphy, add pec deck on Tuesdays." It\'s done before her water break.',
     },
     {
       label: 'The family money hub',
-      description: 'Bills, savings goals, and the grocery budget in one password-protected dashboard the whole family can open. When life changes, they don\'t switch apps — they just tell Morphy.',
+      description: 'Bills, savings goals, and the grocery budget in one password-protected dashboard the whole family can open. When life changes, they don\'t switch apps. They just tell Morphy.',
     },
     {
       label: 'The one-person company',
@@ -1477,13 +1652,13 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Claim your Morphy',
-      description: 'Pick a plan and a name. About two minutes later your app is live at your own address — no installs, no setup.',
+      description: 'Pick a plan and a name. About two minutes later your app is live at your own address. No installs, no setup.',
       detail: 'morphyagent.com/yourname'
     },
     {
       num: '02',
       title: 'Ask for what you need',
-      description: 'Type it or say it, from your phone or laptop. Plain words — no tech talk required.',
+      description: 'Type it or say it, from your phone or laptop. Plain words, no tech talk required.',
       detail: '"Build me a meal planner"'
     },
     {
@@ -1566,8 +1741,8 @@ function MeetYours() {
             <span className="text-gradient">your Morphy?</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
-            Every Morphy starts the same. A week later, no two are alike &mdash;
-            because no two lives are. Get yours and start asking.
+            Every Morphy starts the same. A week later, no two are alike, because
+            no two lives are. Get yours and start asking.
           </p>
 
           <div className="flex justify-center gap-6 sm:gap-10 mb-8 sm:mb-10 pt-2">
@@ -1671,7 +1846,6 @@ function Footer() {
               <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
               <li><a href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Marketplace</a></li>
               <li><a href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Docs</a></li>
-              <li><a href="/world" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Morphy World</a></li>
             </ul>
           </div>
 
@@ -1890,7 +2064,9 @@ function Home() {
       <main>
         <Hero user={user} onLogin={handleLogin} onLogout={handleLogout} />
         <TwoThings />
+        <BringYourOwnAI />
         <Features />
+        <Ecosystem />
         <UseCases />
         <HowItWorks />
         <HandleSelector user={user} onLogin={handleLogin} reservedHandles={reservedHandles} onReserve={handleReserveHandle} />

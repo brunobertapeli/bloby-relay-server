@@ -116,14 +116,14 @@ export default function Privacy() {
                 <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">Prompt Injection & Data Exfiltration</h3>
                 <p className="mb-3">
                   Malicious content in emails, websites, or messages your agent processes could trick it into
-                  leaking private information — forwarding files, reading credentials, or sending data to
+                  leaking private information: forwarding files, reading credentials, or sending data to
                   unintended recipients. This is an inherent risk of AI agents that process untrusted input.
                 </p>
 
                 <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">Protect Your Identity</h3>
                 <p className="mb-3">
                   We strongly recommend giving your agent <strong className="text-foreground">its own email,
-                  phone number, and accounts</strong> — separate from your personal ones. If the agent sends
+                  phone number, and accounts</strong>, separate from your personal ones. If the agent sends
                   something unexpected or is compromised, your personal identity stays protected.
                 </p>
 
@@ -160,7 +160,7 @@ export default function Privacy() {
                   <strong className="text-foreground">Amazon sends us the text transcript</strong> along with
                   your anonymous Alexa user ID. Our relay forwards it directly to your own Morphy instance
                   (the tunnel running on your machine). The transcript is held in memory only for the
-                  duration of the request — we do not store it in any database or log file.
+                  duration of the request. We do not store it in any database or log file.
                 </li>
                 <li>
                   <strong className="text-foreground">Your agent processes the request and replies</strong>{' '}

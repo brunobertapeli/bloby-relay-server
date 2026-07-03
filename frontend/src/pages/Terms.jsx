@@ -85,7 +85,7 @@ export default function Terms() {
                   cause data loss, expose sensitive information, or compromise your system.
                 </p>
                 <ul className="list-disc list-inside space-y-1.5 mb-4">
-                  <li><strong className="text-foreground">Use a dedicated machine.</strong> We strongly recommend running Morphy on a separate computer, VM, or container — not your personal workstation. This isolates the blast radius if something goes wrong.</li>
+                  <li><strong className="text-foreground">Use a dedicated machine.</strong> We strongly recommend running Morphy on a separate computer, VM, or container, not your personal workstation. This isolates the blast radius if something goes wrong.</li>
                   <li><strong className="text-foreground">Limit file system scope.</strong> Morphy operates within its workspace directory. Do not place sensitive files (credentials, personal documents, financial data) in or near this directory.</li>
                   <li><strong className="text-foreground">Review agent actions.</strong> Monitor what your agent does, especially when first setting it up. Check logs regularly.</li>
                 </ul>
@@ -98,7 +98,7 @@ export default function Terms() {
                 <ul className="list-disc list-inside space-y-1.5 mb-4">
                   <li><strong className="text-foreground">Give the agent its own email address.</strong> Create a separate email account for agent communications. Never use your personal or work email.</li>
                   <li><strong className="text-foreground">Give the agent its own phone number.</strong> Use a dedicated SIM or virtual number for WhatsApp and other phone-based services. If the agent sends something inappropriate, your personal number stays clean.</li>
-                  <li><strong className="text-foreground">Use separate accounts everywhere.</strong> Any messaging platform, social media account, or service the agent accesses should be under a dedicated agent identity — not your personal one.</li>
+                  <li><strong className="text-foreground">Use separate accounts everywhere.</strong> Any messaging platform, social media account, or service the agent accesses should be under a dedicated agent identity, not your personal one.</li>
                 </ul>
 
                 <h3 className="text-sm font-semibold text-foreground mt-5 mb-2">API Key Management</h3>
@@ -115,8 +115,8 @@ export default function Terms() {
 
                 <h3 className="text-sm font-semibold text-foreground mt-5 mb-2">Prompt Injection</h3>
                 <p className="mb-3">
-                  Prompt injection is a class of attack where malicious text — hidden in emails, websites,
-                  documents, or messages — tricks your AI agent into executing unintended actions. Because
+                  Prompt injection is a class of attack where malicious text (hidden in emails, websites,
+                  documents, or messages) tricks your AI agent into executing unintended actions. Because
                   your agent has real system access, this is a serious risk.
                 </p>
                 <ul className="list-disc list-inside space-y-1.5 mb-4">
@@ -138,8 +138,8 @@ export default function Terms() {
                 <p>
                   If you expose your Morphy instance via a tunnel (Cloudflare, etc.), anyone with the URL can
                   attempt to access it. <strong className="text-foreground">Always set a strong portal password
-                  and enable two-factor authentication.</strong> Without these, your agent's full capabilities —
-                  including shell access — are effectively public.
+                  and enable two-factor authentication.</strong> Without these, your agent's full capabilities,
+                  including shell access, are effectively public.
                 </p>
               </div>
             </section>
@@ -165,7 +165,7 @@ export default function Terms() {
                 >
                   Alexa Privacy Policy
                 </a>
-                . The skill simply forwards your voice requests to your own self-hosted Morphy agent — we do
+                . The skill simply forwards your voice requests to your own self-hosted Morphy agent. We do
                 not control what your agent does in response. The same{' '}
                 <strong className="text-foreground">AI Agent Risks & Safety</strong> rules above apply: a
                 voice request can trigger any action your agent is capable of, so treat it exactly like a

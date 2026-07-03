@@ -1354,7 +1354,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground/70 font-display mb-5">
-            Each agent has its own USDC wallet. Top up via Stripe (Coinbase soon) — funds stay scoped to that agent.
+            Each agent has its own USDC wallet. Top up via Stripe (Coinbase soon). Funds stay scoped to that agent.
           </p>
           <AnimatePresence>
             {showClaim && (

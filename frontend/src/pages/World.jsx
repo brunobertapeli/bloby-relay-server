@@ -936,7 +936,7 @@ export default function BlobyWorld() {
           zIndex: 9999, color: '#fff', fontSize: 12, opacity: 0.6,
           background: '#000', padding: '4px 12px', borderRadius: 8,
         }}>
-          EDITOR MODE — press E to exit
+          EDITOR MODE. Press E to exit
         </div>
       )}
     </>
