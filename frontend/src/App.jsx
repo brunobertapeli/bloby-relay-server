@@ -1380,6 +1380,7 @@ function BringYourOwnAI() {
           variants={fadeUp}
         >
           Already paying for Claude or ChatGPT? Then the AI inside Morphy costs you nothing extra.
+          Prefer something else? API keys from other providers and local models work too.
         </motion.p>
       </div>
     </section>

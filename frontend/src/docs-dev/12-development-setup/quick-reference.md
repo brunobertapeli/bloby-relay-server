@@ -6,7 +6,7 @@ title: "Quick Reference"
 
 ```bash
 # Clone and install
-git clone https://github.com/<org>/bloby.git && cd morphy
+cd <your-local-copy-of-the-codebase>
 npm install
 
 # Create config (if it does not exist)

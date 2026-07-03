@@ -7,7 +7,6 @@ title: Documentation Index
 | #   | Document                                     | Description                                                                    |
 | --- | -------------------------------------------- | ------------------------------------------------------------------------------ |
 | 12  | [Development Setup](12-development-setup.md) | Prerequisites, cloning, running in dev mode, building, debugging -- start here |
-| 13  | [Contributing](13-contributing.md)           | Code organization principles, coding standards, common tasks, PR guidelines    |
 
 ### Architecture & Design
 

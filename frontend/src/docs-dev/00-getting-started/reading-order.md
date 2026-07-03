@@ -8,7 +8,7 @@ title: Reading Order
 2. [Project Structure](02-project-structure.md) -- find your way around the code
 3. [Tech Stack](03-tech-stack.md) -- know what you're working with
 
-**Second session (set up and contribute):** 4. [Development Setup](12-development-setup.md) -- get it running locally 5. [Contributing](13-contributing.md) -- coding standards and workflow
+**Second session (set up):** 4. [Development Setup](12-development-setup.md) -- get it running locally
 
 **Then dive into whichever system you'll be working on:**
 

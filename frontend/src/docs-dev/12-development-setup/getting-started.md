@@ -2,12 +2,12 @@
 title: "Getting Started"
 ---
 
-## 2. Getting Started (for Contributors)
+## 2. Getting Started
 
 ### Clone the repository
 
 ```bash
-git clone https://github.com/<org>/bloby.git
+cd <your-local-copy-of-the-codebase>
 cd morphy
 ```
 
