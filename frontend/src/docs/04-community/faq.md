@@ -4,9 +4,9 @@ title: FAQ
 
 # FAQ
 
-## Is Morphy free?
+## How much does Morphy cost?
 
-Yes. Morphy is open source and free to use. You need your own AI provider account (Claude or OpenAI), which has its own costs. The Morphy Relay free tier is also free.
+The managed version starts at $29/mo — we host, update, and maintain your instance on AWS. Self-hosting on your own hardware is free. Either way, you need your own AI provider account (Claude or OpenAI), which has its own costs. The Morphy Relay free tier is free.
 
 ## Does my data leave my machine?
 

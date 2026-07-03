@@ -4,9 +4,9 @@ title: Introduction
 
 # Introduction
 
-Welcome to Morphy — vibe coding in your pocket.
+Welcome to Morphy — your personal AI agent, inside your own personal app.
 
-Think of it as an AI coding agent like OpenClaw, but instead of living in your terminal, Morphy lives in its own full-stack app. You install it on any machine that stays on (Mac Mini, VPS, Raspberry Pi), and you get a URL you can visit from your phone, laptop, anywhere. Behind that URL is a PWA with a chat bubble — your direct line to the agent — and a workspace the agent builds and evolves through conversation.
+Think of it as an AI agent like OpenClaw, but instead of living in your terminal, Morphy lives in its own full-stack app. Get a managed instance (we host it for you on AWS), or install it on any machine that stays on (Mac Mini, VPS, Raspberry Pi). Either way, you get a URL you can visit from your phone, laptop, anywhere. Behind that URL is a PWA with a chat bubble — your direct line to the agent — and a workspace the agent builds and evolves through conversation.
 
 ## What makes Morphy different
 
@@ -16,10 +16,9 @@ Most AI coding agents give you a terminal or a chat window. Morphy gives the age
 - **Pocket vibe coding.** Talk to your agent from your phone, by text or voice, and watch it build real software.
 - **The chat never dies.** It runs in an isolated iframe — even if the agent breaks the workspace, you can always reach it and ask for fixes.
 - **Mini apps on demand.** "I need a calorie counter." The agent builds one and adds it to your sidebar.
-- **Runs on your hardware.** Your data never leaves your machine. Access it from anywhere via secure tunnels.
+- **Managed or self-hosted.** Let us run it for you on AWS, or run it on your own hardware via secure tunnels.
 - **It remembers you.** Memory files keep context across sessions.
 - **It wakes up on its own.** Scheduled tasks and periodic pulses keep it proactive.
-- **Open source.** Fork it, extend it, make it yours.
 
 ## How it works
 

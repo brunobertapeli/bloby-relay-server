@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { HiBars3, HiXMark, HiChevronRight, HiEllipsisVertical, HiChevronUpDown } from 'react-icons/hi2'
-import { FaGithub, FaTelegramPlane, FaCopy, FaCheck, FaLink } from 'react-icons/fa'
+import { FaTelegramPlane, FaCopy, FaCheck, FaLink } from 'react-icons/fa'
 
 // Load all markdown files at build time
 const userMdModules = import.meta.glob('../docs/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -72,7 +72,6 @@ const docSets = {
       {
         group: 'Community',
         items: [
-          { slug: 'contributing', title: 'Contributing' },
           { slug: 'faq', title: 'FAQ' },
         ],
       },
@@ -418,9 +417,6 @@ export default function Docs() {
           <div className="flex items-center gap-2 sm:gap-3">
             <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
               <FaTelegramPlane className="w-[18px] h-[18px]" />
-            </a>
-            <a href="#" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200">
-              <FaGithub className="w-[18px] h-[18px]" />
             </a>
             <button
               onClick={() => setSidebarOpen(true)}

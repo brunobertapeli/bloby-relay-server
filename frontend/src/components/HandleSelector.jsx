@@ -78,10 +78,11 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Reserve your handle
+            Claim your address
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
-            Pick a name for your bot. Access it from anywhere, forever.
+            Your Morphy &mdash; and everything it builds for you &mdash; will live
+            at your own corner of the internet. Yours forever.
           </p>
         </div>
 

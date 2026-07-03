@@ -54,7 +54,7 @@ export default function Privacy() {
 
               <h3 className="text-sm font-semibold text-foreground mt-4 mb-2">In the Morphy app</h3>
               <ul className="list-disc list-inside space-y-2">
-                <li>Nothing. The software is open source, runs locally, and collects zero data.</li>
+                <li>Nothing. The software runs on your own instance and collects zero data.</li>
                 <li>Messages you send through third-party AI providers (Anthropic, OpenAI, etc.) are governed by those providers' privacy policies, not ours.</li>
               </ul>
             </section>

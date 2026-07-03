@@ -4,7 +4,7 @@ import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresen
 import { Button } from './components/ui/button'
 import { Badge } from './components/ui/badge'
 import {
-  FaGithub, FaArrowRight, FaCopy, FaCheck, FaTelegramPlane, FaGoogle
+  FaArrowRight, FaCopy, FaCheck, FaTelegramPlane, FaGoogle, FaPlay
 } from 'react-icons/fa'
 import {
   HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
@@ -132,8 +132,77 @@ function AnimatedCounter({ target, duration = 2 }) {
   return <span ref={ref}>{display}</span>
 }
 
+// Demo video modal. Placeholder: drop the real hero demo at
+// public/assets/videos/morphy-demo.mp4 and it plays automatically;
+// until then the modal shows a "coming soon" panel.
+function DemoVideoModal({ open, onClose }) {
+  const [videoMissing, setVideoMissing] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [open, onClose])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+          <motion.div
+            className="relative w-full max-w-4xl"
+            initial={{ scale: 0.95, y: 12 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, y: 12 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          >
+            <button
+              onClick={onClose}
+              className="absolute -top-10 right-0 text-sm text-muted-foreground hover:text-foreground font-display transition-colors duration-200"
+            >
+              Close ✕
+            </button>
+            <div className="rounded-2xl overflow-hidden border border-border bg-[#111] aspect-video shadow-2xl shadow-black/60">
+              {videoMissing ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+                  <div className="w-14 h-14 rounded-full bg-white/5 border border-border flex items-center justify-center">
+                    <FaPlay className="w-4 h-4 text-muted-foreground ml-0.5" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-display">Demo video coming soon</p>
+                </div>
+              ) : (
+                <video
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full"
+                  onError={() => setVideoMissing(true)}
+                >
+                  <source src="/assets/videos/morphy-demo.mp4" type="video/mp4" />
+                </video>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 function Hero({ user, onLogin, onLogout }) {
   const [dropped, setDropped] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
 
   return (
     <section className="relative pb-8 sm:pb-14 overflow-hidden">
@@ -172,31 +241,35 @@ function Hero({ user, onLogin, onLogout }) {
           className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
-          Vibe coding
+          Stop downloading apps.
           <br />
-          <span className="text-gradient">in your pocket.</span>
+          <span className="text-gradient">Just ask for them.</span>
         </motion.h1>
 
         <motion.p
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
-          A self-hosted coding agent with its own full-stack app. Talk to it from
-          your phone and it builds real software like CRMs, research hubs, and mini tools
-          on demand. It runs on your hardware, you access it from anywhere, and your
-          workspace grows with every conversation.
+          Morphy is a personal AI agent &mdash; everything OpenClaw can do &mdash; living
+          inside a personal app that&apos;s 100% yours. A workout planner, a budget
+          tracker, a barbecue calculator for 28 guests: say the word, and watch it
+          appear in your app, ready to use in minutes.
         </motion.p>
 
         <motion.div
           className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={3}
         >
-          <Button className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group">
-            Demo
-            <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-          </Button>
-          <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
-            <FaGithub className="w-4 h-4" /> Star on GitHub
+          <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
+            Get your Morphy
+            <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
+          </a>
+          <Button
+            onClick={() => setVideoOpen(true)}
+            variant="outline"
+            className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto"
+          >
+            <FaPlay className="w-3 h-3" /> Watch Morphy in action
           </Button>
         </motion.div>
 
@@ -206,10 +279,11 @@ function Hero({ user, onLogin, onLogout }) {
           className="text-center mb-10 sm:mb-14"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Get started
+            Get your Morphy
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
-            Install locally or launch a hosted instance in seconds.
+            Pick a plan, pick a name, and your app is live in about two minutes.
+            We handle the servers, the updates, everything.
           </p>
         </motion.div>
 
@@ -219,6 +293,8 @@ function Hero({ user, onLogin, onLogout }) {
           <Terminal user={user} onLogin={onLogin} onLogout={onLogout} />
         </motion.div>
       </div>
+
+      <DemoVideoModal open={videoOpen} onClose={() => setVideoOpen(false)} />
     </section>
   )
 }
@@ -694,13 +770,11 @@ function Terminal({ user, onLogin, onLogout }) {
         { id: 'windows', label: 'Windows' },
         { id: 'npm', label: 'npm' },
         { id: 'oneliner', label: 'macOS / Linux' },
-        { id: 'hackable', label: 'Hackable' },
       ]
     : [
         { id: 'oneliner', label: 'macOS / Linux' },
         { id: 'npm', label: 'npm' },
         { id: 'windows', label: 'Windows' },
-        { id: 'hackable', label: 'Hackable' },
       ]
 
   const commands = {
@@ -713,11 +787,6 @@ function Terminal({ user, onLogin, onLogout }) {
     npm: [
       { comment: 'Install Morphy', command: 'npm i -g morphyagent' },
       { comment: 'Launch your workspace', command: 'morphy init' },
-    ],
-    hackable: [
-      { comment: 'Clone the repo', command: 'git clone https://github.com/bloby-ai/bloby.git' },
-      { comment: 'Install dependencies', command: 'cd morphy && npm install' },
-      { comment: 'Start Morphy', command: 'npm run dev' },
     ],
   }
 
@@ -1005,13 +1074,14 @@ function Terminal({ user, onLogin, onLogout }) {
   const modes = [
     {
       id: 'hosted',
-      title: 'Set it up for me',
-      desc: 'One click, hosted on Amazon AWS. We handle everything.',
+      title: 'Managed by us',
+      desc: 'Live in ~2 minutes on Amazon AWS. No setup, no maintenance.',
+      badge: 'Recommended',
     },
     {
       id: 'selfhost',
-      title: "I'll set it up myself",
-      desc: 'I have a Raspberry Pi, Mac Mini, or VPS. Free forever.',
+      title: 'Self-host',
+      desc: 'For tinkerers with a Mac Mini, Raspberry Pi, or VPS.',
     },
   ]
 
@@ -1029,6 +1099,11 @@ function Terminal({ user, onLogin, onLogout }) {
                 : 'border-border bg-card/50 hover:border-border/80'
             }`}
           >
+            {m.badge && (
+              <span className="absolute -top-2.5 right-3 text-[9px] font-display font-semibold bg-gradient-brand text-white px-2 py-0.5 rounded-full z-10">
+                {m.badge}
+              </span>
+            )}
             {mode === m.id && (
               <motion.div
                 layoutId="mode-glow"
@@ -1094,7 +1169,7 @@ function Terminal({ user, onLogin, onLogout }) {
               </div>
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
-              Fully managed Morphy instance on AWS. No setup, no maintenance.
+              Fully managed on AWS. No terminal, no maintenance, cancel anytime.
             </p>
           </motion.div>
         ) : (
@@ -1163,6 +1238,7 @@ function Terminal({ user, onLogin, onLogout }) {
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
               Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
+              Comfortable with a terminal required &mdash; if not, managed is the way.
             </p>
           </motion.div>
         )}
@@ -1171,38 +1247,109 @@ function Terminal({ user, onLogin, onLogout }) {
   )
 }
 
+function TwoThings() {
+  const halves = [
+    {
+      tag: 'The agent',
+      title: 'A full AI agent working for you',
+      description: 'The same class of agent developers run with OpenClaw — powered by Claude, with its own computer and full freedom to act. It browses the web, remembers what matters, runs tasks on a schedule, and keeps working while you sleep.',
+      points: ['Runs 24/7 on its own machine', 'Does research, errands & scheduled tasks', 'Talk to it by text or voice, from anywhere'],
+    },
+    {
+      tag: 'The app',
+      title: 'Living inside an app that is yours',
+      description: 'Morphy doesn\'t live in a terminal or a chat window. It lives at morphyagent.com/you — a real app with pages, a sidebar, and a database. Everything it builds for you shows up there, ready to use.',
+      points: ['Your own address on the internet', 'Every request becomes a tool in your sidebar', 'Watch it being built, live on your screen'],
+    },
+  ]
+
+  return (
+    <section id="two-things" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          className="text-center mb-10 sm:mb-16"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
+          variants={fadeUp}
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+            Two things in one. <span className="text-gradient">That&apos;s the trick.</span>
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+            AI products give you an agent <em>or</em> an app. Morphy is the first that&apos;s
+            both at once &mdash; an agent that builds its own home around you.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {halves.map((half, i) => (
+            <motion.div
+              key={half.tag}
+              className="relative p-6 sm:p-8 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500"
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+              variants={scaleIn} custom={i}
+            >
+              <span className="inline-flex items-center h-6 px-3 rounded-full bg-primary/10 border border-primary/20 text-[11px] font-display font-semibold text-[#4AEEFF] mb-4">
+                {half.tag}
+              </span>
+              <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2.5">{half.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed mb-5">{half.description}</p>
+              <ul className="space-y-2">
+                {half.points.map(point => (
+                  <li key={point} className="text-sm text-muted-foreground/80 flex items-start gap-2.5">
+                    <FaCheck className="w-3 h-3 text-[#0069FE] mt-1 shrink-0" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.p
+          className="text-center text-sm sm:text-base text-muted-foreground/70 mt-8 sm:mt-10 px-2"
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
+          variants={fadeUp}
+        >
+          You ask &rarr; Morphy builds &rarr; it&apos;s in your app.
+          <span className="text-foreground/80 font-medium"> That&apos;s the whole loop.</span>
+        </motion.p>
+      </div>
+    </section>
+  )
+}
+
 function Features() {
   const features = [
     {
-      image: '/assets/images/icons/sandbox.png',
-      title: 'Full-stack sandbox',
-      description: 'Frontend, backend, and database, all yours. Ask for a CRM today, a finance tracker tomorrow. Morphy adds them as modules to your workspace.'
-    },
-    {
-      image: '/assets/images/icons/chat.png',
-      title: 'Indestructible chat',
-      description: 'The chat runs in an isolated iframe. Even if the agent ships a breaking change, the chat never goes down. You can always talk to Morphy and ask for fixes.',
-      scale: 'scale-105',
-    },
-    {
       image: '/assets/images/icons/miniapps.png',
       title: 'Mini apps on demand',
-      description: '"I need a calorie counter." Morphy builds it, adds it to the sidebar, and it\'s ready in minutes. Your workspace grows one conversation at a time.'
+      description: '"I need a calorie counter." Morphy builds it, adds it to your sidebar, and it\'s ready in minutes. Your app grows one conversation at a time.'
     },
     {
-      image: '/assets/images/icons/hardware.png',
-      title: 'Runs on your hardware',
-      description: 'Mac Mini, VPS, Raspberry Pi, or anything that stays on. Install once, access from anywhere. Your data never leaves your machine.'
+      image: '/assets/images/icons/sandbox.png',
+      title: 'A real app, not a chat window',
+      description: 'Pages, a sidebar, and a database behind it. Ask for a contacts hub today, a finance tracker tomorrow. Everything you ask for lives together, in one place that\'s yours.'
     },
     {
       image: '/assets/images/icons/voice.png',
-      title: 'Voice & mobile-first',
-      description: 'A PWA you install like a native app. Send voice messages, and Morphy transcribes them with Whisper. It\'s like talking to your codebase.'
+      title: 'Talk to it like a person',
+      description: 'Install it on your phone like any app. Send a voice note from the supermarket queue and Morphy gets to work. No tech talk needed — plain words are enough.'
+    },
+    {
+      image: '/assets/images/icons/chat.png',
+      title: 'You can never break it',
+      description: 'The chat is kept separate from your app. Even if an experiment goes wrong, Morphy is right there — tell it what happened and it fixes things for you.',
+      scale: 'scale-105',
+    },
+    {
+      image: '/assets/images/icons/hardware.png',
+      title: 'Always on, everywhere',
+      description: 'Your Morphy runs 24/7 — on our managed cloud, or your own Mac Mini or Raspberry Pi if you prefer. Close your laptop; it keeps working.'
     },
     {
       image: '/assets/images/icons/secure.png',
-      title: 'Secure by default',
-      description: 'Encrypted tunnels via Cloudflare, portal password, and optional 2FA. Accessible from anywhere, but only by you.'
+      title: 'Private by default',
+      description: 'Your app is protected by encrypted connections, a password, and optional 2FA. Share it with family or your team if you want — keep it to yourself if you don\'t.'
     },
   ]
 
@@ -1218,7 +1365,8 @@ function Features() {
             Not just a chat. <span className="text-gradient">A whole app.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Other agents live in your terminal. Morphy lives in a full-stack app you access from anywhere, and builds whatever you need inside it.
+            Other AI agents live in a terminal. Morphy lives in an app that belongs
+            to you &mdash; and fills it with whatever your life needs next.
           </p>
         </motion.div>
 
@@ -1251,20 +1399,20 @@ function Features() {
 function UseCases() {
   const cases = [
     {
-      label: 'Personal dashboard',
-      description: 'A private, password-protected hub for your gym stats, finances, and contacts. All built by your agent, all in one place.',
+      label: 'The barbecue for 28',
+      description: 'Sunday, 28 guests, and no idea how much meat to buy. He asks Morphy on the way to the market. By the time he parks, there\'s a barbecue calculator in his app — sliders for guests, cuts of meat, sides.',
     },
     {
-      label: 'Team research hub',
-      description: 'Your agent runs daily lead research. Your team checks the findings at morphyagent.com/companybot every morning.',
+      label: 'A gym app for one',
+      description: 'She asked for a workout tracker built around her plan: her exercises, her rest timers. Mid-workout she says "Morphy, add pec deck on Tuesdays" — and it\'s done before her water break.',
     },
     {
-      label: 'Public showcase',
-      description: 'Leave your workspace open and share live reports, tools, or experiments with anyone who visits your URL.',
+      label: 'The family money hub',
+      description: 'Bills, savings goals, and the grocery budget in one password-protected dashboard the whole family can open. When life changes, they don\'t switch apps — they just tell Morphy.',
     },
     {
-      label: 'Tools on demand',
-      description: '"I need a meal planner." The agent builds it, adds it to the sidebar, and you\'re using it five minutes later.',
+      label: 'The one-person company',
+      description: 'His Morphy researches leads overnight and files them into a small CRM it built itself. Every morning the findings are waiting at his address, ready before his coffee is.',
     },
   ]
 
@@ -1277,10 +1425,11 @@ function UseCases() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            The ideas are <span className="text-gradient">endless.</span>
+            It&apos;s called Morphy <span className="text-gradient">for a reason.</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            One agent, one workspace, infinite possibilities. Here's what people are building.
+            One day it&apos;s a calculator, the next it&apos;s a CRM. It morphs into
+            whatever your week throws at you.
           </p>
         </motion.div>
 
@@ -1327,21 +1476,21 @@ function HowItWorks() {
   const steps = [
     {
       num: '01',
-      title: 'Install',
-      description: 'One command. Mac, Windows, Linux. The installer handles everything, Node.js included.',
-      detail: 'morphy init'
+      title: 'Claim your Morphy',
+      description: 'Pick a plan and a name. About two minutes later your app is live at your own address — no installs, no setup.',
+      detail: 'morphyagent.com/yourname'
     },
     {
       num: '02',
-      title: 'Talk',
-      description: 'Describe what you need in plain English. Or send a voice message from your phone.',
-      detail: '"Build me a contacts CRM"'
+      title: 'Ask for what you need',
+      description: 'Type it or say it, from your phone or laptop. Plain words — no tech talk required.',
+      detail: '"Build me a meal planner"'
     },
     {
       num: '03',
-      title: 'Use it everywhere',
-      description: 'Open it from your phone, laptop, anywhere. A PWA that\'s always on, always yours.',
-      detail: 'morphyagent.com/yourname'
+      title: 'Watch your app grow',
+      description: 'Every request becomes a new tool in your sidebar. Use it anywhere, change it anytime, keep it forever.',
+      detail: '"Add pec deck on Tuesdays"'
     },
   ]
 
@@ -1354,10 +1503,10 @@ function HowItWorks() {
           variants={fadeUp}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Install. Talk. Build anything.
+            Claim it. Ask. Watch it appear.
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            From zero to your own AI-powered workspace in under a minute.
+            From nothing to your own personal app in one conversation.
           </p>
         </motion.div>
 
@@ -1386,9 +1535,9 @@ function HowItWorks() {
   )
 }
 
-function OpenSource() {
+function MeetYours() {
   return (
-    <section id="open-source" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
+    <section id="meet-yours" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[200px] sm:h-[300px] bg-primary/[0.03] rounded-full blur-[120px]" />
       </div>
@@ -1412,44 +1561,41 @@ function OpenSource() {
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Built in the open.
+            Ready to meet
             <br />
-            <span className="text-gradient">Owned by everyone.</span>
+            <span className="text-gradient">your Morphy?</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
-            Morphy is fully open source. Fork it, run it, break it, rebuild it.
-            The best tools are the ones the community shapes together.
+            Every Morphy starts the same. A week later, no two are alike &mdash;
+            because no two lives are. Get yours and start asking.
           </p>
 
           <div className="flex justify-center gap-6 sm:gap-10 mb-8 sm:mb-10 pt-2">
             <div className="text-center">
               <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                <AnimatedCounter target={100} />%
+                ~<AnimatedCounter target={2} /> min
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Open source</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">To go live</div>
             </div>
             <div className="text-center">
               <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                <AnimatedCounter target={0} />
+                24/7
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Cloud required</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Always working</div>
             </div>
             <div className="text-center">
               <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                <AnimatedCounter target={100} />%
+                &infin;
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Your data</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Apps you can ask for</div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
             <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
-              Install Morphy
+              Get your Morphy
               <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
             </a>
-            <Button variant="outline" className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto">
-              <FaGithub className="w-4 h-4" /> Star on GitHub
-            </Button>
           </div>
         </motion.div>
       </div>
@@ -1509,14 +1655,11 @@ function Footer() {
               <img src="/assets/images/morphy_mascot.png" alt="Morphy" className="h-8 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              AI agent platform under BSL. Your agent, your rules.
+              Your personal AI agent, inside a personal app that&apos;s all yours.
             </p>
             <div className="flex items-center gap-3">
               <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
                 <FaTelegramPlane className="w-4 h-4" />
-              </a>
-              <a href="#" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
-                <FaGithub className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -1546,7 +1689,6 @@ function Footer() {
             <h4 className="text-sm font-semibold font-display text-foreground mb-4">Community</h4>
             <ul className="space-y-2.5">
               <li><a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Telegram</a></li>
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">GitHub</a></li>
             </ul>
           </div>
         </div>
@@ -1554,7 +1696,7 @@ function Footer() {
         {/* Bottom bar */}
         <div className="pt-6 border-t border-border/20 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground/60">
-            &copy; {new Date().getFullYear()} Morphy. Licensed under BSL.
+            &copy; {new Date().getFullYear()} Morphy. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a href="/terms" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Terms</a>
@@ -1747,11 +1889,12 @@ function Home() {
       <Navbar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <main>
         <Hero user={user} onLogin={handleLogin} onLogout={handleLogout} />
-        <HandleSelector user={user} onLogin={handleLogin} reservedHandles={reservedHandles} onReserve={handleReserveHandle} />
+        <TwoThings />
         <Features />
         <UseCases />
         <HowItWorks />
-        <OpenSource />
+        <HandleSelector user={user} onLogin={handleLogin} reservedHandles={reservedHandles} onReserve={handleReserveHandle} />
+        <MeetYours />
       </main>
       <Footer />
     </div>

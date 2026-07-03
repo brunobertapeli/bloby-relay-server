@@ -39,7 +39,7 @@ export default function Terms() {
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">Overview</h2>
               <p>
                 By using Morphy ("the Service"), you agree to these terms. Morphy is an AI agent
-                platform licensed under the Business Source License (BSL). The hosted version at morphyagent.com
+                platform. The hosted version at morphyagent.com
                 is provided as-is. If you don't agree with these terms, please don't use the Service.
               </p>
             </section>
@@ -47,11 +47,10 @@ export default function Terms() {
             <section>
               <h2 className="text-lg font-semibold font-display text-foreground mb-3">The Software</h2>
               <p>
-                Morphy is distributed under the <strong className="text-foreground">Business Source License (BSL)</strong>.
-                You may use and modify the software for non-production purposes. Production use requires a
-                valid commercial license unless the BSL terms have converted to a permissive license per the
-                schedule defined in the license file. The hosted version we operate is subject to these
-                additional terms.
+                Morphy is <strong className="text-foreground">proprietary software</strong>, all rights reserved.
+                You may install and run it for your own personal or internal use. You may not resell,
+                sublicense, or redistribute the software without our written permission. The hosted
+                version we operate is subject to these additional terms.
               </p>
             </section>
 
