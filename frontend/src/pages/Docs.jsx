@@ -203,15 +203,6 @@ const docSets = {
           { slug: 'dev-workflow', title: 'Dev Workflow' },
         ],
       },
-      {
-        group: 'Contributing',
-        items: [
-          { slug: 'coding-standards', title: 'Coding Standards' },
-          { slug: 'making-changes', title: 'Making Changes' },
-          { slug: 'testing', title: 'Testing' },
-          { slug: 'pr-guidelines', title: 'PR Guidelines' },
-        ],
-      },
     ],
   },
 }
