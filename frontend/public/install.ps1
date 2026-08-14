@@ -283,11 +283,17 @@ function Install-Morphy {
         }
 
         # Copy code files (never touches config.json, memory.db, etc.)
-        foreach ($file in @("package.json", "vite.config.ts", "vite.chat.config.ts", "tsconfig.json", "postcss.config.js", "components.json")) {
+        foreach ($file in @("package.json", "npm-shrinkwrap.json", "vite.config.ts", "vite.chat.config.ts", "tsconfig.json", "postcss.config.js", "components.json")) {
             $src = Join-Path $extracted $file
             if (Test-Path $src) {
                 Copy-Item -Path $src -Destination (Join-Path $MORPHY_HOME $file) -Force
             }
+        }
+
+        # The shrinkwrap pins the exact dependency tree; a stale package-lock.json
+        # from a pre-shrinkwrap install would conflict with it.
+        if (Test-Path (Join-Path $MORPHY_HOME "npm-shrinkwrap.json")) {
+            Remove-Item -Path (Join-Path $MORPHY_HOME "package-lock.json") -Force -ErrorAction SilentlyContinue
         }
 
         # Copy pre-built UI from tarball, or build from source

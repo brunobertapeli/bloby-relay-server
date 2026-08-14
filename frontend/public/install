@@ -294,9 +294,13 @@ install_morphy() {
   fi
 
   # Copy code files (never touches config.json, memory.db, etc.)
-  for f in package.json vite.config.ts vite.chat.config.ts tsconfig.json postcss.config.js components.json; do
+  for f in package.json npm-shrinkwrap.json vite.config.ts vite.chat.config.ts tsconfig.json postcss.config.js components.json; do
     [ -f "$EXTRACTED/$f" ] && cp "$EXTRACTED/$f" "$MORPHY_HOME/"
   done
+
+  # The shrinkwrap pins the exact dependency tree; a stale package-lock.json
+  # from a pre-shrinkwrap install would conflict with it.
+  [ -f "$MORPHY_HOME/npm-shrinkwrap.json" ] && rm -f "$MORPHY_HOME/package-lock.json"
 
   # Copy pre-built UI from tarball, or build from source
   if [ -d "$EXTRACTED/dist-chat" ]; then
