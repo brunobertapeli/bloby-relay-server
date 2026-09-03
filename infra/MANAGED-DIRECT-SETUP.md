@@ -17,13 +17,16 @@ how the live system was built so a future change is mechanical.
 
 ---
 
-## Current golden AMI — `morphy-golden-v2`
+## Current golden AMI — `morphy-golden-v3` (2026-09-03, agent 0.5.0)
 
-| Region | AMI ID |
-|--------|--------|
-| us-east-1 | `ami-0ce59f56351efd54a` |
-| eu-central-1 | `ami-01eb42c7c21a53b5d` |
-| sa-east-1 | `ami-0e78338c9d50be5ed` |
+| Region | AMI ID | snapshot |
+|--------|--------|----------|
+| us-east-1 | `ami-0aa5eb0bc5c015bd0` | `snap-0c0a4c0a7ce4743e0` |
+| eu-central-1 | `ami-082d0b4f75f505f29` | `snap-0dc945db83e9555ea` |
+| sa-east-1 | `ami-02f6b2b7a3e441cf2` | `snap-07662794d36dc99dc` |
+
+Previous `morphy-golden-v2` (`ami-0ce59f56351efd54a` / `ami-01eb42c7c21a53b5d` /
+`ami-0e78338c9d50be5ed`) is still registered as a rollback until v3 has provisioned a real box.
 
 Set in `backend/.env` (`AMI_*`), `backend/lib/aws.js` (fallback defaults), and **Railway**.
 
@@ -94,11 +97,14 @@ RELAY_DOMAIN=morphyagent.com
 CALLBACK_BASE_URL=https://api.morphyagent.com
 CF_API_TOKEN=cfut_...            # verified active, Zone:DNS:Edit on morphyagent.com
 CF_ZONE_ID=...                   # morphyagent.com ZONE id (not Account id)
-DEV_PROVISION_SECRET=...         # enables POST /api/instances/dev-launch
-BILLING_DISABLED=1               # TESTING ONLY — provision + reserve handles free (no Stripe)
-AMI_US_EAST_1=ami-0ce59f56351efd54a
-AMI_EU_CENTRAL_1=ami-01eb42c7c21a53b5d
-AMI_SA_EAST_1=ami-0e78338c9d50be5ed
+DEV_PROVISION_SECRET=...         # enables POST /api/instances/dev-launch — UNSET in production
+BILLING_DISABLED=1               # TESTING ONLY — provision + reserve handles free (no Stripe) — UNSET in production
+AGENT_VERSION=0.4.7              # exact morphyagent version new boxes install (unset = keep the AMI's baked copy)
+SUSPEND_GRACE_DAYS=14            # stopped-box retention after a subscription ends, before termination
+PROVISION_TIMEOUT_MS=1500000     # sweeper: stuck provisioning → failed after this (default 25 min)
+AMI_US_EAST_1=ami-0aa5eb0bc5c015bd0
+AMI_EU_CENTRAL_1=ami-082d0b4f75f505f29
+AMI_SA_EAST_1=ami-02f6b2b7a3e441cf2
 SG_US_EAST_1=sg-023fa7964b46feb25
 SG_EU_CENTRAL_1=sg-0956278b8533089dc
 SG_SA_EAST_1=sg-0ab1b5fa370b4e673
@@ -212,18 +218,35 @@ On `ready`: `dig +short mytest.morphyagent.com` → Cloudflare anycast IPs; `htt
   `provision.sh` now installs them as an explicit retried step, and they're baked into the AMI.
   `better-sqlite3` ships a prebuilt arm64 binary, so no compiler is needed.
 - **Managed bots never heartbeat** (tunnel.mode=off). The relay sets `isOnline:true` in the `ready`
-  callback (and keeps `lastHeartbeat:null` so no staleness check ever flips it gray), links
-  `accountId` at provision time (auto-claim), and the box reports its wallet via `POST /api/wallet`
-  at boot (`reportWallet`). A managed handle that backs an instance is flagged `managed`/`used` so
-  the dashboard shows "In Use" instead of an activation code.
-- **Stop/start changes the public IP** → the restart handler refreshes the A-record. Elastic IP per
-  instance removes the flap (prod hardening).
+  callback (keeping `lastHeartbeat:null` so no staleness check flips it), and from then on the
+  **sweeper** (`backend/lib/sweeper.js`, every 5 min) mirrors the real EC2 state into `isOnline`.
+  `accountId` is linked at provision time (auto-claim), and the box reports its wallet via
+  `POST /api/wallet` at boot (`reportWallet`). A managed handle that backs an instance is flagged
+  `managed`/`used` so the dashboard shows "In Use" instead of an activation code.
+- **Elastic IP per box** (2026-09-03): `publishDns` allocates + associates an EIP at first `ready`,
+  so stop/start, pause/resume and AWS retirements never change the address. Needs the EIP actions
+  in the IAM policy (`INFRA.md`); without them it logs a warning and uses the ephemeral IP, and the
+  sweeper re-publishes DNS whenever the IP drifts. `terminateManaged` releases the EIP.
+- **`ready` is written only AFTER the A-record exists.** If Cloudflare rejects the write the
+  instance goes to `dns_failed` with the error on it (visible on the dashboard); the sweeper
+  retries the publish on its next pass, and a boot re-post from the box (`morphy-ready.service`)
+  also re-triggers it.
 - **CF token must be a real zone-DNS user token** (`cfut_`, verified active) and **`CF_ZONE_ID` must
   be the Zone id, not the Account id** — both were live failures during the first test.
 - **`cfConfigured()` gates ALL DNS + account linking** in the `ready` callback. If `CF_API_TOKEN`/
   `CF_ZONE_ID` are unset/wrong, the box reports ready but no DNS is created and the handle is never
   linked → the bot is unreachable.
-- **AOP is off in v1/v2.** Access control is the SG (443 from CF only). To harden, swap the baked
+- **`sudo npm install -g morphyagent` runs the package postinstall as root**, which copies the
+  app into `/root/.morphy` and leaves `/usr/local/bin/morphy → /root/.morphy/bin/cli.js`. Because
+  sudo's `secure_path` lists `/usr/local/bin` before `/usr/bin`, that unexecutable link shadows
+  the real `/usr/bin/morphy` for `provision.sh` (it only works because `env` falls through on
+  EACCES). The v3 bake removed both; **every re-bake must** `sudo rm -f /usr/local/bin/morphy;
+  sudo rm -rf /root/.morphy` after the global install, then check
+  `sudo -u ec2-user -H env morphy --version` (this is exactly how provision.sh calls it).
+- **Fast re-bake helper.** The v3 fast path (refresh global bin + `~/.morphy` + workspace deps to
+  a pinned version, install `provision.sh`, verify) is a single script run over ssh; it lives in
+  the 2026-09-03 session's scratchpad as `rebake-fast.sh` — worth committing to `infra/` next time.
+- **AOP is off in v1/v2/v3.** Access control is the SG (443 from CF only). To harden, swap the baked
   Caddyfile for `infra/Caddyfile` (the AOP version) + bake Cloudflare's origin-pull CA as
   `/etc/caddy/cloudflare-aop.pem`, then re-bake.
 

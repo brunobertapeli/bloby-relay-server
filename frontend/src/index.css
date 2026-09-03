@@ -2,50 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────────
+   Morphy design tokens
+
+   The world Morphy lives in: deep blue-black "ink" instead of gray, warm
+   off-white "cloud" for text, and Morphy's own blue used as a material.
+   Everything is round, and motion squashes and stretches like the blob.
+   ────────────────────────────────────────────────────────────────────── */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 13%;
-    --card: 0 0% 97%;
-    --card-foreground: 0 0% 13%;
+    /* Light: "paper" — warm off-white with the same blue family. */
+    --background: 40 22% 97%;
+    --foreground: 228 28% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 228 28% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 13%;
+    --popover-foreground: 228 28% 12%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 40 18% 94%;
+    --surface-3: 40 14% 90%;
     --primary: 215 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 93%;
-    --secondary-foreground: 0 0% 13%;
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 93%;
-    --accent-foreground: 0 0% 13%;
-    --destructive: 348 98% 64%;
+    --secondary: 40 16% 92%;
+    --secondary-foreground: 228 28% 12%;
+    --muted: 40 16% 92%;
+    --muted-foreground: 228 10% 42%;
+    --accent: 215 100% 96%;
+    --accent-foreground: 215 100% 35%;
+    --destructive: 348 90% 56%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 215 100% 50%;
-    --radius: 0.75rem;
+    --border: 228 14% 88%;
+    --input: 228 14% 86%;
+    --ring: 203 100% 55%;
+    --sky: 203 100% 52%;
+    --glint: 187 100% 62%;
+    --spark: 30 100% 60%;
+    --radius: 1.25rem;
   }
 
   .dark {
-    --background: 0 0% 13.1%;
-    --foreground: 0 0% 96.1%;
-    --card: 0 0% 16.5%;
-    --card-foreground: 0 0% 96.1%;
-    --popover: 0 0% 16.5%;
-    --popover-foreground: 0 0% 96.1%;
+    /* Ink — blue-black, never neutral gray. */
+    --background: 228 28% 7%;
+    --foreground: 40 20% 96%;
+    --card: 228 24% 11%;
+    --card-foreground: 40 20% 96%;
+    --popover: 228 22% 13%;
+    --popover-foreground: 40 20% 96%;
+    --surface-1: 228 24% 11%;
+    --surface-2: 228 22% 14%;
+    --surface-3: 228 20% 18%;
     --primary: 215 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 96.1%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 96.1%;
-    --destructive: 348 98% 64%;
+    --secondary: 228 20% 16%;
+    --secondary-foreground: 40 20% 96%;
+    --muted: 228 20% 16%;
+    --muted-foreground: 228 12% 66%;
+    --accent: 215 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 348 95% 64%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 22.7%;
-    --input: 0 0% 22.7%;
-    --ring: 215 100% 50%;
+    --border: 228 18% 21%;
+    --input: 228 18% 21%;
+    --ring: 203 100% 60%;
+    --sky: 203 100% 60%;
+    --glint: 187 100% 64%;
+    --spark: 30 100% 66%;
   }
 }
 
@@ -53,47 +75,215 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-feature-settings: "ss01";
+  }
+  /* Reduced motion: keep the layout, drop the bounce. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 ::selection {
-  background-color: rgba(0, 105, 254, 0.25);
+  background-color: hsl(var(--sky) / 0.35);
+  color: hsl(var(--foreground));
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-  border-radius: 3px;
+  background: hsl(var(--surface-3));
+  border-radius: 999px;
+  border: 2px solid hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+  background: hsl(var(--muted-foreground) / 0.5);
 }
 
 @layer utilities {
+  /* ── Morphy material ───────────────────────────────────────────────
+     The blob's body: sky-blue at the top, deep blue at the bottom, with a
+     glossy highlight. Used for primary actions so buttons look like they're
+     made of Morphy. `bg-gradient-brand` is the legacy name — same material. */
+  .bg-gradient-brand,
+  .bg-morphy {
+    background-image: linear-gradient(180deg, #3FB4FF 0%, #1A8CFF 48%, #0166FF 100%);
+  }
+
+  .btn-morphy {
+    @apply relative inline-flex items-center justify-center text-white font-display font-semibold rounded-full select-none;
+    background-image: linear-gradient(180deg, #3FB4FF 0%, #1A8CFF 48%, #0166FF 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.35),
+      inset 0 -2px 0 hsl(220 80% 20% / 0.25),
+      0 10px 24px -10px hsl(215 100% 50% / 0.55);
+    transition:
+      transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.3s ease,
+      filter 0.2s ease;
+    will-change: transform;
+  }
+  .btn-morphy::before {
+    /* the sheen — a soft white ellipse near the top edge, like the blob */
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 6%;
+    height: 42%;
+    border-radius: 999px;
+    background: radial-gradient(ellipse at 50% 0%, hsl(0 0% 100% / 0.32), hsl(0 0% 100% / 0) 70%);
+    pointer-events: none;
+  }
+  .btn-morphy:hover {
+    filter: brightness(1.06) saturate(1.05);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      inset 0 -2px 0 hsl(220 80% 20% / 0.25),
+      0 16px 32px -12px hsl(215 100% 50% / 0.65);
+  }
+  .btn-morphy:active {
+    /* squash on press */
+    transform: translateY(1px) scale(1.04, 0.94);
+    transition-duration: 0.08s;
+  }
+  .btn-morphy:disabled {
+    filter: saturate(0.4) brightness(0.8);
+    transform: none;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* Quiet secondary pill: translucent, gets a sky rim on hover. */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-full font-display font-medium text-foreground;
+    background: hsl(var(--foreground) / 0.04);
+    border: 1px solid hsl(var(--foreground) / 0.08);
+    transition:
+      transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .btn-ghost:hover {
+    background: hsl(var(--foreground) / 0.07);
+    border-color: hsl(var(--sky) / 0.35);
+    transform: translateY(-1px);
+  }
+  .btn-ghost:active {
+    transform: translateY(1px) scale(1.03, 0.95);
+    transition-duration: 0.08s;
+  }
+
+  /* ── Surfaces ──────────────────────────────────────────────────────
+     Layered ink with a hairline and a faint top highlight. */
+  .surface {
+    background-color: hsl(var(--surface-1));
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.04),
+      0 12px 32px -18px hsl(228 40% 2% / 0.7);
+  }
+  .surface-2 {
+    background-color: hsl(var(--surface-2));
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
+      0 20px 48px -24px hsl(228 40% 2% / 0.8);
+  }
+  .surface-hover {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  }
+  .surface-hover:hover {
+    border-color: hsl(var(--sky) / 0.28);
+    background-color: hsl(var(--surface-2));
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+      0 24px 48px -20px hsl(228 40% 2% / 0.85),
+      0 0 0 4px hsl(var(--sky) / 0.05);
+  }
+  /* Interactive inset (inputs, code wells). */
+  .well {
+    background-color: hsl(var(--background) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow: inset 0 2px 6px -2px hsl(228 40% 2% / 0.6);
+  }
+
+  /* Legacy names kept for untouched pages — now a soft lift, no neon. */
+  .glow-border {
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.04),
+      0 12px 32px -18px hsl(228 40% 2% / 0.7);
+  }
+  .glow-border-hover {
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+      0 24px 48px -20px hsl(228 40% 2% / 0.85),
+      0 0 0 4px hsl(var(--sky) / 0.06);
+    border-color: hsl(var(--sky) / 0.28) !important;
+  }
+
+  /* ── Type helpers ──────────────────────────────────────────────── */
+  /* Small round caps above a heading. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 font-display font-semibold uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: hsl(var(--sky));
+  }
+  .eyebrow::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: hsl(var(--sky));
+    box-shadow: 0 0 12px hsl(var(--sky) / 0.8);
+  }
+  /* Glossy text — a vertical sheen like the blob, not a rainbow. */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
+    background-image: linear-gradient(180deg, #8EDBFF 0%, #3FB4FF 55%, #1A8CFF 100%);
+  }
+  .text-balance {
+    text-wrap: balance;
   }
 
-  .bg-gradient-brand {
-    background-image: linear-gradient(135deg, #0166FF, #009AFE, #4AEEFF);
+  /* ── Morphy light ──────────────────────────────────────────────────
+     The mascot is the light source. Put this behind it. */
+  .morphy-light {
+    background: radial-gradient(closest-side, hsl(var(--sky) / 0.26), hsl(var(--primary) / 0.10) 50%, transparent 100%);
+    filter: blur(48px);
+    pointer-events: none;
+    will-change: transform, opacity;
   }
 
-  .glow-border {
-    box-shadow: 0 0 0 1px rgba(0, 105, 254, 0.1),
-                0 0 20px -5px rgba(0, 105, 254, 0.15);
+  /* Rounded section band. */
+  .band {
+    background-color: hsl(var(--surface-1) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 2.5rem;
   }
 
-  .glow-border-hover {
-    box-shadow: 0 0 0 1px rgba(0, 105, 254, 0.2),
-                0 0 30px -5px rgba(0, 105, 254, 0.25);
+  /* Squish on hover — for icon tiles and small illustrations. */
+  .hover-squish:hover {
+    animation: squish 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .animated-border {
@@ -104,20 +294,13 @@
     content: '';
     position: absolute;
     inset: -150%;
-    background: conic-gradient(
-      from 0deg,
-      #0166FF,
-      #009AFE,
-      #4AEEFF,
-      #0166FF
-    );
+    background: conic-gradient(from 0deg, #0166FF, #3FB4FF, #8EDBFF, #0166FF);
     animation: border-spin 3s linear infinite;
   }
   .animated-border > * {
     position: relative;
     z-index: 1;
   }
-
   .animated-border-slow::before {
     animation-duration: 5s;
   }
@@ -131,32 +314,33 @@
   }
 }
 
+/* ── Docs prose ─────────────────────────────────────────────────────── */
 .prose-docs {
   @apply text-foreground leading-relaxed;
 }
 .prose-docs h1 {
-  @apply text-2xl sm:text-3xl md:text-4xl font-bold font-display tracking-tight mb-4 mt-0;
+  @apply text-3xl sm:text-4xl md:text-5xl font-bold font-display tracking-tight mb-4 mt-0;
 }
 .prose-docs h2 {
-  @apply text-lg sm:text-xl font-semibold font-display tracking-tight mt-10 mb-4 text-foreground;
+  @apply text-xl sm:text-2xl font-bold font-display tracking-tight mt-10 mb-4 text-foreground;
 }
 .prose-docs h3 {
-  @apply text-base sm:text-lg font-semibold font-display mt-8 mb-3 text-foreground;
+  @apply text-lg sm:text-xl font-semibold font-display mt-8 mb-3 text-foreground;
 }
 .prose-docs h4 {
-  @apply text-sm font-semibold font-display mt-6 mb-2 text-foreground;
+  @apply text-base font-semibold font-display mt-6 mb-2 text-foreground;
 }
 .prose-docs p {
-  @apply text-sm sm:text-base text-muted-foreground leading-relaxed mb-4;
+  @apply text-[15px] sm:text-base text-muted-foreground leading-relaxed mb-4;
 }
 .prose-docs ul {
-  @apply list-disc pl-5 mb-4 space-y-1.5;
+  @apply list-disc pl-5 mb-4 space-y-1.5 marker:text-sky/70;
 }
 .prose-docs ol {
-  @apply list-decimal pl-5 mb-4 space-y-1.5;
+  @apply list-decimal pl-5 mb-4 space-y-1.5 marker:text-sky/70 marker:font-display;
 }
 .prose-docs li {
-  @apply text-sm sm:text-base text-muted-foreground leading-relaxed;
+  @apply text-[15px] sm:text-base text-muted-foreground leading-relaxed;
 }
 .prose-docs strong {
   @apply text-foreground font-semibold;
@@ -165,13 +349,13 @@
   @apply text-muted-foreground italic;
 }
 .prose-docs a {
-  @apply text-[#0069FE] hover:underline transition-colors duration-200;
+  @apply text-sky hover:underline underline-offset-4 decoration-sky/40 transition-colors duration-200;
 }
 .prose-docs code {
-  @apply text-[13px] text-foreground/80 bg-white/[0.06] px-1.5 py-0.5 rounded font-mono;
+  @apply text-[13px] text-foreground/90 bg-surface-3/70 px-1.5 py-0.5 rounded-md font-mono;
 }
 .prose-docs pre {
-  @apply bg-[#1a1a1a] border border-border rounded-xl p-4 mb-4 overflow-x-auto;
+  @apply bg-surface-2 border border-border/70 rounded-2xl p-4 mb-4 overflow-x-auto shadow-lift;
 }
 .prose-docs pre code {
   @apply bg-transparent px-0 py-0 text-xs sm:text-sm leading-relaxed;
@@ -189,14 +373,14 @@
   }
 }
 .prose-docs thead th {
-  @apply text-left text-xs font-semibold font-display uppercase tracking-wider text-muted-foreground/60 pb-3 border-b border-border;
+  @apply text-left text-xs font-semibold font-display uppercase tracking-wider text-muted-foreground/70 pb-3 border-b border-border;
 }
 .prose-docs tbody td {
   @apply py-2.5 pr-4 text-muted-foreground border-b border-border/50;
 }
 .prose-docs hr {
-  @apply border-border/30 my-8;
+  @apply border-border/40 my-8;
 }
 .prose-docs blockquote {
-  @apply border-l-2 border-primary/40 pl-4 my-4 italic text-muted-foreground;
+  @apply border-l-2 border-sky/50 pl-4 my-4 italic text-muted-foreground;
 }

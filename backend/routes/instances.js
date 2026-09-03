@@ -3,11 +3,15 @@ import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
 import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
-import { terminateInstance, restartInstance, describeInstance } from '../lib/aws.js';
+import { restartInstance } from '../lib/aws.js';
 import { buildRelayUrl } from '../lib/validate.js';
-import { upsertDnsRecord, deleteDnsRecord, managedHostname, cfConfigured } from '../lib/cloudflare.js';
+import { cfConfigured } from '../lib/cloudflare.js';
 import { provisionManagedInstance } from '../lib/provision.js';
 import { instanceCallbackLimiter } from '../middleware/rateLimiter.js';
+import {
+  findInstance, setInstance, transition, setOnline, publishDns, markFailed,
+  cancelSubscription, terminateManaged, publicInstance,
+} from '../lib/lifecycle.js';
 
 const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 
@@ -21,7 +25,7 @@ router.get('/instances', jwtAuth, async (req, res) => {
       { _id: new ObjectId(req.account.id) },
       { projection: { instances: 1 } },
     );
-    res.json({ instances: account?.instances || [] });
+    res.json({ instances: (account?.instances || []).map(publicInstance) });
   } catch (error) {
     console.error('[instances] GET error:', error.message);
     res.status(500).json({ error: 'Failed to fetch instances' });
@@ -32,22 +36,13 @@ router.get('/instances', jwtAuth, async (req, res) => {
 router.get('/instances/:id/status', jwtAuth, async (req, res) => {
   try {
     const db = getDb();
-    console.log(`[instances] status query: accountId=${req.account.id}, instanceId=${req.params.id}`);
     const account = await db.collection('accounts').findOne(
       { _id: new ObjectId(req.account.id), 'instances.id': req.params.id },
       { projection: { 'instances.$': 1 } },
     );
-    if (!account) {
-      // Debug: check if account exists at all
-      const acct = await db.collection('accounts').findOne(
-        { _id: new ObjectId(req.account.id) },
-        { projection: { 'instances.id': 1 } },
-      );
-      console.log(`[instances] 404 debug: account exists=${!!acct}, instanceIds=${JSON.stringify(acct?.instances?.map(i => i.id))}`);
-    }
     const instance = account?.instances?.[0];
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
-    res.json({ instance });
+    res.json({ instance: publicInstance(instance) });
   } catch (error) {
     console.error('[instances] status error:', error.message);
     res.status(500).json({ error: 'Failed to get instance status' });
@@ -56,7 +51,7 @@ router.get('/instances/:id/status', jwtAuth, async (req, res) => {
 
 // ─── Launch new instance (disabled — now handled via Stripe webhook) ────────
 // Instance creation + EC2 launch is triggered by checkout.session.completed
-// in backend/routes/stripe.js. This endpoint is kept as a stub for reference.
+// in backend/routes/stripe.js.
 
 // ─── DEV launch (no payment) ────────────────────────────────────────────────
 // Lets us exercise the full purchase→provision→DNS→use loop WITHOUT Stripe.
@@ -87,103 +82,102 @@ router.post('/instances/dev-launch', async (req, res) => {
 // Authenticated by the per-instance provisionToken minted at launch (the callback
 // can flip status AND, on "ready", create a public DNS record — so it must not be
 // forgeable). Legacy instances without a provisionTokenHash skip the check.
+//
+// Body: { instanceId, status: 'initializing'|'ready'|'failed', provisionToken,
+//         boot?: true        — re-posted by the box on EVERY boot (self-heals a lost callback,
+//                              refreshes DNS after an IP change); ignored for stopped boxes
+//         detail?: string    — human-readable reason for 'failed'
+//         agentVersion?: string, tunnelUrl?: string (legacy tunnel AMIs) }
+const CALLBACK_STATUSES = new Set(['initializing', 'ready', 'failed']);
+// A boot re-post may only act on a box we consider live or still provisioning — never
+// resurrect one we paused/suspended/terminated on purpose.
+const BOOT_ACTIONABLE = new Set(['launching', 'booting', 'initializing', 'ready', 'restarting', 'dns_failed']);
+
 router.post('/instances/callback', instanceCallbackLimiter, async (req, res) => {
   try {
-    const { instanceId, status, tunnelUrl, provisionToken } = req.body;
+    const { instanceId, status, tunnelUrl, provisionToken, boot, detail, agentVersion } = req.body || {};
     if (!instanceId || !status) {
       return res.status(400).json({ error: 'Missing instanceId or status' });
     }
+    if (!CALLBACK_STATUSES.has(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
 
-    console.log(`[instances] Callback: ${instanceId} → ${status}${tunnelUrl ? ` (${tunnelUrl})` : ''}`);
-
-    const db = getDb();
+    console.log(`[instances] Callback: ${instanceId} → ${status}${boot ? ' (boot)' : ''}${tunnelUrl ? ` (${tunnelUrl})` : ''}`);
 
     // Load the instance first so we can authenticate the callback.
-    const owner = await db.collection('accounts').findOne(
-      { 'instances.id': instanceId },
-      { projection: { _id: 1, 'instances.$': 1 } },
-    );
-    const inst = owner?.instances?.[0];
-    if (!inst) {
-      return res.status(404).json({ error: 'Instance not found' });
-    }
-    if (inst.provisionTokenHash && sha256(provisionToken || '') !== inst.provisionTokenHash) {
+    let found = await findInstance(instanceId);
+    if (!found) return res.status(404).json({ error: 'Instance not found' });
+    if (found.instance.provisionTokenHash && sha256(provisionToken || '') !== found.instance.provisionTokenHash) {
       return res.status(403).json({ error: 'Invalid provision token' });
     }
 
-    const update = { 'instances.$.status': status };
-    if (tunnelUrl) update['instances.$.tunnelUrl'] = tunnelUrl;
-    await db.collection('accounts').updateOne(
-      { 'instances.id': instanceId },
-      { $set: update },
-    );
+    // The RunInstances promise writes ec2InstanceId a moment after launch; a very fast box
+    // could conceivably call back first. Re-read once so 'ready' has an id to publish.
+    if (!found.instance.ec2InstanceId && status === 'ready') {
+      await new Promise((r) => setTimeout(r, 3000));
+      found = (await findInstance(instanceId)) || found;
+    }
+    const { account: owner, instance: inst } = found;
 
-    // On "ready", make the bot publicly reachable + link the relay user.
-    if (status === 'ready') {
-      try {
-        // ── MANAGED (direct) mode ──────────────────────────────────────────
-        // The box has a public IP; point  mybot.morphyagent.com → <IP>  as a proxied
-        // (orange-cloud) CF A-record. No tunnel, no relay data-plane hop.
-        if (inst.username && inst.ec2InstanceId && cfConfigured()) {
-          const tier = inst.tier || 'premium';
-
-          // The public IP can lag a few seconds behind "running" — poll briefly.
-          let publicIp = inst.publicIp || null;
-          for (let i = 0; !publicIp && i < 12; i++) {
-            const info = await describeInstance(inst.ec2InstanceId, inst.region);
-            if (info?.publicIp) { publicIp = info.publicIp; break; }
-            await new Promise((r) => setTimeout(r, 2500));
-          }
-
-          if (publicIp) {
-            const hostname = managedHostname(inst.username, tier);
-            const dnsRecordId = await upsertDnsRecord(hostname, publicIp);
-            const relayUrl = buildRelayUrl(inst.username, tier);
-            await db.collection('accounts').updateOne(
-              { 'instances.id': instanceId },
-              { $set: {
-                'instances.$.publicIp': publicIp,
-                'instances.$.dnsRecordId': dnsRecordId,
-                'instances.$.relayUrl': relayUrl,
-              }},
-            );
-            // Link the pre-registered relay handle to this account + mark it online.
-            // Managed (tunnel-off) bots never send the relay heartbeat, so this is the
-            // only place isOnline gets set true. Keep lastHeartbeat null so no staleness
-            // check ever flips it back to offline (all staleness paths guard on lastHeartbeat).
-            await db.collection('users').updateOne(
-              { username: inst.username, tier },
-              { $set: { accountId: owner._id, isOnline: true } },
-            );
-            console.log(`[instances] managed ${inst.username} → ${hostname} → ${publicIp} (dns ${dnsRecordId})`);
-          } else {
-            console.error(`[instances] ${instanceId} ready but no public IP yet`);
-          }
-
-        // ── LEGACY tunnel mode ─────────────────────────────────────────────
-        // Older AMIs report a tunnelUrl; link the relay user by it (unchanged).
-        } else if (inst.tunnelUrl) {
-          const user = await db.collection('users').findOne({ tunnelUrl: inst.tunnelUrl });
-          if (user) {
-            await db.collection('users').updateOne(
-              { _id: user._id },
-              { $set: { accountId: owner._id } },
-            );
-            const relayUrl = buildRelayUrl(user.username, user.tier);
-            await db.collection('accounts').updateOne(
-              { 'instances.id': instanceId },
-              { $set: { 'instances.$.relayUrl': relayUrl } },
-            );
-            console.log(`[instances] Linked user ${user.username} (${user.tier}) → account ${owner._id}, relayUrl: ${relayUrl}`);
-          } else {
-            console.log(`[instances] No relay user found for tunnelUrl: ${inst.tunnelUrl}`);
-          }
-        }
-      } catch (linkErr) {
-        console.error('[instances] ready handling failed:', linkErr.message);
-      }
+    if (boot && !BOOT_ACTIONABLE.has(inst.status)) {
+      console.log(`[instances] ${instanceId} boot callback ignored (status ${inst.status})`);
+      return res.json({ ok: true, ignored: true });
     }
 
+    // ── failed: the box could not bring morphy up ─────────────────────────
+    if (status === 'failed') {
+      await markFailed(instanceId, `Box reported failure: ${detail || 'unknown'}`, { instance: inst });
+      return res.json({ ok: true });
+    }
+
+    // ── initializing: only ever moves forward from launching/booting ───────
+    if (status === 'initializing') {
+      await transition(instanceId, ['launching', 'booting'], 'initializing');
+      return res.json({ ok: true });
+    }
+
+    // ── ready ─────────────────────────────────────────────────────────────
+    const extra = agentVersion ? { agentVersion } : {};
+
+    // MANAGED (direct) mode: pin an EIP, write the proxied A-record, THEN flip to ready —
+    // the website shows "your Morphy is ready" the moment status flips, so DNS must exist first.
+    if (inst.username && inst.ec2InstanceId && cfConfigured()) {
+      const tier = inst.tier || 'premium';
+      try {
+        await publishDns(inst);
+        await setInstance(instanceId, { status: 'ready', readyAt: inst.readyAt || new Date(), ...extra }, ['error']);
+        // Link the pre-registered relay handle to this account + mark it online. Managed
+        // (tunnel-off) bots never heartbeat; the sweeper keeps isOnline honest from here on.
+        await getUsers().updateOne(
+          { username: inst.username, tier },
+          { $set: { accountId: owner._id, isOnline: true, updatedAt: new Date() } },
+        );
+      } catch (err) {
+        console.error(`[instances] ${instanceId} ready but DNS publish failed:`, err.message);
+        await setInstance(instanceId, { status: 'dns_failed', error: `DNS publish failed: ${err.message}`.slice(0, 300), ...extra });
+      }
+      return res.json({ ok: true });
+    }
+
+    // LEGACY tunnel mode (older AMIs report a tunnelUrl): link the relay user by it.
+    const update = { status: 'ready', ...extra };
+    if (tunnelUrl) update.tunnelUrl = tunnelUrl;
+    await setInstance(instanceId, update);
+    const legacyUrl = tunnelUrl || inst.tunnelUrl;
+    if (legacyUrl) {
+      const user = await getUsers().findOne({ tunnelUrl: legacyUrl });
+      if (user) {
+        await getUsers().updateOne({ _id: user._id }, { $set: { accountId: owner._id } });
+        await setInstance(instanceId, { relayUrl: buildRelayUrl(user.username, user.tier) });
+        console.log(`[instances] Linked user ${user.username} (${user.tier}) → account ${owner._id}`);
+      } else {
+        console.log(`[instances] No relay user found for tunnelUrl: ${legacyUrl}`);
+      }
+    } else if (!cfConfigured()) {
+      console.error(`[instances] ${instanceId} ready but Cloudflare is not configured — bot is unreachable`);
+      await setInstance(instanceId, { status: 'dns_failed', error: 'Cloudflare DNS not configured on the relay' });
+    }
     res.json({ ok: true });
   } catch (error) {
     console.error('[instances] callback error:', error.message);
@@ -201,56 +195,43 @@ router.post('/instances/:id/restart', jwtAuth, async (req, res) => {
     );
     const instance = account?.instances?.[0];
     if (!instance) return res.status(404).json({ error: 'Instance not found' });
+    if (!instance.ec2InstanceId) return res.status(409).json({ error: 'Instance has no server yet' });
 
-    if (instance.ec2InstanceId) {
-      await db.collection('accounts').updateOne(
-        { 'instances.id': req.params.id },
-        { $set: { 'instances.$.status': 'restarting' } },
-      );
+    // Claim the transition atomically: a second click / second tab gets a 409 instead of a
+    // second stop/start racing the first one and marking a healthy box failed.
+    const claimed = await transition(instance.id, ['ready', 'dns_failed'], 'restarting', { error: null });
+    if (!claimed) {
+      return res.status(409).json({ error: `Instance is ${instance.status} — wait for it to be running` });
+    }
 
-      // Fire and forget — restart EC2, then update status when done
-      const instId = req.params.id;
-      restartInstance(instance.ec2InstanceId, instance.region)
-        .then(async () => {
-          // A stop+start assigns a NEW public IP — refresh the managed CF A-record
-          // so mybot.morphyagent.com keeps resolving to the live box.
-          if (instance.username && cfConfigured()) {
-            try {
-              const tier = instance.tier || 'premium';
-              let publicIp = null;
-              for (let i = 0; !publicIp && i < 12; i++) {
-                const info = await describeInstance(instance.ec2InstanceId, instance.region);
-                if (info?.publicIp) { publicIp = info.publicIp; break; }
-                await new Promise((r) => setTimeout(r, 2500));
-              }
-              if (publicIp) {
-                const dnsRecordId = await upsertDnsRecord(managedHostname(instance.username, tier), publicIp);
-                await db.collection('accounts').updateOne(
-                  { 'instances.id': instId },
-                  { $set: { 'instances.$.publicIp': publicIp, 'instances.$.dnsRecordId': dnsRecordId } },
-                );
-                console.log(`[instances] ${instId} restart → new IP ${publicIp}, DNS refreshed`);
-              }
-            } catch (dnsErr) {
-              console.error(`[instances] ${instId} DNS refresh after restart failed:`, dnsErr.message);
-            }
+    const instId = instance.id;
+    restartInstance(instance.ec2InstanceId, instance.region)
+      .then(async () => {
+        // With an EIP the address survives stop/start; without one it changes. publishDns
+        // covers both (no-op update when unchanged) — status flips to ready only after it.
+        let dnsOk = true;
+        if (instance.username && cfConfigured()) {
+          try {
+            await publishDns(instance);
+          } catch (dnsErr) {
+            dnsOk = false;
+            console.error(`[instances] ${instId} DNS refresh after restart failed:`, dnsErr.message);
+            await setInstance(instId, { status: 'dns_failed', error: `DNS refresh failed: ${dnsErr.message}`.slice(0, 300) });
           }
+        }
+        if (dnsOk) {
           // Give morphy ~15s to come up after EC2 is running
           await new Promise(r => setTimeout(r, 15000));
-          await db.collection('accounts').updateOne(
-            { 'instances.id': instId },
-            { $set: { 'instances.$.status': 'ready' } },
-          );
+          await setInstance(instId, { status: 'ready' });
+          await setOnline(instance.username, instance.tier, true);
           console.log(`[instances] ${instId} restart complete → ready`);
-        })
-        .catch(async (err) => {
-          console.error(`[instances] ${instId} restart failed:`, err.message);
-          await db.collection('accounts').updateOne(
-            { 'instances.id': instId },
-            { $set: { 'instances.$.status': 'failed' } },
-          );
-        });
-    }
+        }
+      })
+      .catch(async (err) => {
+        // The box may still come up on its own; don't brick it — the sweeper mirrors real state.
+        console.error(`[instances] ${instId} restart failed:`, err.message);
+        await setInstance(instId, { status: 'ready', error: `Restart did not complete: ${err.message}`.slice(0, 300) });
+      });
 
     res.json({ ok: true });
   } catch (error) {
@@ -268,27 +249,13 @@ router.delete('/instances/:id', jwtAuth, async (req, res) => {
       { projection: { 'instances.$': 1 } },
     );
     const instance = account?.instances?.[0];
+    if (!instance) return res.status(404).json({ error: 'Instance not found' });
 
-    // Terminate EC2 instance if it exists
-    if (instance?.ec2InstanceId) {
-      terminateInstance(instance.ec2InstanceId, instance.region).catch(err => {
-        console.error(`[instances] terminate EC2 failed:`, err.message);
-      });
+    // Stop billing FIRST, then tear the box down (EC2 + EIP + DNS + relay handle).
+    if (instance.stripeSubscriptionId) {
+      await cancelSubscription(instance.stripeSubscriptionId, 'deleted from dashboard');
     }
-
-    // Remove the managed CF DNS record (best-effort) so the handle frees cleanly.
-    if (instance?.dnsRecordId) {
-      deleteDnsRecord(instance.dnsRecordId).catch(err => {
-        console.error(`[instances] delete DNS record failed:`, err.message);
-      });
-    }
-
-    // Free the relay registry entry so the reserved handle can back a new bot.
-    if (instance?.username) {
-      getUsers().deleteOne({ username: instance.username, tier: instance.tier || 'premium' }).catch(err => {
-        console.error(`[instances] free handle failed:`, err.message);
-      });
-    }
+    await terminateManaged(instance);
 
     // Remove from DB
     await db.collection('accounts').updateOne(

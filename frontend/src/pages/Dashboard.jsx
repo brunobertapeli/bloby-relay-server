@@ -102,7 +102,7 @@ function DashNavbar({ user, onLogout }) {
                     onClick={onLogout}
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
                   >
-                    Sair
+                    Log out
                   </button>
                 </>
               )}
@@ -154,7 +154,7 @@ function DashNavbar({ user, onLogout }) {
                       onClick={() => { onLogout(); setMobileOpen(false) }}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
                     >
-                      Sair
+                      Log out
                     </button>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ function ClaimBlobyCard({ onClaimed }) {
         <Button
           onClick={handleGenerate}
           disabled={loading}
-          className="rounded-xl bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-10 px-5 text-sm disabled:opacity-50"
+          className="btn-morphy h-10 px-5 text-sm disabled:opacity-50"
         >
           {loading ? 'Generating...' : 'Generate Claim Code'}
         </Button>
@@ -605,7 +605,7 @@ function FundWalletModal({ morphy, onClose, onFunded }) {
                   <button
                     onClick={handleProceed}
                     disabled={!canProceed}
-                    className="flex-1 h-11 rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="btn-morphy flex-1 h-11 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Purchase {canProceed ? `$${activeAmount.toFixed(2)}` : ''}
                   </button>
@@ -647,7 +647,7 @@ function FundWalletModal({ morphy, onClose, onFunded }) {
                 </div>
                 <button
                   onClick={onClose}
-                  className="h-11 px-8 rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display text-sm transition-all duration-200"
+                  className="btn-morphy h-11 px-8 text-sm"
                 >
                   Done
                 </button>
@@ -762,22 +762,52 @@ function InstancePanel({ instance, onRestart }) {
   const regionMap = { na: 'North America', eu: 'Europe', br: 'Brazil' }
   const planMap = { starter: { name: 'Starter', instance: 't4g.small' }, pro: { name: 'Pro', instance: 't4g.medium' } }
   const plan = planMap[instance.plan] || { name: instance.plan || 'Instance', instance: '' }
-  const isRestarting = instance.status === 'restarting'
+  const isRestarting = instance.status === 'restarting' || instance.status === 'resuming'
   const isCanceling = instance.status === 'canceling'
   const isReady = instance.status === 'ready'
   const isTerminated = instance.status === 'terminated'
-  const statusLabel = isRestarting ? 'Restarting' : isCanceling ? 'Canceling' : isTerminated ? 'Terminated' : isReady ? 'Running' : (instance.status || 'Provisioning')
+  const isStopped = instance.status === 'paused' || instance.status === 'suspended'
+  const isBroken = instance.status === 'failed' || instance.status === 'dns_failed'
+  const STATUS_LABELS = {
+    ready: 'Running', restarting: 'Restarting', resuming: 'Resuming', canceling: 'Canceling',
+    terminated: 'Terminated', paused: 'Paused', suspended: 'Suspended', failed: 'Failed',
+    dns_failed: 'Unreachable', launching: 'Launching', booting: 'Booting', initializing: 'Installing',
+  }
+  const statusLabel = STATUS_LABELS[instance.status] || instance.status || 'Provisioning'
+  const dotClass = isRestarting || isCanceling ? 'bg-amber-500 animate-pulse'
+    : isReady ? 'bg-emerald-500'
+    : isTerminated || isBroken ? 'bg-red-500'
+    : isStopped ? 'bg-amber-500'
+    : 'bg-black/40'
+  const labelClass = isReady ? 'text-emerald-600'
+    : isCanceling || isRestarting || isStopped ? 'text-amber-600'
+    : isTerminated || isBroken ? 'text-red-600'
+    : 'text-[#171717]/60'
   const liveUrl = instance.relayUrl || instance.tunnelUrl
+  const canRestart = isReady || instance.status === 'dns_failed'
   return (
     <div className="space-y-3 text-[#171717]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isRestarting || isCanceling ? 'bg-amber-500 animate-pulse' : isReady ? 'bg-emerald-500' : isTerminated ? 'bg-red-500' : 'bg-black/40'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
           <span className="text-xs font-display font-semibold text-[#171717] truncate">{plan.name}</span>
           <span className="text-[10px] text-[#171717]/50 font-mono shrink-0">{plan.instance}</span>
         </div>
-        <span className={`text-[10px] font-display shrink-0 ${isReady ? 'text-emerald-600' : isCanceling || isRestarting ? 'text-amber-600' : isTerminated ? 'text-red-600' : 'text-[#171717]/60'}`}>{statusLabel}</span>
+        <span className={`text-[10px] font-display shrink-0 ${labelClass}`}>{statusLabel}</span>
       </div>
+      {instance.error && !isTerminated && (
+        <div className="text-[10px] text-red-600 font-display leading-snug">{instance.error}</div>
+      )}
+      {instance.status === 'paused' && (
+        <div className="text-[10px] text-amber-700 font-display leading-snug">
+          {/payment/i.test(instance.pauseReason || '') ? 'Paused: your last payment failed. Update your card under Manage Subscription to resume.' : 'Paused. Subscribe to resume.'}
+        </div>
+      )}
+      {instance.status === 'suspended' && instance.terminateAt && (
+        <div className="text-[10px] text-amber-700 font-display leading-snug">
+          Subscription ended. Your workspace is kept until {new Date(instance.terminateAt).toLocaleDateString()} — subscribe again with the same handle to resume it.
+        </div>
+      )}
       <div className="flex items-center justify-between text-[10px]">
         <span className="text-[#171717]/40 font-display uppercase tracking-wider">Region</span>
         <span className="text-[#171717]/70 font-display">{regionMap[instance.region] || instance.region}</span>
@@ -785,19 +815,19 @@ function InstancePanel({ instance, onRestart }) {
       {isCanceling && instance.cancelAt && (
         <div className="text-[10px] text-amber-600 font-display">Cancels on {new Date(instance.cancelAt).toLocaleDateString()}</div>
       )}
-      {liveUrl && !isTerminated && (
+      {liveUrl && !isTerminated && !isStopped && !isBroken && (
         <div className="flex items-center justify-between gap-2 rounded-lg bg-black/[0.06] border border-black/10 px-3 py-2">
           <span className="text-[10px] font-mono text-[#0166FF] truncate">{liveUrl}</span>
           <CopyButton text={liveUrl} className="!text-[#171717]/60 hover:!text-[#171717]" />
         </div>
       )}
-      {!isTerminated && (
+      {!isTerminated && !isStopped && instance.status !== 'failed' && (
         <button
           onClick={() => onRestart(instance.id)}
-          disabled={isRestarting}
-          className={`w-full text-[11px] font-display font-medium py-2 rounded-lg transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed bg-black/10 text-[#171717]/50' : 'bg-[#171717] text-white hover:bg-[#171717]/90'}`}
+          disabled={!canRestart}
+          className={`w-full text-[11px] font-display font-medium py-2 rounded-lg transition-all duration-200 ${!canRestart ? 'opacity-40 cursor-not-allowed bg-black/10 text-[#171717]/50' : 'bg-[#171717] text-white hover:bg-[#171717]/90'}`}
         >
-          {isRestarting ? 'Restarting…' : 'Restart instance'}
+          {isRestarting ? (instance.status === 'resuming' ? 'Resuming…' : 'Restarting…') : 'Restart instance'}
         </button>
       )}
     </div>

@@ -17,6 +17,7 @@ import { getDb, getUsers } from '../db.js';
 import { generateToken } from './token.js';
 import { validateUsername, validateTier, buildRelayUrl } from './validate.js';
 import { launchInstance } from './aws.js';
+import { markFailed } from './lifecycle.js';
 
 const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 
@@ -84,13 +85,16 @@ export async function provisionManagedInstance({
     username: uv.username,
     ec2InstanceId: null,
     publicIp: null,
+    eipAllocationId: null,
     dnsRecordId: null,
     tunnelUrl: null,
     relayUrl,
     provisionTokenHash: sha256(provisionToken),
     status: 'launching',
+    error: null,
     stripeSubscriptionId,
     cancelAt: null,
+    agentVersion: process.env.AGENT_VERSION || null,
     createdAt: now,
   };
   await db.collection('accounts').updateOne(
@@ -105,22 +109,27 @@ export async function provisionManagedInstance({
   launchInstance({
     instanceId: id, plan, region, callbackUrl,
     username: uv.username, tier: tv.tier, relayToken, relayUrl, provisionToken, ai,
+    agentVersion: instance.agentVersion,
   })
     .then(async ({ ec2InstanceId }) => {
+      // Only advance launching → booting; the box's own 'initializing' callback may already
+      // have landed if Mongo was slow, and must not be regressed.
+      await db.collection('accounts').updateOne(
+        { instances: { $elemMatch: { id, status: 'launching' } } },
+        { $set: { 'instances.$.ec2InstanceId': ec2InstanceId, 'instances.$.status': 'booting' } },
+      );
       await db.collection('accounts').updateOne(
         { 'instances.id': id },
-        { $set: { 'instances.$.ec2InstanceId': ec2InstanceId, 'instances.$.status': 'booting' } },
+        { $set: { 'instances.$.ec2InstanceId': ec2InstanceId } },
       );
       console.log(`[provision] ${id} (${uv.username}) → EC2 ${ec2InstanceId} launched`);
     })
     .catch(async (err) => {
       console.error(`[provision] ${id} launch failed:`, err.message);
-      // Roll back the reserved handle so the user can retry the same name.
-      await getUsers().deleteOne({ username: uv.username, tier: tv.tier }).catch(() => {});
-      await db.collection('accounts').updateOne(
-        { 'instances.id': id },
-        { $set: { 'instances.$.status': 'failed' } },
-      );
+      // markFailed frees the handle (retry same name), records the reason for the UI, and
+      // cancels the subscription so the buyer is not billed for a box that never existed.
+      await markFailed(id, `Launch failed: ${err.message}`, { instance: { ...instance, ec2InstanceId: null } })
+        .catch((e) => console.error(`[provision] ${id} markFailed:`, e.message));
     });
 
   return { instanceId: id, username: uv.username, tier: tv.tier, relayUrl };

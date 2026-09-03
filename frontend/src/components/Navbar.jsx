@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from './ui/button'
 import { FaTelegramPlane } from 'react-icons/fa'
 import { HiBars3, HiXMark } from 'react-icons/hi2'
 
@@ -38,24 +37,26 @@ export default function Navbar({ user, onLogin, onLogout }) {
   const isActive = (href) => location.pathname === href
 
   const linkClass = (href) =>
-    `text-sm transition-colors duration-200 ${
+    `text-[15px] font-medium transition-colors duration-200 ${
       isActive(href)
-        ? 'text-foreground font-medium'
+        ? 'text-foreground'
         : 'text-muted-foreground hover:text-foreground'
     }`
 
   const mobileLinkClass = (href) =>
-    `py-3 px-3 rounded-xl text-base transition-colors duration-200 ${
+    `py-3 px-4 rounded-2xl text-base font-medium transition-colors duration-200 ${
       isActive(href)
-        ? 'text-foreground font-medium bg-white/5'
-        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+        ? 'text-foreground bg-foreground/[0.06]'
+        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05]'
     }`
 
   return (
     <>
       <motion.nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled || !isHome ? 'backdrop-blur-xl bg-background/80 border-b border-border/50' : 'bg-transparent'
+        className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 border-b ${
+          scrolled || !isHome
+            ? 'backdrop-blur-xl bg-background/75 border-foreground/[0.06]'
+            : 'bg-transparent border-transparent'
         }`}
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -73,15 +74,15 @@ export default function Navbar({ user, onLogin, onLogout }) {
               className="block"
               style={{ width: 40, height: 35 }}
             />
-            <span className="font-display font-semibold text-lg tracking-tight text-foreground">
+            <span className="font-display font-bold text-[1.35rem] tracking-tight text-foreground">
               Morphy
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-7">
             {navLinks.map(link => (
               link.href.includes('#') ? (
-                <a key={link.href} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
+                <a key={link.href} href={link.href} className="text-[15px] font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
                   {link.label}
                 </a>
               ) : (
@@ -90,7 +91,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
                 </Link>
               )
             ))}
-            <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+            <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="text-muted-foreground hover:text-sky transition-colors duration-200">
               <FaTelegramPlane className="w-[18px] h-[18px]" />
             </a>
           </div>
@@ -98,33 +99,34 @@ export default function Navbar({ user, onLogin, onLogout }) {
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <div className="hidden sm:flex items-center gap-3">
-                <span className="text-sm text-foreground/80 font-display">
+                <span className="text-sm text-muted-foreground">
                   Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
                 </span>
                 <Link
                   to="/dashboard"
-                  className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm flex items-center transition-all duration-200"
+                  className="btn-morphy h-9 px-5 text-sm"
                 >
                   Dashboard
                 </Link>
                 <button
                   onClick={onLogout}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-4 decoration-foreground/20"
                 >
-                  Sair
+                  Log out
                 </button>
               </div>
             ) : (
-              <Button
+              <button
                 onClick={onLogin}
-                className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display px-5 h-9 text-sm hidden sm:flex"
+                className="btn-morphy h-9 px-5 text-sm hidden sm:inline-flex"
               >
                 Login
-              </Button>
+              </button>
             )}
             <button
               onClick={() => setMobileOpen(true)}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground md:hidden transition-colors duration-200"
+              aria-label="Open menu"
+              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] md:hidden transition-colors duration-200"
             >
               <HiBars3 className="w-6 h-6" />
             </button>
@@ -141,52 +143,53 @@ export default function Navbar({ user, onLogin, onLogout }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
             <motion.div
-              className="absolute right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border/50 p-6 flex flex-col"
+              className="absolute right-0 top-0 bottom-0 w-[290px] bg-surface-1 border-l border-border/60 rounded-l-[2rem] p-6 flex flex-col shadow-lift-lg"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
                   <img src="/assets/images/morphy_mascot.png" alt="Morphy" className="h-[31px] w-auto" />
+                  <span className="font-display font-bold text-lg text-foreground">Morphy</span>
                 </div>
-                <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors">
                   <HiXMark className="w-5 h-5" />
                 </button>
               </div>
 
               {user ? (
                 <div className="mb-4">
-                  <div className="flex items-center justify-between px-3 py-3 rounded-xl bg-white/[0.03] border border-border/50">
-                    <span className="text-sm text-foreground/80 font-display">
+                  <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-background/50 border border-border/60">
+                    <span className="text-sm text-muted-foreground">
                       Hey, <span className="font-semibold text-foreground">{user.name?.split(' ')[0]}</span>
                     </span>
                     <button
                       onClick={() => { onLogout(); setMobileOpen(false) }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-2"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 underline underline-offset-4"
                     >
-                      Sair
+                      Log out
                     </button>
                   </div>
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileOpen(false)}
-                    className="mt-3 rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full flex items-center justify-center transition-all duration-200"
+                    className="btn-morphy mt-3 h-11 text-sm w-full"
                   >
                     Dashboard
                   </Link>
                 </div>
               ) : (
                 <div className="mb-4 mt-2">
-                  <Button
+                  <button
                     onClick={() => { onLogin(); setMobileOpen(false) }}
-                    className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-medium font-display h-11 text-sm w-full"
+                    className="btn-morphy h-11 text-sm w-full"
                   >
                     Login
-                  </Button>
+                  </button>
                 </div>
               )}
 
@@ -197,7 +200,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
                       key={link.href}
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className="py-3 px-3 rounded-xl text-base text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors duration-200"
+                      className="py-3 px-4 rounded-2xl text-base font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition-colors duration-200"
                     >
                       {link.label}
                     </a>
@@ -215,7 +218,7 @@ export default function Navbar({ user, onLogin, onLogout }) {
               </div>
 
               <div className="mt-auto">
-                <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-all duration-200">
+                <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="btn-ghost h-11 w-full text-sm gap-2">
                   <FaTelegramPlane className="w-4 h-4" /> Telegram
                 </a>
               </div>

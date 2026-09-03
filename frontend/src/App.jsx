@@ -1,16 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion'
-import { Button } from './components/ui/button'
-import { Badge } from './components/ui/badge'
 import {
   FaArrowRight, FaCopy, FaCheck, FaTelegramPlane, FaGoogle, FaPlay
 } from 'react-icons/fa'
-import {
-  HiSparkles, HiCpuChip, HiChatBubbleLeftRight,
-  HiCommandLine, HiPuzzlePiece, HiBolt,
-  HiArrowLeft
-} from 'react-icons/hi2'
+import { HiArrowLeft } from 'react-icons/hi2'
 import HandleSelector from './components/HandleSelector'
 import Navbar from './components/Navbar'
 import MorphyMascot from './components/MorphyMascot'
@@ -30,52 +24,57 @@ function detectOS() {
   return 'mac'
 }
 
+// ── Motion language ──────────────────────────────────────────────────
+// Entrances ease out smoothly; anything that "lands" gets a little
+// overshoot (SQUISH), the same body language as the mascot.
+const EASE = [0.22, 1, 0.36, 1]
+const SQUISH = [0.34, 1.56, 0.64, 1]
+
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 22 },
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+    transition: { delay: i * 0.09, duration: 0.6, ease: EASE }
   })
 }
 
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.92 },
+const popIn = {
+  hidden: { opacity: 0, scale: 0.94, y: 12 },
   visible: (i = 0) => ({
     opacity: 1,
     scale: 1,
-    transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+    y: 0,
+    transition: {
+      delay: i * 0.07,
+      duration: 0.5,
+      ease: EASE,
+      scale: { delay: i * 0.07, duration: 0.6, ease: SQUISH },
+    }
   })
 }
 
-function AnimatedGridBg() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div
-        className="absolute inset-0 animate-grid-fade"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 105, 254, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 105, 254, 0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px',
-        }}
-      />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/[0.03] rounded-full blur-[150px] animate-glow-pulse" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-primary/[0.02] rounded-full blur-[120px] animate-glow-pulse" style={{ animationDelay: '2s' }} />
-    </div>
-  )
-}
+const cardHover = { y: -4, transition: { type: 'spring', stiffness: 320, damping: 22 } }
 
-function FloatingOrbs() {
+// Section title block: round-caps eyebrow, Gabarito headline with one word
+// in Morphy sky-blue, and a short sub. Used by every section for rhythm.
+function SectionHeading({ eyebrow, title, highlight, children, className = '' }) {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute top-20 left-[10%] w-2 h-2 rounded-full animate-float" style={{ backgroundColor: 'rgba(74, 238, 255, 0.3)' }} />
-      <div className="absolute top-40 right-[15%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(0, 105, 254, 0.25)', animationDelay: '1s' }} />
-      <div className="absolute top-60 left-[25%] w-1 h-1 rounded-full animate-float-slower" style={{ backgroundColor: 'rgba(251, 64, 114, 0.25)', animationDelay: '3s' }} />
-      <div className="absolute top-32 right-[30%] w-2.5 h-2.5 rounded-full animate-float" style={{ backgroundColor: 'rgba(0, 105, 254, 0.15)', animationDelay: '2s' }} />
-      <div className="absolute top-72 left-[60%] w-1.5 h-1.5 rounded-full animate-float-slow" style={{ backgroundColor: 'rgba(74, 238, 255, 0.2)', animationDelay: '4s' }} />
-    </div>
+    <motion.div
+      className={`text-center mb-12 sm:mb-14 ${className}`}
+      initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      variants={fadeUp}
+    >
+      {eyebrow && <span className="eyebrow mb-4">{eyebrow}</span>}
+      <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] leading-[1.08] font-bold font-display text-foreground tracking-tight mb-4 px-2 text-balance">
+        {title}{highlight && <> <span className="text-sky">{highlight}</span></>}
+      </h2>
+      {children && (
+        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2 leading-relaxed">
+          {children}
+        </p>
+      )}
+    </motion.div>
   )
 }
 
@@ -104,7 +103,8 @@ function CopyButton({ text, children }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 active:scale-90 shrink-0"
+      aria-label="Copy"
+      className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200 active:scale-90 shrink-0"
     >
       {copied ? <FaCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FaCopy className="w-3.5 h-3.5" />}
     </button>
@@ -159,27 +159,27 @@ function DemoVideoModal({ open, onClose }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-background/85 backdrop-blur-md" onClick={onClose} />
           <motion.div
             className="relative w-full max-w-4xl"
-            initial={{ scale: 0.95, y: 12 }}
+            initial={{ scale: 0.94, y: 16 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: 12 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+            exit={{ scale: 0.94, y: 16 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
           >
             <button
               onClick={onClose}
-              className="absolute -top-10 right-0 text-sm text-muted-foreground hover:text-foreground font-display transition-colors duration-200"
+              className="absolute -top-10 right-0 text-sm text-muted-foreground hover:text-foreground font-display font-medium transition-colors duration-200"
             >
               Close ✕
             </button>
-            <div className="rounded-2xl overflow-hidden border border-border bg-[#111] aspect-video shadow-2xl shadow-black/60">
+            <div className="rounded-blob overflow-hidden surface-2 aspect-video shadow-lift-lg">
               {videoMissing ? (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-border flex items-center justify-center">
-                    <FaPlay className="w-4 h-4 text-muted-foreground ml-0.5" />
+                  <div className="w-16 h-16 rounded-full bg-sky/10 border border-sky/20 flex items-center justify-center animate-bob">
+                    <FaPlay className="w-4 h-4 text-sky ml-0.5" />
                   </div>
-                  <p className="text-sm text-muted-foreground font-display">Demo video coming soon</p>
+                  <p className="text-sm text-muted-foreground font-display font-medium">Demo video coming soon</p>
                 </div>
               ) : (
                 <video
@@ -206,8 +206,16 @@ function Hero({ user, onLogin, onLogout }) {
 
   return (
     <section className="relative pb-8 sm:pb-14 overflow-hidden">
-      <AnimatedGridBg />
-      <FloatingOrbs />
+      {/* Morphy is the light source: a soft blue radiance where it lands,
+          nothing else. No grid, no orbs. */}
+      <div className="absolute inset-x-0 top-0 h-[560px] sm:h-[680px] pointer-events-none overflow-hidden">
+        {/* Static centered wrapper: the breathing animation owns `transform`
+            on the inner element, so centering must not rely on translate. */}
+        <div className="absolute inset-x-0 top-[20px] sm:top-[30px] flex justify-center">
+          <div className="w-[560px] h-[560px] sm:w-[760px] sm:h-[760px] morphy-light animate-breathe" />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />
+      </div>
 
       {/* Transparent (luma-keyed) drop-in video anchored to the top of the
           viewport, so Morphy falls in from the browser edge. The element
@@ -229,16 +237,16 @@ function Hero({ user, onLogin, onLogout }) {
           initial={{ y: '-33%' }}
           animate={dropped ? { y: '0%' } : { y: '-33%' }}
           transition={{ delay: 1.125, duration: 0.5, ease: 'easeOut' }}
-          className="h-[230px] sm:h-[300px] w-auto shrink-0 mt-[76px] sm:mt-[100px]"
+          className="relative h-[230px] sm:h-[300px] w-auto shrink-0 mt-[76px] sm:mt-[100px]"
         >
           <source src="/assets/videos/morphy-dropping.mov" type='video/mp4; codecs="hvc1"' />
           <source src="/assets/videos/morphy-dropping.webm" type="video/webm" />
         </motion.video>
       </motion.div>
 
-      <div className="max-w-4xl mx-auto text-center relative px-4 sm:px-6 pt-8 sm:pt-12">
+      <div className="max-w-4xl mx-auto text-center relative px-4 sm:px-6 pt-6 sm:pt-10">
         <motion.h1
-          className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold font-display text-foreground tracking-tight sm:leading-[1.08] mb-5 sm:mb-6"
+          className="text-[2.6rem] leading-[1.02] sm:text-6xl md:text-7xl font-bold font-display text-foreground tracking-[-0.025em] mb-6 text-balance"
           initial="hidden" animate="visible" variants={fadeUp} custom={1}
         >
           Everything any agent does.
@@ -247,7 +255,7 @@ function Hero({ user, onLogin, onLogout }) {
         </motion.h1>
 
         <motion.p
-          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
+          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-9 sm:mb-10 leading-relaxed px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={2}
         >
           Morphy is your personal AI agent, inside a personal app that&apos;s all yours.
@@ -257,24 +265,26 @@ function Hero({ user, onLogin, onLogout }) {
         </motion.p>
 
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-5 sm:mb-6 px-2"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 px-2"
           initial="hidden" animate="visible" variants={fadeUp} custom={3}
         >
-          <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
+          <a href="#install" className="btn-morphy h-12 sm:h-[3.25rem] px-8 text-base gap-2 w-full sm:w-auto group">
             Get your Morphy
-            <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
+            <FaArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
           </a>
-          <Button
+          <button
             onClick={() => setVideoOpen(true)}
-            variant="outline"
-            className="rounded-full border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto"
+            className="btn-ghost h-12 sm:h-[3.25rem] px-6 text-base gap-2.5 w-full sm:w-auto"
           >
-            <FaPlay className="w-3 h-3" /> Watch Morphy in action
-          </Button>
+            <span className="w-7 h-7 rounded-full bg-sky/15 text-sky flex items-center justify-center">
+              <FaPlay className="w-2.5 h-2.5 ml-0.5" />
+            </span>
+            Watch Morphy in action
+          </button>
         </motion.div>
 
         <motion.p
-          className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground/70 mb-12 sm:mb-16 px-4 py-2 rounded-full border border-border/60 bg-white/[0.02]"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-16 sm:mb-24 px-4 py-2 rounded-full border border-foreground/[0.07] bg-foreground/[0.03]"
           initial="hidden" animate="visible" variants={fadeUp} custom={4}
         >
           <FaCheck className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -284,9 +294,10 @@ function Hero({ user, onLogin, onLogout }) {
         <motion.div
           id="install"
           initial="hidden" animate="visible" variants={fadeUp} custom={4}
-          className="text-center mb-10 sm:mb-14"
+          className="text-center mb-10 sm:mb-12 scroll-mt-24"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
+          <span className="eyebrow mb-4">Pricing</span>
+          <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] leading-[1.08] font-bold font-display text-foreground tracking-tight mb-4">
             Get your Morphy
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
@@ -296,7 +307,7 @@ function Hero({ user, onLogin, onLogout }) {
         </motion.div>
 
         <motion.div
-          initial="hidden" animate="visible" variants={scaleIn} custom={5}
+          initial="hidden" animate="visible" variants={popIn} custom={5}
         >
           <Terminal user={user} onLogin={onLogin} onLogout={onLogout} />
         </motion.div>
@@ -331,17 +342,32 @@ function HandleReserveInline({ onReserve, error }) {
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="reserve a new handle"
           maxLength={30}
-          className="flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-border text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 font-mono"
+          className="flex-1 h-10 px-4 rounded-full well text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-sky/60 focus:ring-4 focus:ring-sky/15 transition-[border-color,box-shadow] duration-200 font-mono"
         />
         <button
           onClick={submit}
           disabled={disabled}
-          className={`px-4 py-2 rounded-lg text-sm font-display font-medium transition-all duration-200 ${disabled ? 'opacity-40 cursor-not-allowed bg-white/5 text-muted-foreground' : 'bg-gradient-brand text-white hover:opacity-90'}`}
+          className="btn-morphy h-10 px-5 text-sm"
         >
           {busy ? '...' : 'Reserve'}
         </button>
       </div>
-      {error && <p className="text-[10px] text-red-400 mt-1.5 font-display">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-2 font-medium">{error}</p>}
+    </div>
+  )
+}
+
+// Small header row used inside the purchase widget: optional back arrow +
+// a quiet round-caps label.
+function StepHeader({ onBack, children, className = 'mb-4' }) {
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      {onBack && (
+        <button onClick={onBack} aria-label="Back" className="w-7 h-7 -ml-1 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-200">
+          <HiArrowLeft className="w-4 h-4" />
+        </button>
+      )}
+      <p className="text-[11px] font-display font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</p>
     </div>
   )
 }
@@ -380,39 +406,37 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
     'Your Morphy is ready!',
   ]
 
+  const optionClass = 'text-left rounded-2xl border border-border/70 bg-background/40 hover:border-sky/40 hover:bg-sky/[0.05] transition-[border-color,background-color,transform] duration-300 ease-squish hover:-translate-y-0.5 active:scale-[0.99] group relative'
+
   if (step === 'plan') {
     return (
-      <div className="font-sans">
-        <div className="flex items-center gap-2 mb-3">
-          {instances.length > 0 && (
-            <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-              <HiArrowLeft className="w-4 h-4" />
-            </button>
-          )}
-          <p className="text-xs text-muted-foreground font-display">Choose your instance</p>
-        </div>
+      <div className="font-sans text-left">
+        <StepHeader onBack={instances.length > 0 ? onBack : undefined}>Choose your instance</StepHeader>
+        {handleError && (
+          <p className="text-xs text-destructive mb-3 font-medium leading-snug">{handleError}</p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {plans.map(plan => (
             <button
               key={plan.id}
               onClick={() => onSelectPlan(plan.id)}
-              className="text-left p-4 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300 group relative"
+              className={`${optionClass} p-5`}
             >
               {plan.popular && (
-                <span className="absolute -top-2 right-3 text-[9px] font-display font-semibold bg-gradient-brand text-white px-2 py-0.5 rounded-full">
+                <span className="absolute -top-2.5 right-4 text-[10px] font-display font-bold bg-morphy shadow-morphy text-white px-2.5 py-0.5 rounded-full">
                   Popular
                 </span>
               )}
-              <h4 className="font-display font-semibold text-foreground text-sm mb-0.5">{plan.name}</h4>
-              <p className="text-[10px] text-muted-foreground/50 font-mono mb-1.5">{plan.instance}</p>
-              <div className="text-2xl font-bold font-display text-foreground mb-0.5">
-                ${plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span>
+              <h4 className="font-display font-bold text-foreground text-base mb-0.5">{plan.name}</h4>
+              <p className="text-[11px] text-muted-foreground/60 font-mono mb-2">{plan.instance}</p>
+              <div className="text-3xl font-bold font-display text-foreground mb-1 tracking-tight">
+                ${plan.price}<span className="text-sm font-medium text-muted-foreground font-sans">/mo</span>
               </div>
-              <p className="text-[10px] text-muted-foreground mb-2.5">{plan.description}</p>
-              <ul className="space-y-1">
+              <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
+              <ul className="space-y-1.5">
                 {plan.specs.map(spec => (
-                  <li key={spec} className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-[#0069FE] shrink-0" />
+                  <li key={spec} className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky shrink-0" />
                     {spec}
                   </li>
                 ))}
@@ -427,24 +451,19 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
   if (step === 'region') {
     const plan = plans.find(p => p.id === selectedPlan)
     return (
-      <div className="font-sans">
-        <div className="flex items-center gap-2 mb-3">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <HiArrowLeft className="w-4 h-4" />
-          </button>
-          <p className="text-xs text-muted-foreground font-display">
-            {plan.name} &middot; ${plan.price}/mo &middot; Select region
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="font-sans text-left">
+        <StepHeader onBack={onBack}>
+          {plan.name} &middot; ${plan.price}/mo &middot; Select region
+        </StepHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {regions.map(region => (
             <button
               key={region.id}
               onClick={() => onSelectRegion(region.id)}
-              className="text-center p-3 sm:p-4 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300"
+              className={`${optionClass} !text-center p-4`}
             >
-              <div className="text-sm font-display font-medium text-foreground mb-0.5">{region.label}</div>
-              <div className="text-[10px] text-muted-foreground">{region.sublabel}</div>
+              <div className="text-sm font-display font-semibold text-foreground mb-0.5">{region.label}</div>
+              <div className="text-xs text-muted-foreground">{region.sublabel}</div>
             </button>
           ))}
         </div>
@@ -454,18 +473,13 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
 
   if (step === 'login') {
     return (
-      <div className="font-sans py-2 sm:py-4">
-        <div className="flex items-center gap-2 mb-5">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <HiArrowLeft className="w-4 h-4" />
-          </button>
-          <p className="text-xs text-muted-foreground font-display">Sign in to continue</p>
-        </div>
+      <div className="font-sans py-2 sm:py-4 text-left">
+        <StepHeader onBack={onBack} className="mb-6">Sign in to continue</StepHeader>
         <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-4 font-display">Login to launch your hosted Morphy instance</p>
+          <p className="text-sm text-muted-foreground mb-4">Login to launch your hosted Morphy instance</p>
           <button
             onClick={onLogin}
-            className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full bg-white text-[#1a1a1a] font-medium text-sm hover:bg-white/90 transition-colors duration-200"
+            className="inline-flex items-center gap-2.5 px-6 h-11 rounded-full bg-white text-[#1a1a1a] font-display font-semibold text-sm hover:bg-white/90 transition-[background-color,transform] duration-200 active:scale-[0.98]"
           >
             <FaGoogle className="w-4 h-4 text-[#4285F4]" />
             Sign in with Google
@@ -479,30 +493,25 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
     const available = reservedHandles.filter(h => !h.used)
     const used = reservedHandles.filter(h => h.used)
     return (
-      <div className="font-sans">
-        <div className="flex items-center gap-2 mb-3">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <HiArrowLeft className="w-4 h-4" />
-          </button>
-          <p className="text-xs text-muted-foreground font-display">Choose your bot handle</p>
-        </div>
+      <div className="font-sans text-left">
+        <StepHeader onBack={onBack}>Choose your bot handle</StepHeader>
 
         {available.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
             {available.map(h => (
               <button
                 key={h.handle}
                 onClick={() => onSelectHandle(h)}
-                className="text-left p-3 rounded-xl border border-border bg-white/[0.02] hover:border-primary/30 hover:bg-primary/[0.04] transition-all duration-300"
+                className={`${optionClass} p-3.5`}
               >
-                <div className="text-sm font-display font-medium text-foreground">{h.handle}</div>
-                <div className="text-[10px] text-muted-foreground font-mono">{h.handle}.morphyagent.com</div>
+                <div className="text-sm font-display font-semibold text-foreground">{h.handle}</div>
+                <div className="text-[11px] text-muted-foreground font-mono">{h.handle}.morphyagent.com</div>
               </button>
             ))}
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-dashed border-border bg-white/[0.02] mb-4 text-center">
-            <p className="text-xs text-muted-foreground font-display">
+          <div className="p-4 rounded-2xl border border-dashed border-border bg-background/30 mb-4 text-center">
+            <p className="text-xs text-muted-foreground">
               You need a reserved handle to start an instance. Reserve one below.
             </p>
           </div>
@@ -511,7 +520,7 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
         <HandleReserveInline onReserve={onReserveHandle} error={handleError} />
 
         {used.length > 0 && (
-          <p className="text-[10px] text-muted-foreground/50 mt-3 font-display">
+          <p className="text-[11px] text-muted-foreground/60 mt-3">
             Already in use: {used.map(h => h.handle).join(', ')}
           </p>
         )}
@@ -523,50 +532,45 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
     const plan = plans.find(p => p.id === selectedPlan)
     const region = regions.find(r => r.id === selectedRegion)
     return (
-      <div className="font-sans">
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-            <HiArrowLeft className="w-4 h-4" />
-          </button>
-          <p className="text-xs text-muted-foreground font-display">Confirm & pay</p>
-        </div>
-        <div className="p-4 rounded-xl border border-border bg-white/[0.02] mb-4">
+      <div className="font-sans text-left">
+        <StepHeader onBack={onBack}>Confirm & pay</StepHeader>
+        <div className="p-5 rounded-2xl well mb-4">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <div className="text-sm font-display font-semibold text-foreground">{plan.name} Instance</div>
-              <div className="text-[11px] text-muted-foreground">{region.label} ({region.sublabel})</div>
+              <div className="text-sm font-display font-bold text-foreground">{plan.name} Instance</div>
+              <div className="text-xs text-muted-foreground">{region.label} ({region.sublabel})</div>
             </div>
-            <div className="text-lg font-bold font-display text-foreground">
-              ${plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span>
+            <div className="text-xl font-bold font-display text-foreground tracking-tight">
+              ${plan.price}<span className="text-xs font-medium text-muted-foreground font-sans">/mo</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {plan.specs.map(spec => (
-              <span key={spec} className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{spec}</span>
+              <span key={spec} className="text-[11px] text-muted-foreground bg-foreground/[0.05] px-2.5 py-0.5 rounded-full">{spec}</span>
             ))}
           </div>
           {selectedHandle && (
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <div className="text-[10px] text-muted-foreground font-display mb-0.5">Your bot will live at</div>
-              <div className="text-sm font-mono text-[#0069FE]">{selectedHandle.handle}.morphyagent.com</div>
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Your bot will live at</div>
+              <div className="text-sm font-mono text-sky">{selectedHandle.handle}.morphyagent.com</div>
             </div>
           )}
         </div>
         <button
           onClick={onPay}
-          className="w-full py-2.5 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-opacity duration-200"
+          className="btn-morphy w-full h-11 text-sm"
         >
           Pay ${plan.price}/mo
         </button>
-        {handleError && <p className="text-[11px] text-red-400 mt-2 text-center font-display">{handleError}</p>}
+        {handleError && <p className="text-xs text-destructive mt-2 text-center font-medium">{handleError}</p>}
       </div>
     )
   }
 
   if (step === 'provisioning') {
     return (
-      <div className="font-sans py-2 sm:py-4">
-        <div className="space-y-3.5">
+      <div className="font-sans py-2 sm:py-4 text-left">
+        <div className="space-y-4">
           {provisioningSteps.map((label, i) => (
             <motion.div
               key={i}
@@ -579,18 +583,18 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0"
+                  transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                  className="w-6 h-6 rounded-full bg-emerald-400/15 flex items-center justify-center shrink-0"
                 >
                   <FaCheck className="w-2.5 h-2.5 text-emerald-400" />
                 </motion.div>
               ) : provisionStep === i ? (
-                <div className="w-5 h-5 rounded-full border-2 border-primary/40 border-t-primary animate-spin shrink-0" />
+                <div className="w-6 h-6 rounded-full border-2 border-sky/25 border-t-sky animate-spin shrink-0" />
               ) : (
-                <div className="w-5 h-5 rounded-full border border-white/10 shrink-0" />
+                <div className="w-6 h-6 rounded-full border border-foreground/10 shrink-0" />
               )}
-              <span className={`text-sm font-display transition-colors duration-300 ${
-                provisionStep > i ? 'text-emerald-400' : provisionStep === i ? 'text-foreground' : 'text-muted-foreground/30'
+              <span className={`text-sm font-display font-medium transition-colors duration-300 ${
+                provisionStep > i ? 'text-emerald-400' : provisionStep === i ? 'text-foreground' : 'text-muted-foreground/40'
               }`}>
                 {label}
               </span>
@@ -607,21 +611,21 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-3"
+          transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+          className="w-14 h-14 rounded-full bg-emerald-400/15 flex items-center justify-center mx-auto mb-4"
         >
           <FaCheck className="w-5 h-5 text-emerald-400" />
         </motion.div>
-        <h4 className="font-display font-semibold text-foreground text-base mb-1">Your Morphy is ready!</h4>
-        <p className="text-xs text-muted-foreground mb-3 font-display">Continue the setup of your Morphy at:</p>
-        <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-border mb-4">
-          <span className="text-sm font-mono text-[#0069FE]">{tunnelUrl}</span>
+        <h4 className="font-display font-bold text-foreground text-xl mb-1">Your Morphy is ready!</h4>
+        <p className="text-sm text-muted-foreground mb-4">Continue the setup of your Morphy at:</p>
+        <div className="inline-flex items-center gap-2 pl-5 pr-2 py-2 rounded-full well mb-5">
+          <span className="text-sm font-mono text-sky">{tunnelUrl}</span>
           <CopyButton text={tunnelUrl} />
         </div>
         <div>
           <button
             onClick={onCloseReady}
-            className="text-xs text-muted-foreground hover:text-foreground font-display underline underline-offset-2 transition-colors duration-200"
+            className="text-sm text-muted-foreground hover:text-foreground font-display font-medium underline underline-offset-4 decoration-foreground/20 transition-colors duration-200"
           >
             Go to my dashboard
           </button>
@@ -635,19 +639,19 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
     const planMap = { starter: { name: 'Starter', instance: 't4g.small' }, pro: { name: 'Pro', instance: 't4g.medium' } }
 
     return (
-      <div className="font-sans">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-muted-foreground font-display">Your instances</p>
+      <div className="font-sans text-left">
+        <div className="flex items-center justify-between mb-4">
+          <StepHeader className="">Your instances</StepHeader>
           <div className="flex items-center gap-1.5">
             <button
               onClick={onManageSubscription}
-              className="text-[11px] font-display font-medium text-muted-foreground/60 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
+              className="btn-ghost h-7 px-3 text-[11px]"
             >
               Manage Subscription
             </button>
             <button
               onClick={onAddNew}
-              className="text-[11px] font-display font-medium text-foreground/70 hover:text-foreground px-2.5 py-1 rounded-full border border-white/10 hover:border-primary/30 transition-all duration-200"
+              className="btn-ghost h-7 px-3 text-[11px]"
             >
               + Add new
             </button>
@@ -655,16 +659,16 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
         </div>
         {instances.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground/50 font-display mb-3">No instances yet</p>
+            <p className="text-sm text-muted-foreground/60 mb-3">No instances yet</p>
             <button
               onClick={onAddNew}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-opacity duration-200"
+              className="btn-morphy h-10 px-6 text-sm"
             >
               Launch your first instance
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {instances.map(inst => {
               const plan = planMap[inst.plan] || { name: inst.plan, instance: '' }
               const isRestarting = inst.status === 'restarting'
@@ -674,20 +678,20 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
               return (
                 <div
                   key={inst.id}
-                  className={`p-3 rounded-xl border bg-white/[0.02] relative overflow-hidden min-w-0 ${isCanceling ? 'border-amber-500/30' : 'border-border'}`}
+                  className={`p-3.5 rounded-2xl border bg-background/40 relative overflow-hidden min-w-0 ${isCanceling ? 'border-amber-400/40' : 'border-border/70'}`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
                     <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                       isRestarting || isCanceling ? 'bg-amber-400 animate-pulse'
                       : isReady ? 'bg-emerald-400'
-                      : isTerminated ? 'bg-red-400'
+                      : isTerminated ? 'bg-destructive'
                       : 'bg-muted-foreground/40'
                     }`} />
-                    <span className="text-xs font-display font-semibold text-foreground truncate">{plan.name}</span>
+                    <span className="text-xs font-display font-bold text-foreground truncate">{plan.name}</span>
                     {isRestarting && <span className="text-[9px] text-amber-400/80 font-display">Restarting...</span>}
-                    {isTerminated && <span className="text-[9px] text-red-400/80 font-display">Terminated</span>}
+                    {isTerminated && <span className="text-[9px] text-destructive/80 font-display">Terminated</span>}
                   </div>
-                  <p className="text-[10px] text-muted-foreground/50 font-mono mb-1">{plan.instance}</p>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono mb-1">{plan.instance}</p>
                   <p className="text-[10px] text-muted-foreground mb-2">{regionMap[inst.region] || inst.region}</p>
                   {isCanceling && inst.cancelAt && (
                     <p className="text-[10px] text-amber-400/80 font-display mb-2">
@@ -696,14 +700,14 @@ function HostedContent({ step, selectedPlan, selectedRegion, selectedHandle, res
                   )}
                   {(inst.relayUrl || inst.tunnelUrl) && !isTerminated && (
                     <CopyButton text={inst.relayUrl || inst.tunnelUrl}>
-                      <span className="text-[9px] font-mono text-[#0069FE] truncate">{inst.relayUrl || inst.tunnelUrl}</span>
+                      <span className="text-[9px] font-mono text-sky truncate">{inst.relayUrl || inst.tunnelUrl}</span>
                     </CopyButton>
                   )}
                   {!isTerminated && (
                     <button
                       onClick={() => onRestart(inst.id)}
                       disabled={isRestarting}
-                      className={`w-full text-[10px] font-display font-medium py-1.5 rounded-lg border border-white/10 transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed text-muted-foreground' : 'text-muted-foreground hover:text-foreground hover:border-primary/30'}`}
+                      className={`w-full text-[10px] font-display font-semibold py-1.5 rounded-full border border-foreground/10 transition-all duration-200 ${isRestarting ? 'opacity-40 cursor-not-allowed text-muted-foreground' : 'text-muted-foreground hover:text-foreground hover:border-sky/35'}`}
                     >
                       {isRestarting ? 'Restarting...' : 'Restart'}
                     </button>
@@ -736,6 +740,7 @@ function Terminal({ user, onLogin, onLogout }) {
   const [selectedHandle, setSelectedHandle] = useState(null)
   const [handleError, setHandleError] = useState('')
   const stripeSessionActive = useRef(false)
+  const sessionMisses = useRef(0)   // consecutive 404s from /api/stripe/session while waiting for the webhook
 
   const fetchInstances = async () => {
     const token = localStorage.getItem('bloby_token')
@@ -809,6 +814,7 @@ function Terminal({ user, onLogin, onLogout }) {
 
     // Prevent the [activeTab, user] effect from overwriting our provisioning view
     stripeSessionActive.current = true
+    sessionMisses.current = 0
 
     // Switch to hosted mode and show provisioning
     setMode('hosted')
@@ -846,7 +852,21 @@ function Terminal({ user, onLogin, onLogout }) {
             stripeSessionActive.current = false
             return
           }
-          if (instance.status === 'failed') {
+          if (instance.status === 'failed' || instance.status === 'dns_failed') {
+            // The backend has already cancelled the subscription and freed the handle on
+            // 'failed'; tell the buyer what happened instead of silently resetting.
+            setHandleError(instance.error || 'Provisioning failed. You have not been charged — please try again.')
+            setHostedStep('plan')
+            stripeSessionActive.current = false
+            return
+          }
+        } else if (sessionRes.status === 404 && !cancelled) {
+          // The webhook hasn't created the instance yet — normal for the first seconds. If it
+          // never does (provisioning threw before an instance existed), surface the reason the
+          // backend stored on the account rather than spinning forever.
+          sessionMisses.current += 1
+          if (sessionMisses.current >= 40) { // ~2 min
+            setHandleError('Your instance could not be created. Any charge has been cancelled — please try again or contact support.')
             setHostedStep('plan')
             stripeSessionActive.current = false
             return
@@ -918,7 +938,8 @@ function Terminal({ user, onLogin, onLogout }) {
           return
         }
 
-        if (instance.status === 'failed') {
+        if (instance.status === 'failed' || instance.status === 'dns_failed') {
+          setHandleError(instance.error || 'Provisioning failed. You have not been charged — please try again.')
           setHostedStep('plan')
           return
         }
@@ -1095,42 +1116,42 @@ function Terminal({ user, onLogin, onLogout }) {
 
   return (
     <div className="max-w-2xl mx-auto px-2 sm:px-0">
-      {/* Mode toggle */}
-      <div className="flex gap-3 mb-6">
-        {modes.map(m => (
-          <button
-            key={m.id}
-            onClick={() => setMode(m.id)}
-            className={`relative flex-1 text-left px-4 sm:px-5 py-3.5 sm:py-4 rounded-xl border transition-all duration-300 ${
-              mode === m.id
-                ? 'border-primary/40 bg-primary/[0.06] shadow-[0_0_20px_-6px_rgba(0, 105, 254,0.25)]'
-                : 'border-border bg-card/50 hover:border-border/80'
-            }`}
-          >
-            {m.badge && (
-              <span className="absolute -top-2.5 right-3 text-[9px] font-display font-semibold bg-gradient-brand text-white px-2 py-0.5 rounded-full z-10">
-                {m.badge}
+      {/* Mode toggle: two options in one rounded track; the active one gets
+          a sliding highlight instead of a glowing border. */}
+      <div className="flex gap-2 mb-5 p-1.5 rounded-[1.5rem] bg-surface-1 border border-border/60 shadow-lift">
+        {modes.map(m => {
+          const active = mode === m.id
+          return (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              className="relative flex-1 text-left px-4 sm:px-5 py-3.5 rounded-[1.125rem] transition-colors duration-300"
+            >
+              {active && (
+                <motion.div
+                  layoutId="mode-pill"
+                  className="absolute inset-0 rounded-[1.125rem] bg-surface-3 border border-sky/25 shadow-lift"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              {m.badge && (
+                <span className="absolute -top-2.5 right-3 text-[10px] font-display font-bold bg-morphy shadow-morphy text-white px-2.5 py-0.5 rounded-full z-10">
+                  {m.badge}
+                </span>
+              )}
+              <span className={`relative z-10 block text-sm sm:text-base font-bold font-display transition-colors duration-300 ${
+                active ? 'text-foreground' : 'text-muted-foreground'
+              }`}>
+                {m.title}
               </span>
-            )}
-            {mode === m.id && (
-              <motion.div
-                layoutId="mode-glow"
-                className="absolute inset-0 rounded-xl border border-primary/30"
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-            <span className={`relative z-10 block text-sm sm:text-base font-semibold font-display ${
-              mode === m.id ? 'text-foreground' : 'text-muted-foreground'
-            }`}>
-              {m.title}
-            </span>
-            <span className={`relative z-10 block text-[11px] sm:text-xs mt-1 ${
-              mode === m.id ? 'text-muted-foreground' : 'text-muted-foreground/50'
-            }`}>
-              {m.desc}
-            </span>
-          </button>
-        ))}
+              <span className={`relative z-10 block text-[11px] sm:text-xs mt-0.5 transition-colors duration-300 ${
+                active ? 'text-muted-foreground' : 'text-muted-foreground/60'
+              }`}>
+                {m.desc}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Content */}
@@ -1143,15 +1164,15 @@ function Terminal({ user, onLogin, onLogout }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
+            <div className="rounded-blob surface-2 overflow-hidden">
               {!user && (
-                <div className="px-4 sm:px-5 pt-4 sm:pt-5 text-center">
-                  <p className="text-xs text-muted-foreground/60 font-display">
-                    <button onClick={onLogin} className="text-foreground font-medium hover:text-primary transition-colors duration-200 underline underline-offset-2">Login</button> to see your instances
+                <div className="px-5 pt-5 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    <button onClick={onLogin} className="text-foreground font-semibold hover:text-sky transition-colors duration-200 underline underline-offset-4 decoration-foreground/20">Login</button> to see your instances
                   </p>
                 </div>
               )}
-              <div className="p-4 sm:p-5 text-xs sm:text-sm leading-relaxed">
+              <div className="p-5 sm:p-6 text-xs sm:text-sm leading-relaxed">
                 <HostedContent
                   step={hostedStep}
                   selectedPlan={selectedPlan}
@@ -1176,7 +1197,7 @@ function Terminal({ user, onLogin, onLogout }) {
                 />
               </div>
             </div>
-            <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground/60 mt-4 text-center">
               Fully managed on AWS. No terminal, no maintenance, cancel anytime.
             </p>
           </motion.div>
@@ -1188,23 +1209,23 @@ function Terminal({ user, onLogin, onLogout }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="rounded-2xl border border-border bg-[#1a1a1a] overflow-hidden shadow-2xl shadow-black/40 glow-border hover:glow-border-hover transition-shadow duration-500">
-              <div className="flex items-center justify-center px-3 sm:px-4 py-3 border-b border-white/[0.06] bg-[#1e1e1e] gap-2">
-                <div className="flex items-center gap-0.5 sm:gap-1 bg-white/5 rounded-lg p-0.5 overflow-x-auto no-scrollbar">
+            <div className="rounded-blob surface-2 overflow-hidden">
+              <div className="flex items-center justify-center px-4 py-3 border-b border-border/60 gap-2">
+                <div className="flex items-center gap-1 bg-background/50 rounded-full p-1 overflow-x-auto no-scrollbar">
                   {tabs.map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative px-2 sm:px-3 py-1 rounded-md text-[11px] sm:text-xs font-medium font-display transition-colors duration-200 whitespace-nowrap ${
+                      className={`relative px-3.5 py-1.5 rounded-full text-xs font-display font-semibold transition-colors duration-200 whitespace-nowrap ${
                         activeTab === tab.id
-                          ? 'text-primary-foreground'
+                          ? 'text-white'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       {activeTab === tab.id && (
                         <motion.div
                           layoutId="terminal-tab"
-                          className="absolute inset-0 bg-gradient-brand rounded-md"
+                          className="absolute inset-0 bg-morphy shadow-morphy rounded-full"
                           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         />
                       )}
@@ -1213,7 +1234,7 @@ function Terminal({ user, onLogin, onLogout }) {
                   ))}
                 </div>
               </div>
-              <div className="p-4 sm:p-5 text-xs sm:text-sm leading-relaxed min-h-[100px] sm:min-h-[120px] font-mono">
+              <div className="p-5 sm:p-6 text-xs sm:text-sm leading-relaxed min-h-[100px] sm:min-h-[120px] font-mono text-left">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1228,12 +1249,12 @@ function Terminal({ user, onLogin, onLogout }) {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.12, duration: 0.3 }}
-                        className={i > 0 ? 'mt-3 sm:mt-4' : ''}
+                        className={i > 0 ? 'mt-4' : ''}
                       >
-                        <div className="text-muted-foreground/40 text-[10px] sm:text-xs mb-1"># {line.comment}</div>
-                        <div className="flex items-center justify-between gap-2 sm:gap-3">
+                        <div className="text-muted-foreground/50 text-[11px] sm:text-xs mb-1.5"># {line.comment}</div>
+                        <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 overflow-x-auto no-scrollbar">
-                            <span className="text-[#0069FE]">{line.prompt || '$'}</span>{' '}
+                            <span className="text-sky">{line.prompt || '$'}</span>{' '}
                             <span className="text-foreground whitespace-nowrap">{line.command}</span>
                           </div>
                           <CopyButton text={line.command} />
@@ -1244,7 +1265,7 @@ function Terminal({ user, onLogin, onLogout }) {
                 </AnimatePresence>
               </div>
             </div>
-            <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-3 sm:mt-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground/60 mt-4 text-center">
               Works on macOS, Windows & Linux. The one-liner installs Node.js and everything else for you.
               You should be comfortable with a terminal. If not, managed is the way.
             </p>
@@ -1272,39 +1293,33 @@ function TwoThings() {
   ]
 
   return (
-    <section id="two-things" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+    <section id="two-things" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative">
       <div className="max-w-5xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-16"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Two things in one. <span className="text-gradient">That&apos;s the trick.</span>
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            AI products give you an agent <em>or</em> an app. Morphy is the first
-            that&apos;s both at once: an agent that builds its own home around you.
-          </p>
-        </motion.div>
+        <SectionHeading eyebrow="What Morphy is" title="Two things in one." highlight="That's the trick.">
+          AI products give you an agent <em>or</em> an app. Morphy is the first
+          that&apos;s both at once: an agent that builds its own home around you.
+        </SectionHeading>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {halves.map((half, i) => (
             <motion.div
               key={half.tag}
-              className="relative p-6 sm:p-8 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500"
+              className="relative p-7 sm:p-8 rounded-blob surface surface-hover"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-              variants={scaleIn} custom={i}
+              variants={popIn} custom={i}
+              whileHover={cardHover}
             >
-              <span className="inline-flex items-center h-6 px-3 rounded-full bg-primary/10 border border-primary/20 text-[11px] font-display font-semibold text-[#4AEEFF] mb-4">
+              <span className="inline-flex items-center h-6 px-3 rounded-full bg-sky/10 border border-sky/20 text-[11px] font-display font-bold text-sky mb-5 tracking-wide">
                 {half.tag}
               </span>
-              <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2.5">{half.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-5">{half.description}</p>
-              <ul className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-bold font-display text-foreground mb-3 tracking-tight">{half.title}</h3>
+              <p className="text-muted-foreground text-[15px] leading-relaxed mb-6">{half.description}</p>
+              <ul className="space-y-2.5">
                 {half.points.map(point => (
-                  <li key={point} className="text-sm text-muted-foreground/80 flex items-start gap-2.5">
-                    <FaCheck className="w-3 h-3 text-[#0069FE] mt-1 shrink-0" />
+                  <li key={point} className="text-sm text-foreground/80 flex items-start gap-2.5">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-sky/10 flex items-center justify-center shrink-0">
+                      <FaCheck className="w-2.5 h-2.5 text-sky" />
+                    </span>
                     {point}
                   </li>
                 ))}
@@ -1314,12 +1329,12 @@ function TwoThings() {
         </div>
 
         <motion.p
-          className="text-center text-sm sm:text-base text-muted-foreground/70 mt-8 sm:mt-10 px-2"
+          className="text-center text-base sm:text-lg text-muted-foreground mt-10 px-2 font-display"
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
           variants={fadeUp}
         >
           You ask &rarr; Morphy builds &rarr; it&apos;s in your app.
-          <span className="text-foreground/80 font-medium"> That&apos;s the whole loop.</span>
+          <span className="text-foreground font-semibold"> That&apos;s the whole loop.</span>
         </motion.p>
       </div>
     </section>
@@ -1341,41 +1356,33 @@ function BringYourOwnAI() {
   ]
 
   return (
-    <section id="your-ai" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+    <section id="your-ai" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative">
       <div className="max-w-4xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-14"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Your AI subscription <span className="text-gradient">works here.</span>
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Morphy never charges you for AI. Sign in with the plan you already pay
-            for, and your agent uses it.
-          </p>
-        </motion.div>
+        <SectionHeading eyebrow="Bring your own AI" title="Your AI subscription" highlight="works here.">
+          Morphy never charges you for AI. Sign in with the plan you already pay
+          for, and your agent uses it.
+        </SectionHeading>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           {providers.map((p, i) => (
             <motion.div
               key={p.name}
-              className="p-6 sm:p-7 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500"
+              className="p-7 rounded-blob surface surface-hover"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-              variants={scaleIn} custom={i}
+              variants={popIn} custom={i}
+              whileHover={cardHover}
             >
-              <div className="flex items-baseline gap-2.5 mb-2.5">
-                <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground">{p.name}</h3>
-                <span className="text-[11px] text-muted-foreground/60 font-display">{p.tag}</span>
+              <div className="flex items-baseline gap-2.5 mb-3">
+                <h3 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">{p.name}</h3>
+                <span className="text-xs text-muted-foreground font-display font-medium">{p.tag}</span>
               </div>
-              <p className="text-muted-foreground text-sm leading-relaxed">{p.description}</p>
+              <p className="text-muted-foreground text-[15px] leading-relaxed">{p.description}</p>
             </motion.div>
           ))}
         </div>
 
         <motion.p
-          className="text-center text-sm text-muted-foreground/60 mt-6 sm:mt-8 px-2"
+          className="text-center text-sm sm:text-base text-muted-foreground/80 mt-8 px-2 max-w-2xl mx-auto"
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
           variants={fadeUp}
         >
@@ -1438,30 +1445,29 @@ function EcosystemCard({ item, index }) {
 
   return (
     <motion.div
-      className="group rounded-2xl border border-border bg-card overflow-hidden hover:glow-border-hover transition-all duration-500"
+      className="group rounded-blob surface surface-hover overflow-hidden"
       initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-      variants={scaleIn} custom={index}
-      whileHover={{ y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      variants={popIn} custom={index}
+      whileHover={cardHover}
     >
-      <div className="aspect-[16/10] bg-white/[0.03] border-b border-border/50 overflow-hidden">
+      <div className="aspect-[16/10] bg-surface-2 border-b border-border/50 overflow-hidden relative">
         {imgOk ? (
           <img
             src={item.image}
             alt={item.title}
             loading="lazy"
             onError={() => setImgOk(false)}
-            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/[0.06] to-transparent">
-            <span className="text-2xl font-bold font-display text-foreground/15">{item.title}</span>
+          <div className="w-full h-full flex items-center justify-center px-6 bg-[radial-gradient(ellipse_at_top,hsl(var(--sky)/0.14),transparent_70%)]">
+            <span className="text-2xl font-bold font-display text-foreground/15 text-center leading-tight tracking-tight group-hover:text-sky/40 transition-colors duration-500">{item.title}</span>
           </div>
         )}
       </div>
-      <div className="p-4 sm:p-5">
-        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground mb-1.5">{item.title}</h3>
-        <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{item.description}</p>
+      <div className="p-5">
+        <h3 className="text-base font-bold font-display text-foreground mb-1.5 tracking-tight">{item.title}</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
       </div>
     </motion.div>
   )
@@ -1469,22 +1475,13 @@ function EcosystemCard({ item, index }) {
 
 function Ecosystem() {
   return (
-    <section id="ecosystem" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+    <section id="ecosystem" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative">
       <div className="max-w-6xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-16"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            One Morphy. <span className="text-gradient">Everywhere.</span>
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Morphy is a big project, and new pieces ship all the time. A few highlights.
-          </p>
-        </motion.div>
+        <SectionHeading eyebrow="Ecosystem" title="One Morphy." highlight="Everywhere.">
+          Morphy is a big project, and new pieces ship all the time. A few highlights.
+        </SectionHeading>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {ECOSYSTEM.map((item, i) => (
             <EcosystemCard key={item.title} item={item} index={i} />
           ))}
@@ -1530,40 +1527,27 @@ function Features() {
   ]
 
   return (
-    <section id="features" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 relative">
-      <div className="max-w-6xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-16"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            Not just a chat. <span className="text-gradient">A whole app.</span>
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Other AI agents live in a terminal. Morphy lives in an app that belongs
-            to you, and fills it with whatever your life needs next.
-          </p>
-        </motion.div>
+    <section id="features" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative scroll-mt-16">
+      <div className="max-w-6xl mx-auto band p-5 sm:p-10 md:p-14">
+        <SectionHeading eyebrow="Features" title="Not just a chat." highlight="A whole app.">
+          Other AI agents live in a terminal. Morphy lives in an app that belongs
+          to you, and fills it with whatever your life needs next.
+        </SectionHeading>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
-              className="group relative p-5 sm:p-6 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500 cursor-default"
+              className="group relative p-6 rounded-blob surface surface-hover cursor-default"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-              variants={scaleIn} custom={i}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              variants={popIn} custom={i}
+              whileHover={cardHover}
             >
-              <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white/[0.06] flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-white/[0.1] transition-colors duration-300 p-2.5 sm:p-3">
-                  <img src={feature.image} alt={feature.title} className={`w-full h-full object-contain ${feature.scale || ''}`} />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+              <div className="w-16 h-16 rounded-2xl bg-sky/10 border border-sky/15 flex items-center justify-center mb-5 p-3 group-hover:animate-squish group-hover:bg-sky/15 transition-colors duration-300">
+                <img src={feature.image} alt="" aria-hidden="true" className={`w-full h-full object-contain ${feature.scale || ''}`} />
               </div>
+              <h3 className="text-lg font-bold font-display text-foreground mb-2 tracking-tight">{feature.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
@@ -1593,37 +1577,25 @@ function UseCases() {
   ]
 
   return (
-    <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+    <section className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative">
       <div className="max-w-5xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-16"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
-            It&apos;s called Morphy <span className="text-gradient">for a reason.</span>
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            One day it&apos;s a calculator, the next it&apos;s a CRM. It morphs into
-            whatever your week throws at you.
-          </p>
-        </motion.div>
+        <SectionHeading eyebrow="Stories" title="It's called Morphy" highlight="for a reason.">
+          One day it&apos;s a calculator, the next it&apos;s a CRM. It morphs into
+          whatever your week throws at you.
+        </SectionHeading>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {cases.map((item, i) => (
             <motion.div
               key={item.label}
-              className="group relative p-5 sm:p-6 rounded-2xl border border-border bg-card hover:glow-border-hover transition-all duration-500 cursor-default"
+              className="group relative p-7 rounded-blob surface surface-hover cursor-default"
               initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
-              variants={scaleIn} custom={i}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              variants={popIn} custom={i}
+              whileHover={cardHover}
             >
-              <div className="absolute inset-0 rounded-2xl bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative">
-                <h3 className="text-base sm:text-lg font-semibold font-display text-foreground mb-1.5 sm:mb-2">{item.label}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
-              </div>
+              <span className="font-mono text-xs text-sky/70 mb-3 block">0{i + 1}</span>
+              <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mb-2.5 tracking-tight">{item.label}</h3>
+              <p className="text-muted-foreground text-[15px] leading-relaxed">{item.description}</p>
             </motion.div>
           ))}
         </div>
@@ -1634,8 +1606,8 @@ function UseCases() {
 
 function StepConnectorH() {
   return (
-    <div className="hidden md:flex items-center self-start mt-8 -mx-2 lg:-mx-3">
-      <div className="w-8 lg:w-12 border-t border-dashed border-border/50" />
+    <div className="hidden md:flex items-center self-start mt-9 -mx-2 lg:-mx-3">
+      <div className="w-8 lg:w-12 border-t-2 border-dotted border-sky/30" />
     </div>
   )
 }
@@ -1643,7 +1615,7 @@ function StepConnectorH() {
 function StepConnectorV() {
   return (
     <div className="flex md:hidden justify-center py-2">
-      <div className="h-8 border-l border-dashed border-border/50" />
+      <div className="h-8 border-l-2 border-dotted border-sky/30" />
     </div>
   )
 }
@@ -1671,20 +1643,11 @@ function HowItWorks() {
   ]
 
   return (
-    <section id="how-it-works" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative">
+    <section id="how-it-works" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative scroll-mt-16">
       <div className="max-w-5xl mx-auto">
-        <motion.div
-          className="text-center mb-10 sm:mb-16"
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Claim it. Ask. Watch it appear.
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            From nothing to your own personal app in one conversation.
-          </p>
-        </motion.div>
+        <SectionHeading eyebrow="How it works" title="Claim it. Ask. Watch it appear.">
+          From nothing to your own personal app in one conversation.
+        </SectionHeading>
 
         <div className="flex flex-col md:flex-row items-center md:items-start justify-center">
           {steps.map((item, i) => (
@@ -1692,14 +1655,14 @@ function HowItWorks() {
               {i > 0 && <StepConnectorH />}
               {i > 0 && <StepConnectorV />}
               <motion.div
-                className="text-center flex-1 max-w-[280px] md:max-w-none"
+                className="text-center flex-1 max-w-[300px] md:max-w-none px-2"
                 initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }}
                 variants={fadeUp} custom={i}
               >
-                <div className="text-5xl sm:text-6xl font-bold font-display text-foreground/10 mb-3 sm:mb-4">{item.num}</div>
-                <h3 className="text-lg sm:text-xl font-semibold font-display text-foreground mb-2">{item.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-3">{item.description}</p>
-                <code className="inline-block text-xs text-foreground/60 bg-white/5 px-3 py-1.5 rounded-full font-mono">
+                <div className="text-6xl sm:text-7xl font-bold font-display text-sky/15 mb-3 leading-none tracking-tight">{item.num}</div>
+                <h3 className="text-xl font-bold font-display text-foreground mb-2 tracking-tight">{item.title}</h3>
+                <p className="text-muted-foreground text-[15px] leading-relaxed mb-4">{item.description}</p>
+                <code className="inline-block text-xs text-foreground/70 well px-3.5 py-1.5 rounded-full font-mono">
                   {item.detail}
                 </code>
               </motion.div>
@@ -1713,9 +1676,11 @@ function HowItWorks() {
 
 function MeetYours() {
   return (
-    <section id="meet-yours" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[200px] sm:h-[300px] bg-primary/[0.03] rounded-full blur-[120px]" />
+    <section id="meet-yours" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-x-0 -top-10 flex justify-center">
+          <div className="w-[460px] h-[460px] sm:w-[680px] sm:h-[680px] morphy-light animate-breathe" />
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
@@ -1723,54 +1688,54 @@ function MeetYours() {
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
           variants={fadeUp}
         >
-          <div className="mx-auto mb-5 sm:mb-6">
+          <div className="mx-auto mb-6 relative">
             <video
               autoPlay
               loop
               muted
               playsInline
-              className="h-28 sm:h-36 mx-auto"
+              className="h-32 sm:h-40 mx-auto relative"
             >
               <source src="/assets/videos/morphy-idle.mov" type='video/mp4; codecs="hvc1"' />
               <source src="/assets/videos/morphy-idle.webm" type="video/webm" />
             </video>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl leading-[1.05] font-bold font-display text-foreground tracking-tight mb-4 px-2">
             Ready to meet
             <br />
             <span className="text-gradient">your Morphy?</span>
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-xl mx-auto px-2">
+          <p className="text-base sm:text-lg text-muted-foreground mb-6 max-w-xl mx-auto px-2 leading-relaxed">
             Every Morphy starts the same. A week later, no two are alike, because
             no two lives are. Get yours and start asking.
           </p>
 
-          <div className="flex justify-center gap-6 sm:gap-10 mb-8 sm:mb-10 pt-2">
+          <div className="flex justify-center gap-8 sm:gap-12 mb-10 pt-2">
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
+              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight">
                 ~<AnimatedCounter target={2} /> min
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">To go live</div>
+              <div className="text-xs text-muted-foreground mt-1">To go live</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
+              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight">
                 24/7
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Always working</div>
+              <div className="text-xs text-muted-foreground mt-1">Always working</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold font-display text-foreground">
+              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight">
                 &infin;
               </div>
-              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">Apps you can ask for</div>
+              <div className="text-xs text-muted-foreground mt-1">Apps you can ask for</div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
-            <a href="#install" className="rounded-full bg-gradient-brand hover:opacity-90 text-white font-semibold font-display px-8 h-11 sm:h-12 text-sm sm:text-base gap-2 w-full sm:w-auto group inline-flex items-center justify-center">
+            <a href="#install" className="btn-morphy h-12 sm:h-[3.25rem] px-8 text-base gap-2 w-full sm:w-auto group">
               Get your Morphy
-              <FaArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 group-hover:translate-x-0.5 transition-transform duration-200" />
+              <FaArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
             </a>
           </div>
         </motion.div>
@@ -1781,9 +1746,9 @@ function MeetYours() {
 
 function BlobyWorldSection() {
   return (
-    <section id="bloby-world" className="py-16 sm:py-24 px-4 sm:px-6 border-t border-border/30 relative overflow-hidden">
+    <section id="bloby-world" className="py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#0069FE]/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] morphy-light" />
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
@@ -1791,11 +1756,11 @@ function BlobyWorldSection() {
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}
           variants={fadeUp}
         >
-          <div className="mx-auto mb-5 sm:mb-6">
-            <img src="/assets/images/morphy.png" alt="Morphy" className="h-16 sm:h-20 w-auto mx-auto" />
+          <div className="mx-auto mb-6">
+            <img src="/assets/images/morphy.png" alt="Morphy" className="h-16 sm:h-20 w-auto mx-auto animate-bob" />
           </div>
 
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4 px-2">
+          <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold font-display text-foreground tracking-tight mb-4 px-2">
             Morphy World
           </h2>
 
@@ -1809,7 +1774,7 @@ function BlobyWorldSection() {
 
           <a
             href="/world"
-            className="inline-flex items-center gap-2 rounded-full border border-border hover:bg-white/5 hover:border-[#0069FE]/30 text-foreground font-medium font-display px-6 h-11 text-sm transition-all duration-200"
+            className="btn-ghost h-11 px-6 text-sm gap-2"
           >
             Enter world
             <span className="text-xs">-&gt;</span>
@@ -1822,19 +1787,20 @@ function BlobyWorldSection() {
 
 function Footer() {
   return (
-    <footer className="relative border-t border-border/30 overflow-hidden">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
+    <footer className="relative overflow-hidden px-4 sm:px-6 pb-6">
+      <div className="max-w-6xl mx-auto rounded-band surface px-6 sm:px-10 pt-12 sm:pt-14 pb-8">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-12 mb-12">
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2.5 mb-4">
               <img src="/assets/images/morphy_mascot.png" alt="Morphy" className="h-8 w-auto" />
+              <span className="font-display font-bold text-lg text-foreground">Morphy</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               Your personal AI agent, inside a personal app that&apos;s all yours.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-white/5 transition-all duration-200">
+              <a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-sky hover:border-sky/40 hover:bg-sky/10 flex items-center justify-center transition-all duration-200">
                 <FaTelegramPlane className="w-4 h-4" />
               </a>
             </div>
@@ -1842,7 +1808,7 @@ function Footer() {
 
           {/* Product column */}
           <div>
-            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Product</h4>
+            <h4 className="text-sm font-bold font-display text-foreground mb-4">Product</h4>
             <ul className="space-y-2.5">
               <li><a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
               <li><a href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Marketplace</a></li>
@@ -1852,7 +1818,7 @@ function Footer() {
 
           {/* Legal column */}
           <div>
-            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Legal</h4>
+            <h4 className="text-sm font-bold font-display text-foreground mb-4">Legal</h4>
             <ul className="space-y-2.5">
               <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Use</a></li>
               <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
@@ -1861,7 +1827,7 @@ function Footer() {
 
           {/* Community column */}
           <div>
-            <h4 className="text-sm font-semibold font-display text-foreground mb-4">Community</h4>
+            <h4 className="text-sm font-bold font-display text-foreground mb-4">Community</h4>
             <ul className="space-y-2.5">
               <li><a href="https://t.me/+qEdyaOT6CfswNmY5" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Telegram</a></li>
             </ul>
@@ -1869,14 +1835,14 @@ function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-6 border-t border-border/20 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground/60">
+        <div className="pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground/70">
             &copy; {new Date().getFullYear()} Morphy. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <a href="/terms" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Terms</a>
-            <span className="text-muted-foreground/30">|</span>
-            <a href="/privacy" className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">Privacy</a>
+            <a href="/terms" className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors">Terms</a>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+            <a href="/privacy" className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors">Privacy</a>
           </div>
         </div>
       </div>
@@ -1900,10 +1866,12 @@ function Home() {
       if (res.ok) {
         const data = await res.json()
         setReservedHandles(data.reservedHandles || [])
+        return data.reservedHandles || []
       }
     } catch (err) {
       console.error('[handles] fetch failed:', err)
     }
+    return null
   }
 
   // Handle #hash scroll on fresh page load (React hasn't rendered targets yet)
@@ -1947,17 +1915,33 @@ function Home() {
 
     window.history.replaceState({}, '', window.location.pathname)
 
-    // Wait for auth to resolve, then fetch handles and scroll
+    // Wait for auth to resolve, then poll the handles until the webhook has landed. Stripe's
+    // redirect usually beats the webhook by a second or two; a single fetch would show the
+    // buyer "no handles" until they refreshed.
+    let cancelled = false
+    let polls = 0
     const check = setInterval(() => {
       const token = localStorage.getItem('bloby_token')
       if (!token) return
       clearInterval(check)
-      fetchReservedHandles().then(() => {
-        document.getElementById('handle')?.scrollIntoView({ behavior: 'smooth' })
-      })
+      document.getElementById('handle')?.scrollIntoView({ behavior: 'smooth' })
+      let baseline = null   // handle count from the first fetch; stop once it grows
+      const poll = async () => {
+        if (cancelled) return
+        polls += 1
+        try {
+          const list = await fetchReservedHandles()
+          const count = Array.isArray(list) ? list.length : 0
+          if (baseline === null) baseline = count
+          else if (count > baseline) return          // the webhook landed
+          if (polls >= 20) return                    // ~40 s: it was already there, or give up quietly
+        } catch {}
+        setTimeout(poll, 2000)
+      }
+      poll()
     }, 200)
 
-    return () => clearInterval(check)
+    return () => { cancelled = true; clearInterval(check) }
   }, [])
 
   useEffect(() => {

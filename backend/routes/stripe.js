@@ -4,10 +4,45 @@ import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
 import { getDb, getUsers } from '../db.js';
 import { jwtAuth } from '../middleware/jwtAuth.js';
-import { launchInstance, terminateInstance } from '../lib/aws.js';
+import { launchInstance } from '../lib/aws.js';
 import { provisionManagedInstance } from '../lib/provision.js';
-import { deleteDnsRecord, cfConfigured } from '../lib/cloudflare.js';
+import { cfConfigured } from '../lib/cloudflare.js';
 import { validateUsername } from '../lib/validate.js';
+import {
+  findInstance, setInstance, markFailed, cancelSubscription, pauseInstance, resumeInstance,
+  terminateManaged, STOPPED_STATUSES,
+} from '../lib/lifecycle.js';
+
+// After a subscription ends the box is STOPPED (not destroyed) for this long, so an
+// accidental cancel or a lapsed card doesn't wipe the customer's workspace. The sweeper
+// terminates it when the grace period is over.
+const SUSPEND_GRACE_MS = parseInt(process.env.SUSPEND_GRACE_DAYS || '14', 10) * 24 * 60 * 60 * 1000;
+
+// Instances in these statuses do NOT block their handle from being (re)used at checkout.
+const INACTIVE_STATUSES = new Set(['terminated', 'failed', ...STOPPED_STATUSES]);
+
+/**
+ * Reserve a paid handle atomically. `handle_reservations` has a unique index, so two buyers
+ * racing the same name can't both win: the second insert throws 11000. Returns true if this
+ * call took the reservation, false if someone else already holds it.
+ */
+async function lockHandle(handle, accountId, source) {
+  try {
+    await getDb().collection('handle_reservations').insertOne({
+      handle, accountId: new ObjectId(accountId), source, createdAt: new Date(),
+    });
+    return true;
+  } catch (err) {
+    if (err.code === 11000) return false;
+    throw err;
+  }
+}
+
+/** Subscription id from an Invoice across API versions (moved under `parent` in 2025-03-31). */
+function invoiceSubscriptionId(invoice) {
+  const s = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+  return typeof s === 'string' ? s : s?.id || null;
+}
 
 // Lazy-init: env vars aren't available at import time (dotenv runs later in server.js)
 let _stripe;
@@ -223,11 +258,16 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
     if (!owns) {
       return res.status(403).json({ error: 'You must reserve this handle before starting an instance' });
     }
-    // …and not already in use (registered relay user or an active instance).
-    const registered = await getUsers().findOne({ username: uv.username, tier: 'premium' });
+    // …and not already in use (registered relay user or an active instance). A paused /
+    // suspended / failed / terminated instance does not block the handle: re-subscribing to a
+    // suspended one RESUMES it (see the webhook) instead of provisioning a second box.
     const activeInstance = (account.instances || []).some(
-      (i) => i.username === uv.username && i.status !== 'terminated',
+      (i) => i.username === uv.username && !INACTIVE_STATUSES.has(i.status),
     );
+    const resumable = (account.instances || []).find(
+      (i) => i.username === uv.username && STOPPED_STATUSES.has(i.status),
+    );
+    const registered = resumable ? null : await getUsers().findOne({ username: uv.username, tier: 'premium' });
     if (registered || activeInstance) {
       return res.status(409).json({ error: 'This handle already has a running instance' });
     }
@@ -235,6 +275,10 @@ router.post('/stripe/checkout', jwtAuth, async (req, res) => {
 
     // ── Stripe disconnected (testing): provision directly, no payment ──────
     if (billingDisabled()) {
+      if (resumable) {
+        resumeInstance(resumable).catch((e) => console.error('[stripe/checkout] resume failed:', e.message));
+        return res.json({ bypass: true, instanceId: resumable.id, resumed: true });
+      }
       const { instanceId } = await provisionManagedInstance({
         accountId: req.account.id, username: chosenHandle, plan, region, tier: 'premium',
       });
@@ -372,6 +416,9 @@ router.post('/stripe/handle-checkout', jwtAuth, async (req, res) => {
 
     // ── Stripe disconnected (testing): reserve the handle free, no payment ──
     if (billingDisabled()) {
+      if (!(await lockHandle(uv.username, req.account.id, 'billing-disabled'))) {
+        return res.status(409).json({ error: 'Handle already reserved' });
+      }
       const hash = crypto.randomBytes(4).toString('base64url').slice(0, 5);
       await db.collection('accounts').updateOne(
         { _id: new ObjectId(req.account.id) },
@@ -464,6 +511,16 @@ router.get('/stripe/handles', jwtAuth, async (req, res) => {
   }
 });
 
+/** Instance backed by a Stripe subscription → { account, instance } or null. */
+async function findInstanceBySubscription(subscriptionId) {
+  const account = await getDb().collection('accounts').findOne(
+    { 'instances.stripeSubscriptionId': subscriptionId },
+    { projection: { _id: 1, 'instances.$': 1 } },
+  );
+  const instance = account?.instances?.[0];
+  return instance ? { account, instance } : null;
+}
+
 // ─── Webhook handler (exported separately for raw body mounting) ────────────
 export async function stripeWebhookHandler(req, res) {
   const stripe = getStripe();
@@ -477,7 +534,18 @@ export async function stripeWebhookHandler(req, res) {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
-  console.log(`[stripe/webhook] ${event.type}`);
+  console.log(`[stripe/webhook] ${event.type} ${event.id}`);
+
+  // ── Idempotency: Stripe redelivers on any non-2xx / timeout. Process each event once. ──
+  try {
+    await getDb().collection('stripe_events').insertOne({ _id: event.id, type: event.type, receivedAt: new Date() });
+  } catch (err) {
+    if (err.code === 11000) {
+      console.log(`[stripe/webhook] duplicate delivery ${event.id} — skipped`);
+      return res.json({ received: true, duplicate: true });
+    }
+    console.error('[stripe/webhook] event log failed (continuing):', err.message);
+  }
 
   try {
     switch (event.type) {
@@ -501,6 +569,20 @@ export async function stripeWebhookHandler(req, res) {
           }
 
           if (handle && accountId) {
+            // Take the unique reservation lock BEFORE granting. Two buyers can both pass the
+            // pre-checkout availability check; only one insert here succeeds. The loser is
+            // refunded automatically instead of owning a handle they can never use.
+            const won = await lockHandle(handle, accountId, `stripe:${session.id}`);
+            if (!won) {
+              console.warn(`[stripe/webhook] handle "${handle}" already reserved — refunding session ${session.id}`);
+              try {
+                const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+                if (pi) await getStripe().refunds.create({ payment_intent: pi, reason: 'duplicate' });
+              } catch (err) {
+                console.error(`[stripe/webhook] refund for duplicate handle "${handle}" FAILED (refund manually):`, err.message);
+              }
+              break;
+            }
             const hash = crypto.randomBytes(4).toString('base64url').slice(0, 5);
             const db = getDb();
             await db.collection('accounts').updateOne(
@@ -520,6 +602,7 @@ export async function stripeWebhookHandler(req, res) {
 
         if (!plan || !region || !accountId) {
           console.error('[stripe/webhook] missing metadata on subscription:', subscriptionId);
+          await cancelSubscription(subscriptionId, 'checkout metadata missing');
           break;
         }
 
@@ -528,13 +611,35 @@ export async function stripeWebhookHandler(req, res) {
         // gets a public IP + a per-bot CF DNS record (no tunnel). Falls back to
         // the legacy tunnel launch when no handle / CF isn't configured.
         if (username && cfConfigured()) {
+          // Re-subscribing to a paused/suspended box (trial ended, card lapsed, cancelled and
+          // came back within the grace period) RESUMES it — same workspace, same URL.
+          const acct = await getDb().collection('accounts').findOne(
+            { _id: new ObjectId(accountId) }, { projection: { instances: 1 } },
+          );
+          const resumable = (acct?.instances || []).find(
+            (i) => i.username === username && STOPPED_STATUSES.has(i.status),
+          );
+          if (resumable) {
+            await setInstance(resumable.id, { stripeSubscriptionId: subscriptionId, plan, cancelAt: null });
+            console.log(`[stripe/webhook] resuming ${resumable.id} (${username}) on subscription ${subscriptionId}`);
+            resumeInstance({ ...resumable, stripeSubscriptionId: subscriptionId })
+              .catch((e) => console.error(`[stripe/webhook] resume ${resumable.id} failed:`, e.message));
+            break;
+          }
+
           try {
             const { instanceId } = await provisionManagedInstance({
               accountId, username, plan, region, tier: 'premium', stripeSubscriptionId: subscriptionId,
             });
             console.log(`[stripe/webhook] managed instance ${instanceId} (${username}) for account ${accountId}`);
           } catch (err) {
+            // Nothing was created (handle taken, bad input): the customer must not keep paying.
             console.error(`[stripe/webhook] managed provision failed for ${username}:`, err.message);
+            await cancelSubscription(subscriptionId, `provisioning failed: ${err.message}`);
+            await getDb().collection('accounts').updateOne(
+              { _id: new ObjectId(accountId) },
+              { $set: { lastProvisionError: { username, error: err.message, at: new Date() } } },
+            );
           }
           break;
         }
@@ -577,10 +682,7 @@ export async function stripeWebhookHandler(req, res) {
           })
           .catch(async (err) => {
             console.error(`[stripe/webhook] ${id} launch failed:`, err.message);
-            await db.collection('accounts').updateOne(
-              { 'instances.id': id },
-              { $set: { 'instances.$.status': 'failed' } },
-            );
+            await markFailed(id, `Launch failed: ${err.message}`, { instance });
           });
 
         break;
@@ -589,27 +691,42 @@ export async function stripeWebhookHandler(req, res) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
         if (!subscription.metadata?.accountId) break;
+        const prev = event.data.previous_attributes || {};
+        const found = await findInstanceBySubscription(subscription.id);
+        if (!found) break;
+        const { instance } = found;
 
-        const db = getDb();
+        // Stripe-run pause (e.g. a card-less trial that ended with end_behavior 'pause').
+        if (subscription.status === 'paused') {
+          await pauseInstance(instance, { status: 'paused', reason: 'subscription paused' });
+          break;
+        }
+        if (prev.status === 'paused' && subscription.status === 'active') {
+          resumeInstance(instance).catch((e) => console.error('[stripe/webhook] resume failed:', e.message));
+          break;
+        }
+
+        // Only react when cancel_at_period_end actually changed. Stripe emits this event on every
+        // renewal invoice, payment-method change, trial transition and metadata edit — none of
+        // those may touch a box that is restarting / provisioning / failed.
+        if (!('cancel_at_period_end' in prev)) break;
+
         if (subscription.cancel_at_period_end) {
-          const cancelAt = new Date(subscription.current_period_end * 1000);
-          await db.collection('accounts').updateOne(
-            { 'instances.stripeSubscriptionId': subscription.id },
-            { $set: {
-              'instances.$.status': 'canceling',
-              'instances.$.cancelAt': cancelAt,
-            }},
-          );
-          console.log(`[stripe/webhook] subscription ${subscription.id} marked canceling (ends ${cancelAt.toISOString()})`);
+          // `current_period_end` moved to subscription ITEMS in API 2025-03-31; `cancel_at` is set
+          // by Stripe whenever cancel_at_period_end is true and is the authoritative date.
+          const endSec = subscription.cancel_at || subscription.items?.data?.[0]?.current_period_end;
+          const cancelAt = endSec ? new Date(endSec * 1000) : null;
+          const set = { cancelAt };
+          if (instance.status === 'ready') set.status = 'canceling';
+          await setInstance(instance.id, set);
+          console.log(`[stripe/webhook] subscription ${subscription.id} marked canceling (ends ${cancelAt ? cancelAt.toISOString() : 'unknown'})`);
         } else {
-          // User resubscribed / un-canceled
-          await db.collection('accounts').updateOne(
-            { 'instances.stripeSubscriptionId': subscription.id },
-            { $set: {
-              'instances.$.status': 'ready',
-              'instances.$.cancelAt': null,
-            }},
+          // User un-canceled: only canceling → ready; every other status is left alone.
+          await getDb().collection('accounts').updateOne(
+            { instances: { $elemMatch: { id: instance.id, status: 'canceling' } } },
+            { $set: { 'instances.$.status': 'ready' } },
           );
+          await setInstance(instance.id, { cancelAt: null });
           console.log(`[stripe/webhook] subscription ${subscription.id} reactivated`);
         }
         break;
@@ -617,44 +734,55 @@ export async function stripeWebhookHandler(req, res) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        const db = getDb();
-
-        // Find the instance to terminate EC2
-        const account = await db.collection('accounts').findOne(
-          { 'instances.stripeSubscriptionId': subscription.id },
-          { projection: { 'instances.$': 1 } },
-        );
-        const instance = account?.instances?.[0];
-
-        if (instance?.ec2InstanceId) {
-          terminateInstance(instance.ec2InstanceId, instance.region).catch(err => {
-            console.error(`[stripe/webhook] terminate EC2 failed:`, err.message);
-          });
+        const found = await findInstanceBySubscription(subscription.id);
+        const instance = found?.instance;
+        if (!instance) {
+          console.log(`[stripe/webhook] subscription ${subscription.id} deleted — no instance`);
+          break;
         }
 
-        // Free the managed CF DNS record (best-effort).
-        if (instance?.dnsRecordId) {
-          deleteDnsRecord(instance.dnsRecordId).catch(err => {
-            console.error(`[stripe/webhook] delete DNS record failed:`, err.message);
-          });
+        // Don't destroy the customer's workspace the second the subscription ends: STOP the box
+        // and keep it (EBS only) for a grace period. Re-subscribing to the same handle resumes it;
+        // the sweeper terminates it (and frees the handle) once `terminateAt` passes.
+        if (instance.ec2InstanceId && !INACTIVE_STATUSES.has(instance.status)) {
+          const terminateAt = new Date(Date.now() + SUSPEND_GRACE_MS);
+          const paused = await pauseInstance(instance, { status: 'suspended', reason: 'subscription ended', terminateAt });
+          if (paused) {
+            await setInstance(instance.id, { cancelAt: null });
+            console.log(`[stripe/webhook] subscription ${subscription.id} deleted → ${instance.id} suspended until ${terminateAt.toISOString()}`);
+            break;
+          }
         }
+        // Nothing running to keep (never launched / already stopped-and-failed): terminate now.
+        await terminateManaged(instance);
+        console.log(`[stripe/webhook] subscription ${subscription.id} deleted → ${instance.id} terminated`);
+        break;
+      }
 
-        // Free the relay registry entry so the reserved handle can back a new bot.
-        if (instance?.username) {
-          getUsers().deleteOne({ username: instance.username, tier: instance.tier || 'premium' }).catch(err => {
-            console.error(`[stripe/webhook] free handle failed:`, err.message);
-          });
+      // ── Dunning ──────────────────────────────────────────────────────────
+      // A card that keeps failing must not keep a box running for weeks. After Stripe's second
+      // failed attempt the box is paused (stopped, DNS removed); the next successful invoice
+      // resumes it. Stripe's own retries + emails continue in parallel.
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId || (invoice.attempt_count || 0) < 2) break;
+        const found = await findInstanceBySubscription(subId);
+        if (!found) break;
+        await pauseInstance(found.instance, { status: 'paused', reason: `payment failed (${invoice.attempt_count} attempts)` });
+        break;
+      }
+
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId) break;
+        const found = await findInstanceBySubscription(subId);
+        const inst = found?.instance;
+        if (inst?.status === 'paused' && /payment failed/.test(inst.pauseReason || '')) {
+          resumeInstance(inst).catch((e) => console.error('[stripe/webhook] resume after payment failed:', e.message));
         }
-
-        // Mark as terminated
-        await db.collection('accounts').updateOne(
-          { 'instances.stripeSubscriptionId': subscription.id },
-          { $set: {
-            'instances.$.status': 'terminated',
-            'instances.$.cancelAt': null,
-          }},
-        );
-        console.log(`[stripe/webhook] subscription ${subscription.id} deleted → instance terminated`);
         break;
       }
     }

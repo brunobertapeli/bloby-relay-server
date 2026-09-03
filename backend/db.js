@@ -43,6 +43,27 @@ async function createIndexes() {
     users.createIndex({ lastZoneAt: 1 }),
   ]);
 
+  // ─── Managed tier / billing ────────────────────────────────────────────────
+  // handle_reservations is the LOCK for paid handles: one row per handle, unique, inserted by
+  // the Stripe webhook (or the free path) BEFORE the handle is pushed onto an account. Two
+  // buyers racing the same name → the second insert fails → refund instead of a double sale.
+  const reservations = db.collection('handle_reservations');
+  await reservations.createIndex({ handle: 1 }, { unique: true });
+
+  // stripe_events dedupes webhook deliveries by Stripe event id (Stripe retries on any
+  // non-2xx / timeout). TTL keeps it small.
+  const stripeEvents = db.collection('stripe_events');
+  await stripeEvents.createIndex({ receivedAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+
+  // Sweeper + webhook lookups by instance status / subscription.
+  const accounts = db.collection('accounts');
+  await Promise.all([
+    accounts.createIndex({ 'instances.id': 1 }),
+    accounts.createIndex({ 'instances.status': 1 }),
+    accounts.createIndex({ 'instances.stripeSubscriptionId': 1 }),
+    accounts.createIndex({ 'reservedHandles.handle': 1 }),
+  ]);
+
   const claims = db.collection('claims');
   await Promise.all([
     claims.createIndex({ code: 1 }),

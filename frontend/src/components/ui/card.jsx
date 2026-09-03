@@ -1,11 +1,13 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
+// A card is a layer of ink: rounded like the blob, hairline border, faint
+// top highlight, soft lift. No neon.
 const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-2xl border bg-card text-card-foreground shadow-xl shadow-black/5",
+      "rounded-blob surface text-card-foreground",
       className
     )}
     {...props}
@@ -25,7 +27,7 @@ CardHeader.displayName = "CardHeader"
 const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("font-semibold leading-none tracking-tight", className)}
+    className={cn("font-display font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ))
@@ -54,4 +56,4 @@ const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } 
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }

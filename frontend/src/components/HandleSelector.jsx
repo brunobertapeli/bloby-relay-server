@@ -74,15 +74,16 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
   const isAvailable = status === 'ready' && available === true && !isEmpty
 
   return (
-    <section id="reserve" className="py-10 sm:py-14 md:py-20 px-4 sm:px-6 relative">
+    <section id="reserve" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 relative">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-10 sm:mb-14">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-foreground tracking-tight mb-3 sm:mb-4">
-            Claim your address
+        <div className="text-center mb-10 sm:mb-12">
+          <span className="eyebrow mb-4">Your address</span>
+          <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] leading-[1.08] font-bold font-display text-foreground tracking-tight mb-4 text-balance">
+            Claim your corner of the internet
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
-            Your Morphy, and everything it builds for you, will live at your own
-            corner of the internet. Yours forever.
+            Your Morphy, and everything it builds for you, will live at an address
+            that is yours. Forever.
           </p>
         </div>
 
@@ -91,11 +92,15 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
           onClick={() => inputRef.current?.focus()}
         >
           <div
-            className={`rounded-2xl p-px transition-shadow duration-300 ${
+            className={`rounded-full transition-[box-shadow,border-color] duration-300 border ${
               inputFocused
-                ? 'animated-border shadow-[0_0_24px_-6px_rgba(0, 105, 254,0.3)]'
-                : 'bg-border'
-            }`}
+                ? 'border-sky/60 shadow-[0_0_0_5px_hsl(var(--sky)/0.14),0_20px_40px_-20px_hsl(var(--primary)/0.5)]'
+                : taken
+                  ? 'border-destructive/50'
+                  : isAvailable
+                    ? 'border-emerald-400/50'
+                    : 'border-border/80 shadow-lift'
+            } bg-surface-1`}
           >
             <input
               ref={inputRef}
@@ -109,7 +114,7 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
               spellCheck={false}
               autoCapitalize="none"
               autoCorrect="off"
-              className="w-full h-14 sm:h-16 px-5 sm:px-6 rounded-[calc(1rem-1px)] bg-card text-lg sm:text-xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200 relative z-[1]"
+              className="w-full h-16 sm:h-[4.5rem] px-6 rounded-full bg-transparent text-xl sm:text-2xl font-mono text-foreground text-center placeholder:text-muted-foreground/40 focus:outline-none relative z-[1]"
             />
           </div>
 
@@ -117,18 +122,33 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
             {status && name.length > 0 && (
               <motion.div
                 key={status}
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.6 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                className="absolute right-5 top-1/2 -translate-y-1/2 z-10"
               >
                 {status === 'checking' && (
-                  <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-[#0069FE] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-muted-foreground/25 border-t-sky rounded-full animate-spin" />
                 )}
                 {status === 'invalid' && (
-                  <div className="w-6 h-6 rounded-full bg-amber-500/15 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-amber-400/15 flex items-center justify-center">
                     <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01" />
+                    </svg>
+                  </div>
+                )}
+                {status === 'ready' && !taken && (
+                  <div className="w-7 h-7 rounded-full bg-emerald-400/15 flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                {status === 'ready' && taken && (
+                  <div className="w-7 h-7 rounded-full bg-destructive/15 flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </div>
                 )}
@@ -155,7 +175,7 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
             className="inline-flex items-baseline justify-center gap-0 font-display"
             layout
           >
-            <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/30">
+            <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground/35">
               morphyagent.com/
             </span>
             <AnimatePresence mode="wait">
@@ -167,9 +187,9 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
                 transition={{ duration: 0.2 }}
                 className={`text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${
                   isEmpty
-                    ? 'text-muted-foreground/30'
+                    ? 'text-muted-foreground/35'
                     : taken
-                      ? 'text-red-400/80'
+                      ? 'text-destructive/80'
                       : 'text-gradient'
                 }`}
               >
@@ -184,10 +204,10 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mt-4"
+                className="mt-5"
               >
                 {taken ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-red-400 font-medium font-display">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-destructive font-medium font-display">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -204,13 +224,13 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
                     <button
                       onClick={handleReserve}
                       disabled={reserving}
-                      className="group inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-brand text-white font-medium font-display text-sm hover:opacity-90 transition-all duration-200 disabled:opacity-60"
+                      className="btn-morphy group h-11 px-7 text-sm gap-2 disabled:opacity-60"
                     >
                       {reserving ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          Reserve <span className="text-white/70 font-normal">$5 one-time</span>
+                          Reserve <span className="text-white/75 font-normal font-sans">$5 one-time</span>
                           <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                           </svg>
@@ -218,7 +238,7 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
                       )}
                     </button>
                     {!user && (
-                      <p className="text-[11px] text-muted-foreground/50 font-display">
+                      <p className="text-xs text-muted-foreground/60">
                         You'll need to sign in with Google to reserve
                       </p>
                     )}
@@ -229,7 +249,7 @@ export default function HandleSelector({ user, onLogin, onReserve }) {
           </AnimatePresence>
         </div>
 
-        <p className="text-[11px] sm:text-xs text-muted-foreground/50 mt-8 sm:mt-10 text-center">
+        <p className="text-xs sm:text-sm text-muted-foreground/60 mt-8 sm:mt-10 text-center">
           You'll be able to use your reserved handle when you set up your Morphy
         </p>
       </div>

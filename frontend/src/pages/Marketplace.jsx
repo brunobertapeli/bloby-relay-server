@@ -648,7 +648,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
                 <Button
                   onClick={onCheckout}
                   disabled={checkingOut}
-                  className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm disabled:opacity-50"
+                  className="btn-morphy w-full h-11 text-sm disabled:opacity-50"
                 >
                   {checkingOut ? 'Processing...' : 'Checkout'}
                 </Button>
@@ -661,7 +661,7 @@ function CartSheet({ cart, onClose, onRemove, onCheckout, onAddCredit, success, 
           <div className="p-5 border-t border-border/50">
             <Button
               onClick={onClose}
-              className="w-full rounded-xl bg-gradient-brand hover:opacity-90 text-white font-semibold font-display h-11 text-sm"
+              className="btn-morphy w-full h-11 text-sm"
             >
               Back to Marketplace
             </Button>

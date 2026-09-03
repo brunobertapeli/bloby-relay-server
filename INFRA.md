@@ -47,15 +47,18 @@ initializing → ready`. Instance management lives on the **Dashboard** (per-bot
 
 ---
 
-## Golden AMI — `morphy-golden-v2`
+## Golden AMI — `morphy-golden-v3`
 
-Base: **Amazon Linux 2023, ARM64 (Graviton)**. Built from the prior v4 base via `infra/bake-setup.sh`.
+Base: **Amazon Linux 2023, ARM64 (Graviton)**. v3 (2026-09-03) was built from v2 with the fast
+path (`morphyagent` refreshed to **0.5.0**, new `provision.sh`, stale root-home `morphy` symlink
+removed). v2 ids are kept below until v3 has provisioned a real box; then deregister v2 + its
+snapshots (`snap-095a362fb04ed1ee0` / `snap-0ddefa0f13019bc31` / `snap-03c420f130e322993`).
 
-| Region | AMI ID | AWS Region |
-|--------|--------|------------|
-| North America | `ami-0ce59f56351efd54a` | us-east-1 |
-| Europe | `ami-01eb42c7c21a53b5d` | eu-central-1 |
-| Brazil | `ami-0e78338c9d50be5ed` | sa-east-1 |
+| Region | AMI ID (v3) | AWS Region | previous (v2) |
+|--------|-------------|------------|---------------|
+| North America | `ami-0aa5eb0bc5c015bd0` | us-east-1 | `ami-0ce59f56351efd54a` |
+| Europe | `ami-082d0b4f75f505f29` | eu-central-1 | `ami-01eb42c7c21a53b5d` |
+| Brazil | `ami-02f6b2b7a3e441cf2` | sa-east-1 | `ami-0e78338c9d50be5ed` |
 
 Baked in (see `infra/bake-setup.sh` for the exact build):
 - Node.js 22 (system, nodesource) + `jq`
@@ -144,12 +147,25 @@ The user is scoped to exactly what the relay + AMI ops need. Current policy:
       "ec2:DescribeSnapshots",
       "ec2:DescribeKeyPairs",
       "ec2:GetConsoleOutput",
-      "ec2-instance-connect:SendSSHPublicKey"
+      "ec2-instance-connect:SendSSHPublicKey",
+
+      "ec2:AllocateAddress",
+      "ec2:AssociateAddress",
+      "ec2:DisassociateAddress",
+      "ec2:ReleaseAddress",
+      "ec2:DescribeAddresses"
     ],
     "Resource": "*"
   }]
 }
 ```
+
+The third block (2026-09-03) is for **Elastic IPs**: every managed box gets one at first `ready`
+(`lib/lifecycle.js publishDns`) so its public IP — and the CF A-record — survive stop/start,
+pause/resume and AWS retirements. If the policy lacks these, `attachElasticIp` logs a warning and
+the box falls back to its ephemeral IP (the sweeper then refreshes DNS whenever it drifts).
+`ec2:CreateTags` (already present) is needed for the EIP tag. EBS volumes are launched with
+`Encrypted: true` (account default KMS key — no extra IAM).
 
 The second block was added (2026-06-30) so ops can open the 443 SG rule, delete old snapshots,
 read console output, and shell into bots via Instance Connect without separate admin creds. They
@@ -197,14 +213,29 @@ Logs: `/var/log/bloby-provision.log`.
 |--------|------|------|-------------|
 | GET | `/api/instances` | JWT | List the account's instances |
 | GET | `/api/instances/:id/status` | JWT | Poll one instance |
-| POST | `/api/instances/:id/restart` | JWT | Stop/start the box (refreshes DNS, new IP) |
-| DELETE | `/api/instances/:id` | JWT | Terminate EC2 + delete DNS + free the relay handle |
+| POST | `/api/instances/:id/restart` | JWT | Stop/start the box (409 unless `ready`/`dns_failed`; DNS re-published before `ready`) |
+| DELETE | `/api/instances/:id` | JWT | Cancel the Stripe subscription, then terminate EC2 + release EIP + delete DNS + free the handle |
 | POST | `/api/instances/dev-launch` | `x-dev-secret` | Provision with no Stripe (testing) |
-| POST | `/api/instances/callback` | provisionToken | Called by the box's provision.sh |
+| POST | `/api/instances/callback` | provisionToken | Called by the box's provision.sh (`initializing` / `ready` / `failed`), and re-posted with `boot:true` by `morphy-ready.service` on every later boot |
 | POST | `/api/wallet` | bot token | Box reports its agent wallet (managed bots don't heartbeat) |
 
-Status flow: `launching → booting → initializing → ready` (`→ failed`);
-`ready → restarting → ready`.
+Status flow: `launching → booting → initializing → ready` (`→ failed`, `→ dns_failed`);
+`ready → restarting → ready`; `ready → canceling → ready`;
+`ready → paused → resuming → ready` (failed payment / trial); `ready → suspended` (subscription ended,
+box **stopped** and kept for `SUSPEND_GRACE_DAYS`, default 14) `→ terminated` (sweeper) or `→ resuming → ready`
+(re-subscribe with the same handle). `failed` frees the handle and cancels the subscription.
+
+**Lifecycle + sweeper (2026-09-03).** `backend/lib/lifecycle.js` is the single owner of
+publish-DNS / pause / resume / fail / terminate. `backend/lib/sweeper.js` runs in-process on the
+relay: every 60 s instances stuck in `launching/booting/initializing` for > `PROVISION_TIMEOUT_MS`
+(25 min) are failed + refunded-by-cancel; every 5 min EC2 state is mirrored into `users.isOnline`,
+IP drift re-publishes the A-record, and `suspended` boxes past `terminateAt` are terminated.
+Set `SWEEPER_DISABLED=1` to turn it off (e.g. a second replica).
+
+**Stripe webhook** must be subscribed to: `checkout.session.completed`,
+`customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`,
+`invoice.paid`. Deliveries are deduped by event id (`stripe_events`, 30-day TTL). Paid handles are
+locked in `handle_reservations` (unique) at webhook time; a duplicate purchase is auto-refunded.
 
 ---
 
@@ -214,9 +245,9 @@ Status flow: `launching → booting → initializing → ready` (`→ failed`);
 # AWS
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
-AMI_US_EAST_1=ami-0ce59f56351efd54a
-AMI_EU_CENTRAL_1=ami-01eb42c7c21a53b5d
-AMI_SA_EAST_1=ami-0e78338c9d50be5ed
+AMI_US_EAST_1=ami-0aa5eb0bc5c015bd0
+AMI_EU_CENTRAL_1=ami-082d0b4f75f505f29
+AMI_SA_EAST_1=ami-02f6b2b7a3e441cf2
 SG_US_EAST_1=sg-023fa7964b46feb25
 SG_EU_CENTRAL_1=sg-0956278b8533089dc
 SG_SA_EAST_1=sg-0ab1b5fa370b4e673
@@ -226,16 +257,30 @@ RELAY_DOMAIN=morphyagent.com
 CALLBACK_BASE_URL=https://api.morphyagent.com
 CF_API_TOKEN=cfut_...          # a USER API token (prefix cfut_), Zone:DNS:Edit on morphyagent.com
 CF_ZONE_ID=...                 # the morphyagent.com ZONE id (NOT the Account id)
-DEV_PROVISION_SECRET=...       # enables /api/instances/dev-launch
-BILLING_DISABLED=1             # testing only: skip Stripe (checkout + handle reservation provision/reserve free)
+DEV_PROVISION_SECRET=...       # enables /api/instances/dev-launch  — UNSET in production
+BILLING_DISABLED=1             # testing only: skip Stripe (checkout + handle reservation provision/reserve free) — UNSET in production
+
+# Managed lifecycle (all optional)
+AGENT_VERSION=0.4.7            # exact morphyagent version new boxes install at first boot; unset = keep the AMI's baked copy (never "latest")
+PROVISION_TIMEOUT_MS=1500000   # sweeper: provisioning stuck longer than this → failed + subscription cancelled (default 25 min)
+SUSPEND_GRACE_DAYS=14          # how long a box is kept (stopped) after its subscription ends before termination
+SWEEPER_DISABLED=1             # only if you ever run >1 relay replica
 ```
 
-`aws.js` falls back to the v2 AMI ids if the env vars are unset, but Railway should set them
-explicitly (and they must be the v2 ids).
+> **provision.sh changed (2026-09-03)** — callbacks now retry, `ready` is gated on a real
+> `/api/health` probe (else `failed` with the journal tail), the install is pinned to
+> `AGENT_VERSION` (staged, never a half-written tree), and a `morphy-ready.service` oneshot
+> re-posts `ready` on every later boot. **Re-bake the golden AMI** to ship it
+> (`infra/MANAGED-DIRECT-SETUP.md` → "Re-bake the golden AMI", fast path).
+
+`aws.js` falls back to the v3 AMI ids if the env vars are unset, but Railway should set them
+explicitly (and they must be the v3 ids).
 
 ---
 
 ## Old AMIs
 
 All historical images (`fluxy-golden` v1/v2/v3/v4 and `morphy-golden-v1`) have been
-**deregistered and their snapshots deleted**. Only `morphy-golden-v2` (×3 regions) exists.
+**deregistered and their snapshots deleted**. `morphy-golden-v3` (×3 regions) is current;
+`morphy-golden-v2` (×3) is still registered as a rollback and should be deregistered (plus its
+three snapshots) once v3 has provisioned a real box end-to-end.

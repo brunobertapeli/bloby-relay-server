@@ -26,6 +26,7 @@ import messengerRoutes from './routes/messenger.js';
 import alexaRoutes, { handleAlexaRequest } from './routes/alexa.js';
 import { zoneTracker } from './middleware/zoneTracker.js';
 import { NO_CACHE, notFoundPage, errorPage, oauthConnectPage } from './lib/pages.js';
+import { startSweeper } from './lib/sweeper.js';
 
 dotenv.config();
 
@@ -235,6 +236,8 @@ server.on('upgrade', async (req, socket, head) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[relay] Morphy relay server listening on :${PORT}`);
+  // Managed-instance reconciliation (stuck provisioning, EC2 health, IP drift, grace periods).
+  startSweeper();
 });
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────

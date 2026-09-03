@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getUsers, getDb } from '../db.js';
 import { generateToken } from '../lib/token.js';
-import { validateUsername, validateTier, buildRelayUrl } from '../lib/validate.js';
+import { validateUsername, validateTier, buildRelayUrl, TIERS } from '../lib/validate.js';
 import { registerLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -22,6 +22,16 @@ router.post('/register', registerLimiter, async (req, res) => {
 
     const tv = validateTier(req.body.tier);
     if (!tv.valid) return res.status(400).json({ error: tv.error });
+
+    // Premium handles are PAID. They are only ever created by /api/handle/claim-reserved
+    // (activation code from a purchase) or by the managed-tier provisioner. Without this
+    // check anyone could squat a paid name for free, and a buyer who reserved it would then
+    // fail at checkout/provision with "already taken".
+    if (TIERS[tv.tier]?.paid) {
+      return res.status(403).json({
+        error: 'This handle tier is paid. Reserve it at morphyagent.com and activate it with your code.',
+      });
+    }
 
     const walletAddress = req.body.walletAddress || null;
 
