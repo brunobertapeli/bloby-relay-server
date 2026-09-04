@@ -47,18 +47,19 @@ initializing → ready`. Instance management lives on the **Dashboard** (per-bot
 
 ---
 
-## Golden AMI — `morphy-golden-v3`
+## Golden AMI — `morphy-golden-v4`
 
 Base: **Amazon Linux 2023, ARM64 (Graviton)**. v3 (2026-09-03) was built from v2 with the fast
 path (`morphyagent` refreshed to **0.5.0**, new `provision.sh`, stale root-home `morphy` symlink
-removed). v2 ids are kept below until v3 has provisioned a real box; then deregister v2 + its
-snapshots (`snap-095a362fb04ed1ee0` / `snap-0ddefa0f13019bc31` / `snap-03c420f130e322993`).
+removed). v4 (2026-09-04) = v3 + `provision.sh` re-execs itself as root + the stray
+`/etc/cloud/cloud.cfg.d/99-fluxy.cfg` (which ran provision.sh as `su ec2-user`) removed.
+v2 and v3 were deregistered after v4 provisioned a real box.
 
-| Region | AMI ID (v3) | AWS Region | previous (v2) |
-|--------|-------------|------------|---------------|
-| North America | `ami-0aa5eb0bc5c015bd0` | us-east-1 | `ami-0ce59f56351efd54a` |
-| Europe | `ami-082d0b4f75f505f29` | eu-central-1 | `ami-01eb42c7c21a53b5d` |
-| Brazil | `ami-02f6b2b7a3e441cf2` | sa-east-1 | `ami-0e78338c9d50be5ed` |
+| Region | AMI ID (v4) | AWS Region | snapshot |
+|--------|-------------|------------|----------|
+| North America | `ami-0a9da362c5db5f5ce` | us-east-1 | `snap-035df0f1aa9cf9cc6` |
+| Europe | `ami-066e27abfe88d9adb` | eu-central-1 | see `describe-images` |
+| Brazil | `ami-008352febbee87da0` | sa-east-1 | see `describe-images` |
 
 Baked in (see `infra/bake-setup.sh` for the exact build):
 - Node.js 22 (system, nodesource) + `jq`
@@ -245,9 +246,9 @@ locked in `handle_reservations` (unique) at webhook time; a duplicate purchase i
 # AWS
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
-AMI_US_EAST_1=ami-0aa5eb0bc5c015bd0
-AMI_EU_CENTRAL_1=ami-082d0b4f75f505f29
-AMI_SA_EAST_1=ami-02f6b2b7a3e441cf2
+AMI_US_EAST_1=ami-0a9da362c5db5f5ce
+AMI_EU_CENTRAL_1=ami-066e27abfe88d9adb
+AMI_SA_EAST_1=ami-008352febbee87da0
 SG_US_EAST_1=sg-023fa7964b46feb25
 SG_EU_CENTRAL_1=sg-0956278b8533089dc
 SG_SA_EAST_1=sg-0ab1b5fa370b4e673
@@ -273,14 +274,13 @@ SWEEPER_DISABLED=1             # only if you ever run >1 relay replica
 > re-posts `ready` on every later boot. **Re-bake the golden AMI** to ship it
 > (`infra/MANAGED-DIRECT-SETUP.md` → "Re-bake the golden AMI", fast path).
 
-`aws.js` falls back to the v3 AMI ids if the env vars are unset, but Railway should set them
-explicitly (and they must be the v3 ids).
+`aws.js` falls back to the v4 AMI ids if the env vars are unset, but Railway should set them
+explicitly (and they must be the v4 ids).
 
 ---
 
 ## Old AMIs
 
 All historical images (`fluxy-golden` v1/v2/v3/v4 and `morphy-golden-v1`) have been
-**deregistered and their snapshots deleted**. `morphy-golden-v3` (×3 regions) is current;
-`morphy-golden-v2` (×3) is still registered as a rollback and should be deregistered (plus its
-three snapshots) once v3 has provisioned a real box end-to-end.
+**deregistered and their snapshots deleted**, as were `morphy-golden-v2` and `v3` after v4 was
+verified end-to-end (2026-09-04). Only `morphy-golden-v4` (×3 regions) exists.

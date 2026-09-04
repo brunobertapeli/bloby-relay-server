@@ -17,16 +17,16 @@ how the live system was built so a future change is mechanical.
 
 ---
 
-## Current golden AMI — `morphy-golden-v3` (2026-09-03, agent 0.5.0)
+## Current golden AMI — `morphy-golden-v4` (2026-09-04, agent 0.5.0)
 
-| Region | AMI ID | snapshot |
-|--------|--------|----------|
-| us-east-1 | `ami-0aa5eb0bc5c015bd0` | `snap-0c0a4c0a7ce4743e0` |
-| eu-central-1 | `ami-082d0b4f75f505f29` | `snap-0dc945db83e9555ea` |
-| sa-east-1 | `ami-02f6b2b7a3e441cf2` | `snap-07662794d36dc99dc` |
+| Region | AMI ID |
+|--------|--------|
+| us-east-1 | `ami-0a9da362c5db5f5ce` |
+| eu-central-1 | `ami-066e27abfe88d9adb` |
+| sa-east-1 | `ami-008352febbee87da0` |
 
-Previous `morphy-golden-v2` (`ami-0ce59f56351efd54a` / `ami-01eb42c7c21a53b5d` /
-`ami-0e78338c9d50be5ed`) is still registered as a rollback until v3 has provisioned a real box.
+v2 and v3 were deregistered (with their snapshots) after v4 provisioned, restarted and tore
+down a real box end-to-end.
 
 Set in `backend/.env` (`AMI_*`), `backend/lib/aws.js` (fallback defaults), and **Railway**.
 
@@ -102,9 +102,9 @@ BILLING_DISABLED=1               # TESTING ONLY — provision + reserve handles 
 AGENT_VERSION=0.4.7              # exact morphyagent version new boxes install (unset = keep the AMI's baked copy)
 SUSPEND_GRACE_DAYS=14            # stopped-box retention after a subscription ends, before termination
 PROVISION_TIMEOUT_MS=1500000     # sweeper: stuck provisioning → failed after this (default 25 min)
-AMI_US_EAST_1=ami-0aa5eb0bc5c015bd0
-AMI_EU_CENTRAL_1=ami-082d0b4f75f505f29
-AMI_SA_EAST_1=ami-02f6b2b7a3e441cf2
+AMI_US_EAST_1=ami-0a9da362c5db5f5ce
+AMI_EU_CENTRAL_1=ami-066e27abfe88d9adb
+AMI_SA_EAST_1=ami-008352febbee87da0
 SG_US_EAST_1=sg-023fa7964b46feb25
 SG_EU_CENTRAL_1=sg-0956278b8533089dc
 SG_SA_EAST_1=sg-0ab1b5fa370b4e673
@@ -236,6 +236,13 @@ On `ready`: `dig +short mytest.morphyagent.com` → Cloudflare anycast IPs; `htt
 - **`cfConfigured()` gates ALL DNS + account linking** in the `ready` callback. If `CF_API_TOKEN`/
   `CF_ZONE_ID` are unset/wrong, the box reports ready but no DNS is created and the handle is never
   linked → the bot is unreachable.
+- **provision.sh used to run as `ec2-user`, not root.** A leftover `/etc/cloud/cloud.cfg.d/99-fluxy.cfg`
+  (March 2026) defined `runcmd: [su, ec2-user, -c, provision.sh]`; sorting after `99-bloby.cfg`, it
+  replaced ours. Every root-only step (the `/var/log/bloby-provision.log` tee, `/etc` writes, the
+  systemd unit, `daemon-reload`, a fresh swapfile) failed silently — which is why that log never
+  existed on v1–v3 boxes. v4 deletes the stray file AND `provision.sh` now re-execs itself under
+  `sudo -n` when not root, so either runcmd form is safe. Check on a new box:
+  `head -1 /var/log/bloby-provision.log` should show `(uid 0)`.
 - **`sudo npm install -g morphyagent` runs the package postinstall as root**, which copies the
   app into `/root/.morphy` and leaves `/usr/local/bin/morphy → /root/.morphy/bin/cli.js`. Because
   sudo's `secure_path` lists `/usr/local/bin` before `/usr/bin`, that unexecutable link shadows

@@ -7,23 +7,23 @@ import {
 // ─── Region config ──────────────────────────────────────────────────────────
 // AMI IDs per region (must be copied to each region)
 const REGION_CONFIG = {
-  // Fallback AMI ids = morphy-golden-v3 (2026-09-03: agent 0.5.0 + new provision.sh).
-  // Railway should still set AMI_* explicitly; keep these in sync with INFRA.md.
+  // Fallback AMI ids = morphy-golden-v4 (2026-09-04: agent 0.5.0, provision.sh runs as root,
+  // boot re-post service). Railway should still set AMI_* explicitly; keep in sync with INFRA.md.
   na: {
     awsRegion: 'us-east-1',
-    amiId: process.env.AMI_US_EAST_1 || 'ami-0aa5eb0bc5c015bd0',
+    amiId: process.env.AMI_US_EAST_1 || 'ami-0a9da362c5db5f5ce',
     securityGroup: process.env.SG_US_EAST_1 || 'sg-023fa7964b46feb25',
     label: 'North America (Virginia)',
   },
   eu: {
     awsRegion: 'eu-central-1',
-    amiId: process.env.AMI_EU_CENTRAL_1 || 'ami-082d0b4f75f505f29',
+    amiId: process.env.AMI_EU_CENTRAL_1 || 'ami-066e27abfe88d9adb',
     securityGroup: process.env.SG_EU_CENTRAL_1 || 'sg-0956278b8533089dc',
     label: 'Europe (Frankfurt)',
   },
   br: {
     awsRegion: 'sa-east-1',
-    amiId: process.env.AMI_SA_EAST_1 || 'ami-02f6b2b7a3e441cf2',
+    amiId: process.env.AMI_SA_EAST_1 || 'ami-008352febbee87da0',
     securityGroup: process.env.SG_SA_EAST_1 || 'sg-0ab1b5fa370b4e673',
     label: 'Brazil (São Paulo)',
   },

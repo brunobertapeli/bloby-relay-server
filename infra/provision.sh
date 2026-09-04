@@ -26,9 +26,18 @@
 #
 set -uo pipefail
 
+# ── Must run as root ──────────────────────────────────────────────────────────
+# Observed on golden v3 (2026-09-04): cloud-init's runcmd invoked this script WITHOUT root, so
+# the log, /etc writes, the systemd unit and daemon-reload were all "Permission denied" (silently,
+# because the per-user steps use `sudo -u ec2-user` and still worked). ec2-user has NOPASSWD
+# sudo on AL2023, so re-exec ourselves under sudo instead of sprinkling sudo everywhere.
+if [ "$(id -u)" -ne 0 ]; then
+  exec sudo -n -E bash "$0" "$@"
+fi
+
 LOG=/var/log/bloby-provision.log
 exec > >(tee -a "$LOG") 2>&1
-echo "[provision] ===== $(date -u +%FT%TZ) starting ====="
+echo "[provision] ===== $(date -u +%FT%TZ) starting (uid $(id -u)) ====="
 
 RUN_USER=ec2-user
 RUN_HOME=/home/$RUN_USER
